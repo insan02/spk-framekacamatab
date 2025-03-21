@@ -1,0 +1,239 @@
+/* Basic Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    min-height: 100vh;
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f6f9;
+}
+
+/* Sidebar */
+#sidebar {
+    width: 250px;
+    height: 100vh;
+    background-color: #007bff;
+    color: #fff;
+    position: fixed;
+    left: 0;
+    top: 0;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.sidebar-header h4 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Sidebar Menu */
+.sidebar-menu {
+    flex: 1;
+    overflow-y: auto;
+    padding-top: 1rem;
+}
+
+#sidebar a {
+    color: #ffffff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+    white-space: nowrap;
+}
+
+#sidebar a i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+#sidebar a span {
+    transition: opacity 0.3s ease;
+}
+
+#sidebar a:hover,
+#sidebar a.active {
+    background-color: #0056b3;
+    border-left-color: #ffffff;
+}
+
+/* Content Area */
+#content {
+    flex: 1;
+    margin-left: 250px;
+    transition: all 0.3s ease;
+    width: calc(100% - 250px);
+    min-height: 100vh;
+}
+
+/* Collapsed State - Icon Only Mode */
+#sidebar.collapsed {
+    width: 60px;
+}
+
+#sidebar.collapsed .sidebar-header {
+    padding: 1rem 0;
+}
+
+#sidebar.collapsed .sidebar-header h4 {
+    opacity: 0;
+    display: none;
+}
+
+#sidebar.collapsed a {
+    padding: 0.8rem 0;
+    justify-content: center;
+}
+
+#sidebar.collapsed a i {
+    margin-right: 0;
+    font-size: 1.2rem;
+}
+
+#sidebar.collapsed a span {
+    opacity: 0;
+    display: none;
+}
+
+#content.expanded {
+    margin-left: 60px;
+    width: calc(100% - 60px);
+}
+
+/* For mobile - fully hide sidebar */
+@media (max-width: 768px) {
+    #sidebar {
+        left: -250px;
+    }
+    
+    #sidebar.collapsed {
+        left: 0;
+        width: 60px;
+    }
+
+    #content {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    #content.expanded {
+        margin-left: 60px;
+        width: calc(100% - 60px);
+    }
+}
+
+/* Navbar Styles */
+.main-header {
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.navbar-nav {
+    display: flex;
+    align-items: center;
+}
+
+.ml-auto {
+    margin-left: auto !important;
+}
+
+.navbar-nav .nav-item {
+    position: relative;
+}
+
+.navbar-nav .nav-link {
+    color: #6c757d;
+    padding: 0.5rem 1rem;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #343a40;
+}
+
+/* Dropdown styles */
+.dropdown-toggle {
+    color: #6c757d;
+    text-decoration: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+}
+
+.dropdown-toggle:hover {
+    color: #343a40;
+}
+
+.dropdown-menu {
+    padding: 0.5rem 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    border: 1px solid rgba(0,0,0,.15);
+    min-width: 10rem;
+}
+
+.dropdown-header {
+    font-weight: bold;
+    text-align: center;
+    color: #6c757d;
+    padding: 0.5rem 1rem;
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+    color: #212529;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown-divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-top: 1px solid #e9ecef;
+}
+
+/* Fix for icons */
+.mr-2 {
+    margin-right: 0.5rem !important;
+}
+
+/* Button link inside dropdown */
+.btn-link {
+    color: #212529;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+}
+
+.btn-link:hover {
+    color: #0056b3;
+    text-decoration: none;
+}
