@@ -69,9 +69,16 @@ class RekomendasiController extends Controller
         // Ambil bobot kriteria dari penilaian
         $bobotKriteriaUser = $penilaian->bobotKriterias->pluck('nilai_bobot', 'kriteria_id')->toArray();
         
+        // Calculate total bobot for normalization - UPDATED to match PenilaianController
+        $totalBobot = array_sum($bobotKriteriaUser);
+        if ($totalBobot <= 0) {
+            throw new \Exception("Total bobot kriteria harus lebih dari 0");
+        }
+        
         // Log data yang digunakan
         Log::info('User Subkriteria Selection:', $subkriteriaUser);
-        Log::info('User Bobot Kriteria:', $bobotKriteriaUser);
+        Log::info('User Bobot Kriteria (Raw):', $bobotKriteriaUser);
+        Log::info('Total Bobot:', ['value' => $totalBobot]);
         
         // 1. Ambil semua data kriteria dan frame
         $kriterias = Kriteria::with('subkriterias')->get();
@@ -162,11 +169,26 @@ class RekomendasiController extends Controller
         Log::info('GAP Values:', $gapValues);
         Log::info('GAP Weights:', $gapBobot);
         
-        // 4. Implementasi metode SMART untuk perangkingan
+        // 4. Implementasi metode SMART untuk perangkingan - UPDATED to match PenilaianController
         $finalScores = [];
         $finalScoresByName = [];
         $weightedScores = [];
         $weightedScoresByName = [];
+        $normalizedWeights = [];
+        
+        // 2. Normalisasi bobot kriteria (dibagi dengan total) - UPDATED to match PenilaianController
+        foreach ($kriterias as $kriteria) {
+            // Pastikan kriteria_id ada di bobotKriteriaUser
+            if (isset($bobotKriteriaUser[$kriteria->kriteria_id])) {
+                // Normalisasi: nilai bobot dibagi total bobot (tanpa dikali 100)
+                $normalizedWeights[$kriteria->kriteria_id] = $bobotKriteriaUser[$kriteria->kriteria_id] / $totalBobot;
+            } else {
+                // Fallback jika tidak ada, gunakan nilai default
+                $normalizedWeights[$kriteria->kriteria_id] = $kriteria->bobot_kriteria / 100;
+            }
+        }
+        
+        Log::info('Normalized Weights:', $normalizedWeights);
         
         foreach ($frames as $frame) {
             $finalScores[$frame->frame_id] = 0;
@@ -175,8 +197,8 @@ class RekomendasiController extends Controller
             $weightedScoresByName[$frame->frame_merek] = [];
             
             foreach ($kriterias as $kriteria) {
-                $bobotKriteria = $bobotKriteriaUser[$kriteria->kriteria_id] / 100; // Normalisasi bobot
-                $weightedValue = $bobotKriteria * $gapBobot[$frame->frame_id][$kriteria->kriteria_id];
+                // UPDATED: Use normalized weights instead of dividing by 100
+                $weightedValue = $normalizedWeights[$kriteria->kriteria_id] * $gapBobot[$frame->frame_id][$kriteria->kriteria_id];
                 
                 // Simpan nilai terbobot per kriteria
                 $weightedScores[$frame->frame_id][$kriteria->kriteria_id] = $weightedValue;
@@ -218,7 +240,8 @@ class RekomendasiController extends Controller
             'weightedScores' => $weightedScoresByName,
             'finalScores' => $finalScoresByName,
             'sortedScores' => $sortedFrames,
-            'bobotKriteria' => $bobotKriteriaDisplay
+            'bobotKriteria' => $bobotKriteriaDisplay,
+            'normalizedWeights' => $normalizedWeights // Added to show normalized weights
         ];
     }
 

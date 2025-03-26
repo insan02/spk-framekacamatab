@@ -3,107 +3,149 @@
 @section('content')
 <div class="container">
     <h2>Data Frame</h2>
-    <a href="{{ route('frame.create') }}" class="btn btn-primary mb-3">Tambah Frame</a>
 
-    <div class="row">
-        @foreach($frames as $frame)
-        <div class="col-md-4 mb-7">
-            <div class="card">
-                @if($frame->frame_foto && file_exists(public_path('storage/' . $frame->frame_foto)))
-                    <img src="{{ asset('storage/' . $frame->frame_foto) }}" 
-                         class="card-img-top mx-auto d-block" 
-                         alt="{{ $frame->frame_merek }}" 
-                         style="max-width: 200px; height: auto; object-fit: contain; margin: 15px auto;">
-                @else
-                    <div class="text-center p-3">
-                        <p>Gambar tidak tersedia</p>
-                    </div>
-                @endif
+    {{-- Notifikasi frame yang perlu dilengkapi --}}
+    @if($totalNeedsUpdate > 0)
+    <div class="alert alert-warning alert-dismissible fade show">
+        Terdapat <strong>{{ $totalNeedsUpdate }} frame</strong> yang perlu dilengkapi. 
+        <a href="{{ route('frame.needsUpdate') }}" class="alert-link">Lihat Daftar</a>
+    </div>
+    @endif
+    
+    @if(Session::has('update_needed') && Session::get('update_needed'))
+    <div class="alert alert-warning">
+        <strong>Perhatian!</strong> {{ Session::get('update_message') }}
+    </div>
+    @endif
 
-                <div class="card-body">
-                    <h5 class="card-title">{{ $frame->frame_merek }}</h5>
-                    <p class="card-text">Harga: Rp {{ number_format($frame->frame_harga, 0, ',', '.') }}</p>
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <tbody>
-                                @php
-                                    $groupedSubkriterias = $frame->frameSubkriterias->groupBy('kriteria_id');
-                                @endphp
-                                
-                                @foreach($groupedSubkriterias as $kriteriaId => $subkriterias)
-                                    <tr>
-                                        <td>{{ $subkriterias->first()->kriteria->kriteria_nama }}</td>
-                                        <td>
-                                            @foreach($subkriterias as $nilai)
-                                                {{ $nilai->subkriteria->subkriteria_nama }}
-                                                @if(!$loop->last)
-                                                    <br>
-                                                @endif
-                                            @endforeach
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mt-3">
-                        <a href="{{ route('frame.edit', $frame->frame_id) }}" class="btn btn-warning btn-sm">Edit</a>
-                        <form action="{{ route('frame.destroy', $frame->frame_id) }}" method="POST" class="d-inline">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menghapus?')">Hapus</button>
-                        </form>
-                    </div>
-                </div>
+    <div class="d-flex justify-content-between mb-3">
+        <div>
+            <a href="{{ route('frame.create') }}" class="btn btn-primary me-2">Tambah Frame</a>
+            <form action="{{ route('frame.reset-kriteria') }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin mereset kriteria SEMUA frame? Data frame akan tetap tersimpan.');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-warning">Reset Kriteria Frame</button>
+            </form>
+        </div>
+        <div>
+            <span class="text-muted">Menampilkan {{ $frames->firstItem() ?? 0 }} - {{ $frames->lastItem() ?? 0 }} dari {{ $frames->total() ?? 0 }} data</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>No</th>
+                            <th>Foto</th>
+                            <th>Merek</th>
+                            <th>Harga</th>
+                            <th>Kriteria</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($frames as $index => $frame)
+                            @php
+                                $needsUpdate = isset($frameNeedsUpdate[$frame->frame_id]);
+                                $groupedSubkriterias = $frame->frameSubkriterias->groupBy('kriteria_id');
+                            @endphp
+                            <tr @if($needsUpdate) class="table-warning" @endif>
+                                <td>{{ $frames->firstItem() + $index }}</td>
+                                <td class="text-center">
+                                    @if($frame->frame_foto && file_exists(public_path('storage/' . $frame->frame_foto)))
+                                        <img src="{{ asset('storage/' . $frame->frame_foto) }}" 
+                                            alt="{{ $frame->frame_merek }}" 
+                                            class="img-thumbnail" 
+                                            style="max-width: 100px; max-height: 80px;">
+                                    @else
+                                        <span class="text-muted">Tidak ada gambar</span>
+                                    @endif
+                                </td>
+                                <td>{{ $frame->frame_merek }}</td>
+                                <td>Rp {{ number_format($frame->frame_harga, 0, ',', '.') }}</td>
+                                <td>
+                                    <a href="{{ route('frame.show', $frame->frame_id) }}" class="btn btn-sm btn-info">
+                                        Lihat Detail
+                                    </a>
+                                </td>
+                                <td>
+                                    @if($needsUpdate)
+                                        <span class="badge bg-warning">Perlu dilengkapi</span>
+                                    @else
+                                        <span class="badge bg-success">Lengkap</span>
+                                    @endif
+                                </td>                                                               
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        {{-- @if($needsUpdate)
+                                            <a href="{{ route('frame.checkUpdates', $frame->frame_id) }}" class="btn btn-sm btn-info">Lengkapi</a>
+                                        @endif --}}
+                                        <a href="{{ route('frame.edit', $frame->frame_id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                        <form action="{{ route('frame.destroy', $frame->frame_id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Yakin ingin menghapus?')">Hapus</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center">Tidak ada data frame</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
-        @endforeach
+    </div>
+    
+    <div class="mt-4">
+        {{-- Improved pagination styling --}}
+        @if ($frames->hasPages())
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {{-- Previous Page Link --}}
+                    @if ($frames->onFirstPage())
+                        <li class="page-item disabled">
+                            <span class="page-link">«</span>
+                        </li>
+                    @else
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $frames->previousPageUrl() }}" rel="prev" aria-label="Previous">«</a>
+                        </li>
+                    @endif
+
+                    {{-- Pagination Elements --}}
+                    @foreach ($frames->getUrlRange(max(1, $frames->currentPage() - 2), min($frames->lastPage(), $frames->currentPage() + 2)) as $page => $url)
+                        @if ($page == $frames->currentPage())
+                            <li class="page-item active">
+                                <span class="page-link">{{ $page }}</span>
+                            </li>
+                        @else
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                            </li>
+                        @endif
+                    @endforeach
+
+                    {{-- Next Page Link --}}
+                    @if ($frames->hasMorePages())
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $frames->nextPageUrl() }}" rel="next" aria-label="Next">»</a>
+                        </li>
+                    @else
+                        <li class="page-item disabled">
+                            <span class="page-link">»</span>
+                        </li>
+                    @endif
+                </ul>
+            </nav>
+        @endif
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Handle adding new subkriteria select
-    const addButtons = document.querySelectorAll('.add-subkriteria');
-    
-    addButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const kriteriaId = this.getAttribute('data-kriteria-id');
-            const container = document.querySelector(`#subkriteria-container-${kriteriaId}`);
-            
-            // Create new row
-            const newRow = document.createElement('div');
-            newRow.classList.add('subkriteria-entry', 'mb-2');
-            
-            // Get the original select's HTML
-            const originalSelect = container.querySelector('select');
-            
-            // Create the new row HTML
-            newRow.innerHTML = `
-                <div class="input-group">
-                    <select name="nilai[${kriteriaId}][]" class="form-control" required>
-                        ${originalSelect.innerHTML}
-                    </select>
-                    <div class="input-group-append">
-                        <button type="button" class="btn btn-danger remove-subkriteria">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            // Add remove functionality
-            const removeButton = newRow.querySelector('.remove-subkriteria');
-            removeButton.addEventListener('click', function() {
-                newRow.remove();
-            });
-            
-            // Add the new row to the container
-            container.appendChild(newRow);
-        });
-    });
-});
-</script>
-@endpush

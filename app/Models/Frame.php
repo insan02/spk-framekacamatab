@@ -18,6 +18,11 @@ class Frame extends Model
         'frame_harga',
     ];
 
+    public function subkriterias()
+{
+    return $this->belongsToMany(Subkriteria::class, 'frame_subkriteria', 'frame_id', 'subkriteria_id');
+}
+
     public function frameSubkriterias()
     {
         return $this->hasMany(FrameSubkriteria::class, 'frame_id');

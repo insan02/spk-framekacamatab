@@ -3,6 +3,11 @@
 @section('content')
 <div class="container">
     <h2>Daftar Kriteria</h2>
+    @if(session('error'))
+        <div class="alert alert-danger">
+            {{ session('error') }}
+        </div>
+    @endif
     <a href="{{ route('kriteria.create') }}" class="btn btn-primary mb-3">Tambah Kriteria</a>
 
     @if(session('success'))

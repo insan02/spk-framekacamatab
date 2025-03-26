@@ -114,32 +114,9 @@
                 <!-- 5. GAP Bobot Values -->
                 <div class="mb-5">
                     <h5 class="mb-3">5. Konversi GAP ke Nilai Bobot</h5>
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Alternatif</th>
-                                    @foreach(array_keys(reset($detailPerhitungan['gapBobot'])) as $kriteria)
-                                    <th>{{ $kriteria }}</th>
-                                    @endforeach
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($detailPerhitungan['gapBobot'] as $frame => $nilai)
-                                <tr>
-                                    <td>{{ $frame }}</td>
-                                    @foreach($nilai as $k => $v)
-                                    <td>{{ number_format($v, 2) }}</td>
-                                    @endforeach
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    
                     <!-- Tabel Bobot GAP -->
                     <div class="mt-3">
-                        <h6>Tabel Konversi Bobot GAP:</h6>
+                        <h6>Tabel Bobot GAP:</h6>
                         <div class="table-responsive">
                             <table class="table table-bordered table-sm" style="max-width: 500px;">
                                 <thead>
@@ -198,6 +175,29 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                    <h6>Tabel Konversi Bobot GAP:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Alternatif</th>
+                                    @foreach(array_keys(reset($detailPerhitungan['gapBobot'])) as $kriteria)
+                                    <th>{{ $kriteria }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($detailPerhitungan['gapBobot'] as $frame => $nilai)
+                                <tr>
+                                    <td>{{ $frame }}</td>
+                                    @foreach($nilai as $k => $v)
+                                    <td>{{ number_format($v, 2) }}</td>
+                                    @endforeach
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 

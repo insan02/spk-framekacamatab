@@ -19,7 +19,7 @@ class Subkriteria extends Model
     ];
 
     protected $casts = [
-        'subkriteria_bobot' => 'decimal:2',
+        'subkriteria_bobot' => 'float',
     ];
 
     public function kriteria()

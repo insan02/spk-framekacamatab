@@ -16,6 +16,7 @@ class BobotKriteria extends Model
         'penilaian_id',
         'kriteria_id',
         'nilai_bobot',
+        'kriteria_nama_snapshot'
     ];
 
     public function pelanggan()

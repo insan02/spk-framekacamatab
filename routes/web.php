@@ -56,6 +56,8 @@ Route::middleware('auth')->group(function () {
         Route::get('subkriteria/{subkriteria}/edit', [SubkriteriaController::class, 'edit'])->name('subkriteria.edit');
         Route::put('subkriteria/{subkriteria}', [SubkriteriaController::class, 'update'])->name('subkriteria.update');
         Route::delete('subkriteria/{subkriteria}', [SubkriteriaController::class, 'destroy'])->name('subkriteria.destroy');
+        Route::delete('/subkriteria/reset/{kriteria_id}', [SubkriteriaController::class, 'resetSubkriteria'])
+        ->name('subkriteria.reset');
         
         // Frames - create, store, edit, update, destroy
         Route::get('frame/create', [FrameController::class, 'create'])->name('frame.create');
@@ -63,9 +65,18 @@ Route::middleware('auth')->group(function () {
         Route::get('frame/{frame}/edit', [FrameController::class, 'edit'])->name('frame.edit');
         Route::put('frame/{frame}', [FrameController::class, 'update'])->name('frame.update');
         Route::delete('frame/{frame}', [FrameController::class, 'destroy'])->name('frame.destroy');
+        Route::get('/frames/{frame}/check-updates', [FrameController::class, 'checkUpdates'])->name('frame.checkUpdates');
+        Route::get('/frame/batch-update', 'FrameController@batchUpdateForm')->name('frame.batchUpdateForm');
+        Route::post('/frame/batch-update', 'FrameController@batchUpdate')->name('frame.batchUpdate');
+        // web.php
+        Route::get('/frames/needs-update', [FrameController::class, 'needsUpdate'])
+            ->name('frame.needsUpdate');
+        Route::get('/frame/{frame}', [FrameController::class, 'show'])->name('frame.show');
+        Route::delete('/frames/reset-kriteria', [FrameController::class, 'resetFrameKriteria'])->name('frame.reset-kriteria');
 
         // Tambahkan route ini di dalam group middleware auth
         Route::post('penilaian', [PenilaianController::class, 'store'])->name('penilaian.store');
+        Route::post('/penilaian/process', [PenilaianController::class, 'process'])->name('penilaian.process');
 
         Route::get('rekomendasi', [RekomendasiController::class, 'index'])
             ->name('rekomendasi.index');
