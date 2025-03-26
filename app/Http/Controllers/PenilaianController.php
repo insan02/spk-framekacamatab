@@ -13,7 +13,7 @@ use App\Models\FrameSubkriteria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\Validator;
 class PenilaianController extends Controller
 {
     public function index()
@@ -89,110 +89,158 @@ class PenilaianController extends Controller
         $kriteria_dipilih[$kriteria->kriteria_nama] = $subkriteria->subkriteria_nama;
     }
 
-    // Render the results view
+    // Dapatkan semua data perhitungan
+    $hasilPerhitungan = $this->hitungProfileMatching($request->subkriteria, $request->bobot_kriteria, $totalBobot);
+    
+    // Render the results view dengan data tambahan
     $html = view('penilaian.result', [
         'nama_pelanggan' => $request->nama_pelanggan,
         'nohp_pelanggan' => $request->nohp_pelanggan,
         'alamat_pelanggan' => $request->alamat_pelanggan,
-        'rekomendasi' => $rekomendasi,
-        'kriteria_dipilih' => $kriteria_dipilih
+        'rekomendasi' => $hasilPerhitungan['rekomendasi'],
+        'kriteria_dipilih' => $kriteria_dipilih,
+        'perhitungan' => $hasilPerhitungan // Kirim semua data perhitungan
     ])->render();
 
     return response()->json([
         'html' => $html,
-        'rekomendasi' => $rekomendasi
+        'rekomendasi' => $hasilPerhitungan['rekomendasi']
     ]);
 }
 
 public function store(Request $request)
 {
-    // Check for incomplete frames before processing
+    // Validate request data with more comprehensive rules
+    $validator = Validator::make($request->all(), [
+        'nama_pelanggan' => 'required|string|max:255',
+        'nohp_pelanggan' => 'required|string|max:20',
+        'alamat_pelanggan' => 'required|string|max:255',
+        'subkriteria' => 'required|array|min:1',
+        'bobot_kriteria' => 'required|array|min:1',
+    ], [
+        'nama_pelanggan.required' => 'Nama pelanggan wajib diisi',
+        'nohp_pelanggan.required' => 'Nomor HP wajib diisi',
+        'alamat_pelanggan.required' => 'Alamat wajib diisi',
+        'subkriteria.required' => 'Kriteria wajib dipilih',
+        'bobot_kriteria.required' => 'Bobot kriteria wajib ditentukan',
+    ]);
+
+    // Check for validation errors
+    if ($validator->fails()) {
+        return response()->json([
+            'error' => 'Validasi gagal',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    // Check for incomplete frames
     $incompleteFrames = $this->checkIncompleteFrames();
-        
     if (count($incompleteFrames) > 0) {
         return response()->json([
-            'error' => 'Terdapat ' . count($incompleteFrames) . ' frame yang belum lengkap.',
-            'redirect_url' => route('penilaian.index')
+            'error' => 'Terdapat ' . count($incompleteFrames) . ' frame yang belum lengkap',
+            'incomplete_frames' => $incompleteFrames
         ], 400);
     }
 
-    // Start transaction
+    // Begin database transaction
     DB::beginTransaction();
     
     try {
-        // Validate request
-        $request->validate([
-            'nama_pelanggan' => 'required|string|max:255',
-            'nohp_pelanggan' => 'required|string|max:20',
-            'alamat_pelanggan' => 'required|string|max:255',
-            'subkriteria' => 'required|array',
-            'bobot_kriteria' => 'required|array',
-        ]);
-        
-        // Calculate total bobot for normalization
+        // Validate kriteria and subkriteria
+        $kriterias = Kriteria::whereIn('kriteria_id', array_keys($request->subkriteria))->get();
+        if ($kriterias->count() !== count($request->subkriteria)) {
+            throw new \Exception('Beberapa kriteria tidak valid');
+        }
+
+        // Validate kriteria selections
+        foreach ($kriterias as $kriteria) {
+            $subkriteria = Subkriteria::find($request->subkriteria[$kriteria->kriteria_id]);
+            if (!$subkriteria || $subkriteria->kriteria_id !== $kriteria->kriteria_id) {
+                throw new \Exception("Subkriteria tidak valid untuk kriteria {$kriteria->kriteria_nama}");
+            }
+        }
+
+        // Calculate total bobot
         $totalBobot = array_sum($request->bobot_kriteria);
         if ($totalBobot <= 0) {
             throw new \Exception("Total bobot kriteria harus lebih dari 0");
         }
-        
-        // Create penilaian
+
+        // Create penilaian record
         $penilaian = Penilaian::create([
             'tgl_penilaian' => now(),
             'nama_pelanggan' => $request->nama_pelanggan,
             'nohp_pelanggan' => $request->nohp_pelanggan,
             'alamat_pelanggan' => $request->alamat_pelanggan,
         ]);
-    
-        // Simpan bobot kriteria (original values, not normalized)
+
+        // Save bobot kriteria
+        $bobotKriteriaRecords = [];
         foreach ($request->bobot_kriteria as $kriteria_id => $bobot) {
-            BobotKriteria::create([
+            $bobotKriteriaRecords[] = [
                 'penilaian_id' => $penilaian->penilaian_id,
                 'kriteria_id' => $kriteria_id,
                 'nilai_bobot' => $bobot,
-            ]);
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
         }
-        
+        BobotKriteria::insert($bobotKriteriaRecords);
+
         // Save detail penilaian
+        $detailPenilaianRecords = [];
         foreach ($request->subkriteria as $kriteria_id => $subkriteria_id) {
-            DetailPenilaian::create([
+            $detailPenilaianRecords[] = [
                 'penilaian_id' => $penilaian->penilaian_id,
                 'kriteria_id' => $kriteria_id,
-                'subkriteria_id' => $subkriteria_id
-            ]);
+                'subkriteria_id' => $subkriteria_id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
         }
-    
-        // Proses Profile Matching & SMART - pass both original weights and total for normalization
+        DetailPenilaian::insert($detailPenilaianRecords);
+
+        // Proses Profile Matching & SMART
         $rekomendasi = $this->hitungProfileMatching($request->subkriteria, $request->bobot_kriteria, $totalBobot);
-    
+
         // Save rekomendasi
-        foreach ($rekomendasi as $index => $frame) {
-            Rekomendasi::create([
+        $rekomendasiRecords = [];
+        foreach ($rekomendasi['rekomendasi'] as $index => $frame) {
+            $rekomendasiRecords[] = [
                 'penilaian_id' => $penilaian->penilaian_id,
                 'frame_id' => $frame['frame']->frame_id,
-                'nilai_akhir' => (float)$frame['score'], // Ensure value is cast to float
-                'rangking' => $index + 1
-            ]);
+                'nilai_akhir' => (float)$frame['score'],
+                'rangking' => $index + 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
         }
-    
+        Rekomendasi::insert($rekomendasiRecords);
+
         // Commit transaction
         DB::commit();
         
-        // Return JSON response with redirect URL
+        // Return success response
         return response()->json([
             'success' => true,
+            'message' => 'Rekomendasi berhasil disimpan',
             'redirect_url' => route('rekomendasi.show', $penilaian->penilaian_id)
         ]);
     
     } catch (\Exception $e) {
-        // Rollback on error
+        // Rollback transaction
         DB::rollBack();
         
-        // Log error
-        Log::error('Store Error:', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        // Log detailed error
+        Log::error('Penilaian Store Error', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'request_data' => $request->all()
+        ]);
         
-        // Return JSON error response
+        // Return error response
         return response()->json([
-            'error' => 'Gagal menyimpan: ' . $e->getMessage()
+            'error' => 'Gagal menyimpan rekomendasi: ' . $e->getMessage()
         ], 500);
     }
 }
@@ -281,15 +329,35 @@ public function store(Request $request)
         return $finalScores[$frame->frame_id];
     });
 
-    // Return hasil rekomendasi dengan informasi skor
-    return $sortedFrames->map(function ($frame) use ($finalScores, $gapValues, $gapBobot) {
-        return [
-            'frame' => $frame,
-            'score' => round((float)$finalScores[$frame->frame_id], 2), // Ensure score is properly rounded and cast to float
-            'gap_values' => $gapValues[$frame->frame_id],
-            'gap_bobot' => $gapBobot[$frame->frame_id]
-        ];
-    })->values();
+    // Kumpulkan semua data yang diperlukan
+    return [
+        'rekomendasi' => $sortedFrames->map(function ($frame) use ($finalScores, $gapValues, $gapBobot, $subkriteriaUser, $kriterias) {
+            // Kumpulkan detail per kriteria untuk tampilan
+            $details = [];
+            foreach ($kriterias as $kriteria) {
+                $frameSubkriteria = $frame->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id)->first();
+                $userSubkriteria = Subkriteria::findOrFail($subkriteriaUser[$kriteria->kriteria_id]);
+                
+                $details[] = [
+                    'kriteria' => $kriteria,
+                    'frame_subkriteria' => $frameSubkriteria->subkriteria,
+                    'user_subkriteria' => $userSubkriteria,
+                ];
+            }
+            
+            return [
+                'frame' => $frame,
+                'score' => round((float)$finalScores[$frame->frame_id], 2),
+                'gap_values' => $gapValues[$frame->frame_id],
+                'gap_bobot' => $gapBobot[$frame->frame_id],
+                'details' => $details,
+            ];
+        })->values(),
+        'kriterias' => $kriterias,
+        'bobotKriteria' => $bobotKriteria,
+        'totalBobot' => $totalBobot,
+        'bobotKriteriaUser' => $bobotKriteriaUser,
+    ];
 }
 
     private function convertGapToBobot($gap)

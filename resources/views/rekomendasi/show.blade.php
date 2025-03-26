@@ -245,7 +245,7 @@
                             <tbody>
                                 @php $rank = 1; @endphp
                                 @foreach($detailPerhitungan['sortedScores'] as $frame => $nilai)
-                                <tr class="{{ $rank <= 3 ? ($rank === 1 ? 'table-primary' : ($rank === 2 ? 'table-info' : 'table-light')) : '' }}">
+                                <tr class="{{ $rank <= 5 ? 'table-primary' :''}}">
                                     <td>{{ $rank }}</td>
                                     <td>{{ $frame }}</td>
                                     <td>{{ number_format($nilai, 4) }}</td>

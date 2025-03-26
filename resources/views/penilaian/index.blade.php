@@ -115,9 +115,6 @@
     {{-- Section to display processed results (initially hidden) --}}
     <div id="hasilPenilaianSection" style="display: none;" class="mt-4">
         <div class="card">
-            <div class="card-header">
-                <h4>Hasil Penilaian</h4>
-            </div>
             <div class="card-body" id="hasilPenilaianContent">
                 {{-- Dynamic content will be loaded here --}}
             </div>
