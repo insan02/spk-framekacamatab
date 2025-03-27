@@ -52,7 +52,7 @@
         </div>
 
         <div class="card mb-3">
-            <div class="card-header">Bobot Kriteria (Akan dinormalisasi secara otomatis)</div>
+            <div class="card-header">Bobot Kriteria</div>
             <div class="card-body">
                 <div class="row">
                     @foreach($kriterias as $kriteria)
@@ -68,10 +68,8 @@
                     </div>
                     @endforeach
                 </div>
-                <div class="alert alert-info mt-2">
-                    <p>Total Bobot: <span id="total-bobot">100</span></p>
-                    <p>Bobot Ternormalisasi (bobot/total):</p>
-                    <div id="normalized-weights"></div>
+                <div id="bobot-warning" class="alert alert-warning" style="display: none;">
+                    Peringatan: Setiap kriteria harus memiliki bobot antara 1 dan 100
                 </div>
             </div>
         </div>
@@ -129,53 +127,40 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const bobotInputs = document.querySelectorAll('.bobot-kriteria');
-    const totalBobotDisplay = document.getElementById('total-bobot');
-    const normalizedWeightsDisplay = document.getElementById('normalized-weights');
     const submitBtn = document.getElementById('submit-btn');
     const hasilPenilaianSection = document.getElementById('hasilPenilaianSection');
     const hasilPenilaianContent = document.getElementById('hasilPenilaianContent');
     const editPenilaianBtn = document.getElementById('editPenilaianBtn');
     const simpanPenilaianBtn = document.getElementById('simpanPenilaianBtn');
     const penilaianForm = document.getElementById('penilaianForm');
+    const bobotWarning = document.getElementById('bobot-warning');
 
-    // Existing total calculation function remains the same
-    function calculateTotal() {
-        let total = 0;
-        const weights = [];
+    function validateBobotInputs() {
+        let isValid = true;
         
         bobotInputs.forEach(input => {
-            const value = parseFloat(input.value || 0);
-            total += value;
-            const criteriaId = input.name.match(/\[(\d+)\]/)[1];
-            weights.push({
-                id: criteriaId,
-                name: input.closest('.form-group').querySelector('label').textContent,
-                value: value
-            });
+            const value = parseInt(input.value);
+            if (value < 1 || value > 100) {
+                isValid = false;
+                input.classList.add('is-invalid');
+            } else {
+                input.classList.remove('is-invalid');
+            }
         });
+
+        // Show/hide warning
+        bobotWarning.style.display = !isValid ? 'block' : 'none';
         
-        totalBobotDisplay.textContent = total;
-        
-        if (total > 0) {
-            let normalizedHTML = '';
-            weights.forEach(weight => {
-                const normalized = (weight.value / total).toFixed(4);
-                normalizedHTML += `<div>${weight.name}: ${normalized}</div>`;
-            });
-            normalizedWeightsDisplay.innerHTML = normalizedHTML;
-            submitBtn.disabled = @if(!empty($incompleteFrames)) true @else false @endif;
-        } else {
-            normalizedWeightsDisplay.innerHTML = '<div class="text-danger">Total bobot harus lebih dari 0</div>';
-            submitBtn.disabled = true;
-        }
+        // Disable submit button if inputs are invalid
+        submitBtn.disabled = !isValid || @if(!empty($incompleteFrames)) true @else false @endif;
     }
     
     bobotInputs.forEach(input => {
-        input.addEventListener('input', calculateTotal);
+        input.addEventListener('input', validateBobotInputs);
     });
     
-    // Initial calculation
-    calculateTotal();
+    // Initial validation
+    validateBobotInputs();
 
     // Handle form submission via AJAX
     penilaianForm.addEventListener('submit', function(e) {
@@ -193,16 +178,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Accept': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            // Tambahkan pengecekan status response
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.error || 'Terjadi kesalahan saat memproses penilaian');
+                });
+            }
+            return response.json();
+        })
         .then(data => {
-            // Display results
-            hasilPenilaianContent.innerHTML = data.html;
-            hasilPenilaianSection.style.display = 'block';
-            penilaianForm.style.display = 'none';
+            // Pastikan data.html tersedia
+            if (data.html) {
+                // Display results
+                hasilPenilaianContent.innerHTML = data.html;
+                hasilPenilaianSection.style.display = 'block';
+                penilaianForm.style.display = 'none';
+            } else {
+                throw new Error('Data hasil tidak lengkap');
+            }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Terjadi kesalahan saat memproses penilaian');
+            alert(error.message || 'Terjadi kesalahan saat memproses penilaian');
         });
     });
 
