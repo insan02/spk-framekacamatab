@@ -122,7 +122,6 @@ class KriteriaController extends Controller
             // Cek semua relasi yang menggunakan kriteria ini
             $subkriteriaCount = $kriteria->subkriterias()->count();
             $frameRelationCount = $kriteria->frameSubkriterias()->count();
-            $penilaianCount = $kriteria->detailPenilaians()->count();
 
             $errorMessages = [];
             
@@ -134,9 +133,6 @@ class KriteriaController extends Controller
                 $errorMessages[] = "digunakan dalam {$frameRelationCount} frame";
             }
             
-            if ($penilaianCount > 0) {
-                $errorMessages[] = "digunakan dalam {$penilaianCount} penilaian";
-            }
 
             if (!empty($errorMessages)) {
                 $message = "Kriteria '{$kriteriaName}' tidak dapat dihapus karena: ";

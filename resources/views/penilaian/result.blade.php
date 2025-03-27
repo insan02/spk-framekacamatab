@@ -279,7 +279,7 @@
                                             <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
                                                  alt="{{ $frame['frame']->frame_merek }}" 
                                                  class="img-thumbnail" 
-                                                 style="width: 180px; height: 90px; object-fit: cover;">
+                                                 style="max-width: 180px; max-height: 90px;">
                                         @else
                                             <div class="text-muted text-center">No Image</div>
                                         @endif

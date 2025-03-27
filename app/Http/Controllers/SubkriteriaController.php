@@ -176,7 +176,6 @@ class SubkriteriaController extends Controller
         
         // Cek semua relasi yang menggunakan subkriteria ini
         $frameRelationCount = $subkriteria->frameSubkriterias()->count();
-        $penilaianCount = $subkriteria->detailPenilaians()->count();
 
         $errorMessages = [];
         
@@ -184,9 +183,6 @@ class SubkriteriaController extends Controller
             $errorMessages[] = "digunakan dalam {$frameRelationCount} frame";
         }
         
-        if ($penilaianCount > 0) {
-            $errorMessages[] = "digunakan dalam {$penilaianCount} penilaian";
-        }
 
         if (!empty($errorMessages)) {
             $message = "Subkriteria '{$subkriteriaName}' (Kriteria: {$kriteriaName}) tidak dapat dihapus karena: ";
@@ -214,24 +210,16 @@ public function resetSubkriteria($kriteria_id)
             ->whereHas('frameSubkriterias', function($query) use ($kriteria_id) {
                 $query->where('kriteria_id', $kriteria_id);
             })
-            ->orWhereHas('detailPenilaians', function($query) use ($kriteria_id) {
-                $query->whereHas('subkriteria', function($subquery) use ($kriteria_id) {
-                    $subquery->where('kriteria_id', $kriteria_id);
-                });
-            })
             ->get();
 
         if ($restrictedSubkriterias->isNotEmpty()) {
             $errorDetails = [];
             foreach ($restrictedSubkriterias as $subkriteria) {
                 $frameCount = $subkriteria->frameSubkriterias()->where('kriteria_id', $kriteria_id)->count();
-                $penilaianCount = $subkriteria->detailPenilaians()->whereHas('subkriteria', function($query) use ($kriteria_id) {
-                    $query->where('kriteria_id', $kriteria_id);
-                })->count();
                 
                 $errorDetails[] = "Subkriteria '{$subkriteria->subkriteria_nama}' tidak dapat dihapus karena: " . 
-                    ($frameCount > 0 ? "digunakan dalam {$frameCount} frame. " : "") . 
-                    ($penilaianCount > 0 ? "digunakan dalam {$penilaianCount} penilaian." : "");
+                    ($frameCount > 0 ? "digunakan dalam {$frameCount} frame. " : "");
+                    
             }
 
             return redirect()->back()

@@ -38,8 +38,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
         Route::get('/password/edit', [ProfileController::class, 'editPassword'])->name('password.edit');
         Route::put('/password/update', [ProfileController::class, 'updatePassword'])->name('password.update');
-        Route::get('penilaian', [PenilaianController::class, 'index'])->name('penilaian.index');
-        Route::get('rekomendasi', [RekomendasiController::class, 'index'])->name('rekomendasi.index');
+        Route::get('rekomendasi', [RecommendationHistoryController::class, 'index'])->name('rekomendasi.index');
+        Route::get('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
     });
     
     // Routes only for karyawan (CRUD operations except show)
@@ -69,43 +69,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/frames/{frame}/check-updates', [FrameController::class, 'checkUpdates'])->name('frame.checkUpdates');
         Route::get('/frame/batch-update', 'FrameController@batchUpdateForm')->name('frame.batchUpdateForm');
         Route::post('/frame/batch-update', 'FrameController@batchUpdate')->name('frame.batchUpdate');
-        // web.php
+        
         Route::get('/frames/needs-update', [FrameController::class, 'needsUpdate'])
             ->name('frame.needsUpdate');
         Route::get('/frame/{frame}', [FrameController::class, 'show'])->name('frame.show');
         Route::delete('/frames/reset-kriteria', [FrameController::class, 'resetFrameKriteria'])->name('frame.reset-kriteria');
 
         // Tambahkan route ini di dalam group middleware auth
+        Route::get('penilaian', [PenilaianController::class, 'index'])->name('penilaian.index');
         Route::post('penilaian', [PenilaianController::class, 'store'])->name('penilaian.store');
         Route::post('/penilaian/process', [PenilaianController::class, 'process'])->name('penilaian.process');
         Route::post('/penilaian/store', [PenilaianController::class, 'store'])
         ->name('penilaian.store');
 
-        // Route::get('rekomendasi', [RekomendasiController::class, 'index'])
-        //     ->name('rekomendasi.index');
-        
-        // Route::get('rekomendasi/{penilaian}', [RekomendasiController::class, 'show'])
-        //     ->name('rekomendasi.show');
-        
-        // Route::get('rekomendasi/{penilaian}/print', [RekomendasiController::class, 'print'])
-        //     ->name('rekomendasi.print');
-        
-        // Route::delete('rekomendasi/{penilaian}', [RekomendasiController::class, 'destroy'])
-        //     ->name('rekomendasi.destroy');
+        Route::delete('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'destroy'])->name('rekomendasi.destroy');
 
-        // web.php
-        Route::resource('rekomendasi', RecommendationHistoryController::class)
-    ->only(['index', 'show', 'destroy'])
-    ->names([
-        'index' => 'rekomendasi.index',
-        'show' => 'rekomendasi.show',
-        'destroy' => 'rekomendasi.destroy'
-    ]);
+        Route::get('/rekomendasi/{id}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
+        });
 
-    Route::get('/rekomendasi/{id}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
-    });
-
-    
-
-    
+ 
 });

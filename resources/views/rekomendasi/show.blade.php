@@ -117,7 +117,7 @@
                 </div>
             </div>
 
-            {{-- Calculation Details Tabs --}}
+            {{-- Calculation Details --}}
             @php
                 $perhitungan = $history->perhitungan_detail;
                 $rekomendasi = $history->rekomendasi_data ?? [];
@@ -131,188 +131,174 @@
                     </h4>
                 </div>
                 <div class="card-body">
-                    <ul class="nav nav-tabs" id="calculationTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profileFrame" type="button" role="tab">Nilai Profile Frame</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="gap-tab" data-bs-toggle="tab" data-bs-target="#perhitunganGap" type="button" role="tab">Perhitungan GAP</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="konversi-tab" data-bs-toggle="tab" data-bs-target="#konversiGap" type="button" role="tab">Konversi Nilai GAP</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="akhir-tab" data-bs-toggle="tab" data-bs-target="#nilaiAkhir" type="button" role="tab">Nilai Akhir SMART</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="ranking-tab" data-bs-toggle="tab" data-bs-target="#hasilPerangkingan" type="button" role="tab">Hasil Perangkingan</button>
-                        </li>
-                    </ul>
-                    <div class="tab-content mt-3" id="calculationTabsContent">
-                        {{-- 1. Nilai Profile Frame Tab --}}
-                        <div class="tab-pane fade" id="profileFrame" role="tabpanel">
-                            <div class="table-responsive">
-                                <table id="nilaiProfileFrameTable" class="table table-striped table-hover">
-                                    <thead class="table-primary">
-                                        <tr>
-                                            <th>Alternatif</th>
-                                            @foreach($kriterias as $kriteria)
-                                            <th>{{ $kriteria['kriteria_nama'] }}</th>
-                                            @endforeach
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($rekomendasi as $frame)
-                                        <tr>
-                                            <td>{{ $frame['frame']['frame_merek'] }}</td>
-                                            @foreach($kriterias as $kriteria)
-                                            @php
-                                                $detail = collect($frame['details'])->firstWhere('kriteria.kriteria_id', $kriteria['kriteria_id']);
-                                                $subkriteria = $detail['frame_subkriteria'];
-                                            @endphp
-                                            <td>{{ $subkriteria['subkriteria_nama'] }} ({{ $subkriteria['subkriteria_bobot'] }})</td>
-                                            @endforeach
-                                        </tr>
+                    {{-- 1. Nilai Profile Frame --}}
+                    <div class="mb-4">
+                        <h5 class="mb-3">1. Nilai Profile Frame</h5>
+                        <div class="table-responsive">
+                            <table id="nilaiProfileFrameTable" class="table table-striped table-hover">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th>Alternatif</th>
+                                        @foreach($kriterias as $kriteria)
+                                        <th>{{ $kriteria['kriteria_nama'] }}</th>
                                         @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($rekomendasi as $frame)
+                                    <tr>
+                                        <td>{{ $frame['frame']['frame_merek'] }}</td>
+                                        @foreach($kriterias as $kriteria)
+                                        @php
+                                            $detail = collect($frame['details'])->firstWhere('kriteria.kriteria_id', $kriteria['kriteria_id']);
+                                            $subkriteria = $detail['frame_subkriteria'];
+                                        @endphp
+                                        <td>{{ $subkriteria['subkriteria_nama'] }} ({{ $subkriteria['subkriteria_bobot'] }})</td>
+                                        @endforeach
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
+                    </div>
 
-                        {{-- 2. Perhitungan GAP Tab --}}
-                        <div class="tab-pane fade" id="perhitunganGap" role="tabpanel">
-                            <div class="table-responsive">
-                                <table id="perhitunganGapTable" class="table table-striped table-hover">
-                                    <thead class="table-danger">
-                                        <tr>
-                                            <th>Alternatif</th>
-                                            @foreach($kriterias as $kriteria)
-                                            <th>{{ $kriteria['kriteria_nama'] }}</th>
-                                            @endforeach
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($rekomendasi as $frame)
-                                        <tr>
-                                            <td>{{ $frame['frame']['frame_merek'] }}</td>
-                                            @foreach($kriterias as $kriteria)
-                                            <td>{{ $frame['gap_values'][$kriteria['kriteria_id']] }}</td>
-                                            @endforeach
-                                        </tr>
+                    {{-- 2. Perhitungan GAP --}}
+                    <div class="mb-4">
+                        <h5 class="mb-3">2. Perhitungan GAP</h5>
+                        <div class="table-responsive">
+                            <table id="perhitunganGapTable" class="table table-striped table-hover">
+                                <thead class="table-danger">
+                                    <tr>
+                                        <th>Alternatif</th>
+                                        @foreach($kriterias as $kriteria)
+                                        <th>{{ $kriteria['kriteria_nama'] }}</th>
                                         @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($rekomendasi as $frame)
+                                    <tr>
+                                        <td>{{ $frame['frame']['frame_merek'] }}</td>
+                                        @foreach($kriterias as $kriteria)
+                                        <td>{{ $frame['gap_values'][$kriteria['kriteria_id']] }}</td>
+                                        @endforeach
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
+                    </div>
 
-                        {{-- 3. Konversi Nilai GAP Tab --}}
-                        <div class="tab-pane fade" id="konversiGap" role="tabpanel">
-                            <div class="table-responsive">
-                                <table id="konversiNilaiGapTable" class="table table-striped table-hover">
-                                    <thead class="table-success">
-                                        <tr>
-                                            <th>Alternatif</th>
-                                            @foreach($kriterias as $kriteria)
-                                            <th>{{ $kriteria['kriteria_nama'] }}</th>
-                                            @endforeach
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($rekomendasi as $frame)
-                                        <tr>
-                                            <td>{{ $frame['frame']['frame_merek'] }}</td>
-                                            @foreach($kriterias as $kriteria)
-                                            <td>{{ $frame['gap_bobot'][$kriteria['kriteria_id']] }}</td>
-                                            @endforeach
-                                        </tr>
+                    {{-- 3. Konversi Nilai GAP --}}
+                    <div class="mb-4">
+                        <h5 class="mb-3">3. Konversi Nilai GAP</h5>
+                        <div class="table-responsive">
+                            <table id="konversiNilaiGapTable" class="table table-striped table-hover">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Alternatif</th>
+                                        @foreach($kriterias as $kriteria)
+                                        <th>{{ $kriteria['kriteria_nama'] }}</th>
                                         @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($rekomendasi as $frame)
+                                    <tr>
+                                        <td>{{ $frame['frame']['frame_merek'] }}</td>
+                                        @foreach($kriterias as $kriteria)
+                                        <td>{{ $frame['gap_bobot'][$kriteria['kriteria_id']] }}</td>
+                                        @endforeach
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
+                    </div>
 
-                        {{-- 4. Nilai Akhir SMART Tab --}}
-                        <div class="tab-pane fade" id="nilaiAkhir" role="tabpanel">
-                            <div class="table-responsive">
-                                <table id="nilaiAkhirSMARTTable" class="table table-striped table-hover">
-                                    <thead class="table-primary">
-                                        <tr>
-                                            <th>Alternatif</th>
-                                            @foreach($kriterias as $kriteria)
-                                            <th>{{ $kriteria['kriteria_nama'] }}</th>
-                                            @endforeach
-                                            <th>Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($rekomendasi as $frame)
-                                        <tr>
-                                            <td>{{ $frame['frame']['frame_merek'] }}</td>
-                                            @foreach($kriterias as $kriteria)
-                                            <td>
-                                                {{ number_format(
-                                                    $perhitungan['bobotKriteria'][$kriteria['kriteria_id']] * 
-                                                    $frame['gap_bobot'][$kriteria['kriteria_id']], 
-                                                    4
-                                                ) }}
-                                            </td>
-                                            @endforeach
-                                            <td><strong>{{ $frame['score'] }}</strong></td>
-                                        </tr>
+                    {{-- 4. Nilai Akhir SMART --}}
+                    <div class="mb-4">
+                        <h5 class="mb-3">4. Nilai Akhir SMART</h5>
+                        <div class="table-responsive">
+                            <table id="nilaiAkhirSMARTTable" class="table table-striped table-hover">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th>Alternatif</th>
+                                        @foreach($kriterias as $kriteria)
+                                        <th>{{ $kriteria['kriteria_nama'] }}</th>
                                         @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($rekomendasi as $frame)
+                                    <tr>
+                                        <td>{{ $frame['frame']['frame_merek'] }}</td>
+                                        @foreach($kriterias as $kriteria)
+                                        <td>
+                                            {{ number_format(
+                                                $perhitungan['bobotKriteria'][$kriteria['kriteria_id']] * 
+                                                $frame['gap_bobot'][$kriteria['kriteria_id']], 
+                                                4
+                                            ) }}
+                                        </td>
+                                        @endforeach
+                                        <td><strong>{{ $frame['score'] }}</strong></td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
+                    </div>
 
-                        {{-- 5. Hasil Perangkingan Tab --}}
-                        <div class="tab-pane fade show active" id="hasilPerangkingan" role="tabpanel">
-                            <div class="table-responsive">
-                                <table id="hasilPerangkinganTable" class="table table-hover table-striped">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th class="text-center">Ranking</th>
-                                            <th>Foto</th>
-                                            <th>Merek</th>
-                                            <th>Harga</th>
-                                            <th>Kriteria Utama</th>
-                                            <th class="text-center">Skor Akhir</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($rekomendasi as $index => $frame)
-                                        <tr>
-                                            <td class="text-center fw-bold">{{ $index + 1 }}</td>
-                                            <td>
-                                                @if(isset($frame['frame']['frame_foto']))
-                                                    <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
-                                                         alt="{{ $frame['frame']['frame_merek'] }}" 
-                                                         class="img-thumbnail" 
-                                                         style="width: 180px; height: 90px; object-fit: cover;">
-                                                @else
-                                                    <div class="text-muted text-center">No Image</div>
-                                                @endif
-                                            </td>
-                                            <td>{{ $frame['frame']['frame_merek'] }}</td>
-                                            <td>Rp {{ number_format($frame['frame']['frame_harga'], 0, ',', '.') }}</td>
-                                            <td>
-                                                <small>
-                                                    @foreach($frame['details'] as $detail)
-                                                        {{ $detail['kriteria']['kriteria_nama'] }}: 
-                                                        {{ $detail['frame_subkriteria']['subkriteria_nama'] }}<br>
-                                                    @endforeach
-                                                </small>
-                                            </td>
-                                            <td class="text-center">
-                                                <span class="badge bg-primary">
-                                                    {{ number_format($frame['score'], 4) }}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
+                    {{-- 5. Hasil Perangkingan --}}
+                    <div class="mb-4">
+                        <h5 class="mb-3">5. Hasil Perangkingan</h5>
+                        <div class="table-responsive">
+                            <table id="hasilPerangkinganTable" class="table table-hover table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center">Ranking</th>
+                                        <th>Foto</th>
+                                        <th>Merek</th>
+                                        <th>Harga</th>
+                                        <th>Kriteria Utama</th>
+                                        <th class="text-center">Skor Akhir</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($rekomendasi as $index => $frame)
+                                    <tr>
+                                        <td class="text-center fw-bold">{{ $index + 1 }}</td>
+                                        <td>
+                                            @if(isset($frame['frame']['frame_foto']))
+                                                <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
+                                                     alt="{{ $frame['frame']['frame_merek'] }}" 
+                                                     class="img-thumbnail" 
+                                                     style="max-width: 180px; max-height: 90px;">
+                                            @else
+                                                <div class="text-muted text-center">No Image</div>
+                                            @endif
+                                        </td>
+                                        <td>{{ $frame['frame']['frame_merek'] }}</td>
+                                        <td>Rp {{ number_format($frame['frame']['frame_harga'], 0, ',', '.') }}</td>
+                                        <td>
+                                            <small>
+                                                @foreach($frame['details'] as $detail)
+                                                    {{ $detail['kriteria']['kriteria_nama'] }}: 
+                                                    {{ $detail['frame_subkriteria']['subkriteria_nama'] }}<br>
+                                                @endforeach
+                                            </small>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary">
+                                                {{ number_format($frame['score'], 4) }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -332,8 +318,8 @@
 <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
 <script>
 $(document).ready(function() {
-    // DataTables initialization
-    $('#hasilPerangkinganTable, #nilaiProfileFrameTable, #perhitunganGapTable, #konversiNilaiGapTable, #nilaiAkhirSMARTTable').DataTable({
+    // DataTables initialization with improved search positioning
+    const dataTableConfig = {
         "pageLength": 10,
         "lengthChange": false,
         "language": {
@@ -345,10 +331,18 @@ $(document).ready(function() {
             "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
             "infoEmpty": "Tidak ada data yang ditampilkan",
             "zeroRecords": "Tidak ditemukan data yang cocok"
-        }
+        },
+        "dom": '<"row"<"col-sm-12 col-md-6"f><"col-sm-12 col-md-6 text-end"l>>rtip'
+    };
+
+    $('#hasilPerangkinganTable').DataTable({
+        ...dataTableConfig,
+        "order": [[0, 'asc']] // Sort by ranking
     });
 
-    // Modal image lightbox functionality
+    $('#nilaiProfileFrameTable, #perhitunganGapTable, #konversiNilaiGapTable, #nilaiAkhirSMARTTable').DataTable(dataTableConfig);
+
+    // Modal image lightbox functionality (remains unchanged)
     $('.img-thumbnail').on('click', function() {
         const src = $(this).attr('src');
         const alt = $(this).attr('alt');

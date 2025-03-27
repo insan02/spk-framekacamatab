@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" href="{{ asset('logokacamata.png') }}">
     <title>SPK Frame Kacamata</title>
     
     <!-- Bootstrap CSS -->
@@ -11,6 +12,9 @@
     
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
@@ -69,16 +73,15 @@
                     </a>
                     
                     <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
-                        <div class="dropdown-header d-flex justify-content-between align-items-center">
-                            <span>Profil</span>
-                        </div>
+                        <span class="dropdown-item dropdown-header">Profil</span>
                         <div class="dropdown-divider"></div>
                         <a href="{{ route('profile') }}" class="dropdown-item">
                             <i class="fas fa-user mr-2"></i> Lihat Profil
                         </a>
-                        <form action="{{ route('logout') }}" method="POST">
+                        <div class="dropdown-divider"></div>
+                        <form id="logout-form" action="{{ route('logout') }}" method="POST">
                             @csrf
-                            <button type="submit" class="dropdown-item">
+                            <button type="button" onclick="confirmLogout()" class="dropdown-item">
                                 <i class="fas fa-sign-out-alt mr-2"></i> Logout
                             </button>
                         </form>
@@ -96,8 +99,29 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
     <!-- Custom JS -->
     <script src="{{ asset('js/sidebar.js') }}"></script>
+    <script>
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Konfirmasi Logout',
+                text: 'Apakah Anda yakin ingin keluar?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Logout',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('logout-form').submit();
+                }
+            });
+        }
+    </script>
 
     @stack('scripts')
 </body>
