@@ -140,56 +140,64 @@ class PenilaianController extends Controller
               ->with('subkriteria');
     }])->get();
 
-    // Pastikan semua frame memiliki nilai untuk setiap kriteria
-    foreach ($frames as $frame) {
-        foreach ($kriterias as $kriteria) {
-            $frameSubkriteria = $frame->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id)->first();
-            if (!$frameSubkriteria) {
-                throw new \Exception("Frame {$frame->frame_merek} tidak memiliki nilai untuk kriteria {$kriteria->kriteria_nama}");
-            }
-        }
-    }
-
-    // 2. Normalisasi bobot kriteria (dibagi dengan total)
+    // 2. Normalisasi bobot kriteria
     $bobotKriteria = [];
     foreach ($kriterias as $kriteria) {
-        // Pastikan kriteria_id ada di bobotKriteriaUser
-        if (isset($bobotKriteriaUser[$kriteria->kriteria_id])) {
-            // Normalisasi: nilai bobot dibagi total bobot (tanpa dikali 100)
-            $bobotKriteria[$kriteria->kriteria_id] = $bobotKriteriaUser[$kriteria->kriteria_id] / $totalBobot;
-        } else {
-            // Fallback jika tidak ada, gunakan nilai default
-            $bobotKriteria[$kriteria->kriteria_id] = $kriteria->bobot_kriteria / 100;
-        }
+        $bobotKriteria[$kriteria->kriteria_id] = isset($bobotKriteriaUser[$kriteria->kriteria_id]) 
+            ? $bobotKriteriaUser[$kriteria->kriteria_id] / $totalBobot 
+            : $kriteria->bobot_kriteria / 100;
     }
-    
-    // Log normalized weights
-    Log::info('Normalized Weights:', $bobotKriteria);
     
     // 3. Hitung GAP untuk setiap frame
     $gapValues = [];
     $gapBobot = [];
+    $detailedGapInfo = []; // Tambahkan variabel untuk menyimpan informasi gap terperinci
     
     foreach ($frames as $frame) {
         $gapValues[$frame->frame_id] = [];
         $gapBobot[$frame->frame_id] = [];
+        $detailedGapInfo[$frame->frame_id] = []; // Inisialisasi array untuk frame ini
         
         foreach ($kriterias as $kriteria) {
-            $frameSubkriteria = $frame->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id)->first();
+            // Ambil semua subkriteria frame untuk kriteria ini
+            $frameSubkriterias = $frame->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id);
+            
+            // Ambil subkriteria pilihan user untuk kriteria ini
             $userSubkriteria = Subkriteria::findOrFail($subkriteriaUser[$kriteria->kriteria_id]);
             
-            // Hitung selisih (GAP)
-            $gap = $frameSubkriteria->subkriteria->subkriteria_bobot - $userSubkriteria->subkriteria_bobot;
-            $gapValues[$frame->frame_id][$kriteria->kriteria_id] = $gap;
+            // Temukan GAP terkecil di antara semua kombinasi subkriteria
+            $minGap = PHP_FLOAT_MAX;
+            $selectedFrameSubkriteria = null;
+            $selectedGapDetails = null;
             
-            // Konversi GAP ke nilai bobot sesuai tabel
-            $bobotGap = $this->convertGapToBobot($gap);
+            foreach ($frameSubkriterias as $frameSubkriteria) {
+                // Hitung selisih (GAP)
+                $gap = abs($frameSubkriteria->subkriteria->subkriteria_bobot - $userSubkriteria->subkriteria_bobot);
+                
+                // Update jika gap lebih kecil
+                if ($gap < $minGap) {
+                    $minGap = $gap;
+                    $selectedFrameSubkriteria = $frameSubkriteria->subkriteria;
+                    $selectedGapDetails = [
+                        'user_subkriteria' => $userSubkriteria,
+                        'frame_subkriteria' => $frameSubkriteria->subkriteria,
+                        'gap' => $gap
+                    ];
+                }
+            }
+            
+            // Simpan informasi gap
+            $gapValue = $selectedFrameSubkriteria->subkriteria_bobot - $userSubkriteria->subkriteria_bobot;
+            $gapValues[$frame->frame_id][$kriteria->kriteria_id] = $gapValue;
+            
+            // Konversi GAP ke nilai bobot
+            $bobotGap = $this->convertGapToBobot($gapValue);
             $gapBobot[$frame->frame_id][$kriteria->kriteria_id] = $bobotGap;
+            
+            // Simpan detail gap terperinci
+            $detailedGapInfo[$frame->frame_id][$kriteria->kriteria_id] = $selectedGapDetails;
         }
     }
-    
-    Log::info('GAP Values:', $gapValues);
-    Log::info('GAP Weights:', $gapBobot);
     
     // 4. Implementasi metode SMART untuk perangkingan
     $finalScores = [];
@@ -203,26 +211,31 @@ class PenilaianController extends Controller
         }
     }
     
-    Log::info('Final Scores:', $finalScores);
-    
-    // 5. Urutkan frame berdasarkan skor akhir (nilai lebih tinggi = peringkat lebih baik)
+    // 5. Urutkan frame berdasarkan skor akhir
     $sortedFrames = $frames->sortByDesc(function ($frame) use ($finalScores) {
         return $finalScores[$frame->frame_id];
     });
 
     // Kumpulkan semua data yang diperlukan
     return [
-        'rekomendasi' => $sortedFrames->map(function ($frame) use ($finalScores, $gapValues, $gapBobot, $subkriteriaUser, $kriterias) {
-            // Kumpulkan detail per kriteria untuk tampilan
+        'rekomendasi' => $sortedFrames->map(function ($frame) use (
+            $finalScores, 
+            $gapValues, 
+            $gapBobot, 
+            $subkriteriaUser, 
+            $kriterias,
+            $detailedGapInfo
+        ) {
+            // Kumpulkan detail per kriteria
             $details = [];
             foreach ($kriterias as $kriteria) {
-                $frameSubkriteria = $frame->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id)->first();
-                $userSubkriteria = Subkriteria::findOrFail($subkriteriaUser[$kriteria->kriteria_id]);
+                $gapDetail = $detailedGapInfo[$frame->frame_id][$kriteria->kriteria_id];
                 
                 $details[] = [
                     'kriteria' => $kriteria,
-                    'frame_subkriteria' => $frameSubkriteria->subkriteria,
-                    'user_subkriteria' => $userSubkriteria,
+                    'frame_subkriteria' => $gapDetail['frame_subkriteria'],
+                    'user_subkriteria' => $gapDetail['user_subkriteria'],
+                    'gap_detail' => $gapDetail
                 ];
             }
             
@@ -232,12 +245,14 @@ class PenilaianController extends Controller
                 'gap_values' => $gapValues[$frame->frame_id],
                 'gap_bobot' => $gapBobot[$frame->frame_id],
                 'details' => $details,
+                'detailed_gap_info' => $detailedGapInfo[$frame->frame_id]
             ];
         })->values(),
         'kriterias' => $kriterias,
         'bobotKriteria' => $bobotKriteria,
         'totalBobot' => $totalBobot,
         'bobotKriteriaUser' => $bobotKriteriaUser,
+        'detailedGapInfo' => $detailedGapInfo
     ];
 }
 
