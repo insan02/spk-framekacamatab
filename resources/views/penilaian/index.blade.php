@@ -288,63 +288,63 @@
     
         // Batal Edit button
         batalEditBtn.addEventListener('click', function() {
-            Swal.fire({
-                title: 'Batalkan Edit',
-                text: 'Apakah Anda yakin ingin membatalkan perubahan?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Batalkan',
-                cancelButtonText: 'Tidak'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Hide form and show results again
-                    penilaianForm.style.display = 'none';
-                    hasilPenilaianSection.style.display = 'block';
-                    
-                    // Restore original buttons
-                    batalEditBtn.style.display = 'none';
-                    submitBtn.style.display = 'none';
-                    editPenilaianBtn.style.display = 'inline-block';
-                    simpanPenilaianBtn.style.display = 'inline-block';
-                }
-            });
-        });
+        // Directly revert to results view without SweetAlert
+        penilaianForm.style.display = 'none';
+        hasilPenilaianSection.style.display = 'block';
+        
+        // Restore original buttons
+        batalEditBtn.style.display = 'none';
+        submitBtn.style.display = 'none';
+        editPenilaianBtn.style.display = 'inline-block';
+        simpanPenilaianBtn.style.display = 'inline-block';
+    });
     
         // Simpan Penilaian button
         simpanPenilaianBtn.addEventListener('click', function() {
-            // Send request to save recommendation
-            fetch('{{ route('penilaian.store') }}', {
-                method: 'POST',
-                body: new FormData(penilaianForm),
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Redirect to recommendation details
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil',
-                    text: 'Rekomendasi berhasil disimpan',
-                    showConfirmButton: false,
-                    timer: 1500
-                }).then(() => {
-                    window.location.href = data.redirect_url;
-                });
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Kesalahan',
-                    text: 'Terjadi kesalahan saat menyimpan rekomendasi'
-                });
-            });
+    // Send request to save recommendation
+    fetch('{{ route('penilaian.store') }}', {
+        method: 'POST',
+        body: new FormData(penilaianForm),
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Check if there's an error
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        // Redirect to recommendation details
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: 'Rekomendasi berhasil disimpan',
+            showConfirmButton: false,
+            timer: 1500
+        }).then(() => {
+            // Use redirect_url if available, otherwise fallback
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            } else if (data.recommendation_history_id) {
+                window.location.href = '/rekomendasi/' + data.recommendation_history_id;
+            } else {
+                // Fallback redirect
+                window.location.href = '{{ route('rekomendasi.index') }}';
+            }
         });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Kesalahan',
+            text: error.message || 'Terjadi kesalahan saat menyimpan rekomendasi'
+        });
+    });
+});
     });
     </script>
 @endsection

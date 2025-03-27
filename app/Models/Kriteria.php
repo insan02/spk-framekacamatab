@@ -31,13 +31,4 @@ class Kriteria extends Model
         return $this->hasMany(FrameSubkriteria::class, 'kriteria_id');
     }
 
-    public function detailPenilaians()
-    {
-        return $this->hasMany(DetailPenilaian::class, 'kriteria_id');
-    }
-    
-    public function bobotKriterias()
-    {
-        return $this->hasMany(BobotKriteria::class, 'kriteria_id');
-    }
 }

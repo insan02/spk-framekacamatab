@@ -69,15 +69,16 @@
                     </a>
                     
                     <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
-                        <span class="dropdown-item dropdown-header">Profil</span>
+                        <div class="dropdown-header d-flex justify-content-between align-items-center">
+                            <span>Profil</span>
+                        </div>
                         <div class="dropdown-divider"></div>
-                        <a href="{{ route('profile') }}" class="nav-link">
-                            <i class="fas fa-user"></i> Lihat Profil
+                        <a href="{{ route('profile') }}" class="dropdown-item">
+                            <i class="fas fa-user mr-2"></i> Lihat Profil
                         </a>
-                        <div class="dropdown-divider"></div>
-                        <form action="{{ route('logout') }}" method="POST" class="dropdown-item">
+                        <form action="{{ route('logout') }}" method="POST">
                             @csrf
-                            <button type="submit" class="btn btn-link p-0">
+                            <button type="submit" class="dropdown-item">
                                 <i class="fas fa-sign-out-alt mr-2"></i> Logout
                             </button>
                         </form>

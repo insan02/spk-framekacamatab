@@ -32,8 +32,4 @@ class Subkriteria extends Model
         return $this->hasMany(FrameSubkriteria::class, 'subkriteria_id');
     }
 
-    public function detailPenilaians()
-    {
-        return $this->hasMany(DetailPenilaian::class, 'subkriteria_id');
-    }
 }

@@ -1,82 +1,114 @@
 @extends('layouts.app')
-
 @section('content')
-<div class="container">
-    <h2>Riwayat Rekomendasi Frame Kacamata</h2>
-    
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
-    
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover">
-            <thead class="thead-light">
-                <tr>
-                    <th>Tanggal</th>
-                    <th>Nama Pelanggan</th>
-                    <th>Kriteria Terpilih</th>
-                    <th>3 Rekomendasi Terbaik</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($rekomendasis as $penilaian)
-                <tr>
-                    <td>{{ $penilaian->tgl_penilaian->setTimezone('Asia/Jakarta')->format('d/m/Y H:i') }} WIB</td>
-                    <td>{{ $penilaian->nama_pelanggan }}</td>
-                    <td>
-                        <ul class="list-unstyled mb-0">
-                            @foreach($penilaian->detailPenilaians as $detail)
-                            <li>
-                                <strong>{{ $detail->kriteria->kriteria_nama }}:</strong> 
-                                {{ $detail->subkriteria->subkriteria_nama }}
-                            </li>
-                            @endforeach
-                        </ul>
-                    </td>
-                    <td>
-                        @if($penilaian->rekomendasis->isNotEmpty())
-                            <ol class="pl-3 mb-0">
-                                @foreach($penilaian->rekomendasis->sortByDesc('nilai_akhir')->take(3) as $index => $rekomendasi)
-                                    <li>
-                                        <strong>{{ $rekomendasi->frame->frame_merek }}</strong> 
-                                        <small>({{ number_format($rekomendasi->nilai_akhir, 4) }})</small>
-                                    </li>
+<div class="container-fluid">
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="fas fa-history me-2"></i>Riwayat Rekomendasi
+            </h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped" id="riwayatTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Nama Pelanggan</th>
+                            <th>Kriteria Terpilih</th>
+                            <th>Rekomendasi Teratas</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($histories as $history)
+                        <tr>
+                            <td>{{ $history->created_at->format('d M Y H:i') }}</td>
+                            <td>{{ $history->nama_pelanggan }}</td>
+                            <td>
+                                @php
+                                    $kriteriaTerpilih = $history->kriteria_dipilih ?? [];
+                                @endphp
+                                @foreach($kriteriaTerpilih as $kriteria => $subkriteria)
+                                    <small>{{ $kriteria }}: {{ $subkriteria }}<br></small>
                                 @endforeach
-                            </ol>
-                        @else
-                            -
-                        @endif
-                    </td>
-                    <td class="text-nowrap">
-                        <div class="btn-group" role="group">
-                            <a href="{{ route('rekomendasi.show', $penilaian->penilaian_id) }}" 
-                               class="btn btn-info btn-sm">
-                                <i class="fas fa-eye"></i> Detail
-                            </a>
-                            <a href="{{ route('rekomendasi.print', $penilaian->penilaian_id) }}" 
-                               class="btn btn-success btn-sm">
-                                <i class="fas fa-print"></i> Cetak
-                            </a>
-                            <form action="{{ route('rekomendasi.destroy', $penilaian->penilaian_id) }}" 
-                                  method="POST" class="d-inline" 
-                                  onsubmit="return confirm('Hapus riwayat rekomendasi ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm">
-                                    <i class="fas fa-trash-alt"></i> Hapus
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+                            </td>
+                            <td>
+                                @php
+                                    $rekomendasi = $history->rekomendasi_data ?? [];
+                                    $topRekomendasi = $rekomendasi[0] ?? null;
+                                @endphp
+                                @if($topRekomendasi)
+                                    {{ $topRekomendasi['frame']['frame_merek'] }} 
+                                    (Skor: {{ number_format($topRekomendasi['score'], 4) }})
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ route('rekomendasi.show', $history->recommendation_history_id) }}" 
+                                       class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i> Detail
+                                    </a>
+                                    <form action="{{ route('rekomendasi.destroy', $history->recommendation_history_id) }}" 
+                                          method="POST" class="d-inline delete-form">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger delete-btn">
+                                            <i class="fas fa-trash"></i> Hapus
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        {{ $histories->links() }}
     </div>
 </div>
+</div>
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    // DataTables initialization
+    $('#riwayatTable').DataTable({
+        "pageLength": 10,
+        "lengthChange": false,
+        "order": [[0, 'desc']],
+        "language": {
+            "search": "Cari:",
+            "paginate": {
+                "next": "Selanjutnya",
+                "previous": "Sebelumnya"
+            },
+            "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+            "infoEmpty": "Tidak ada data yang ditampilkan",
+            "zeroRecords": "Tidak ditemukan data yang cocok"
+        }
+    });
+
+    // Delete confirmation
+    $('.delete-form').on('submit', function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Anda yakin?',
+            text: "Data riwayat rekomendasi akan dihapus permanen!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $(this).unbind('submit').submit();
+            }
+        });
+    });
+});
+</script>
+@endpush
 @endsection

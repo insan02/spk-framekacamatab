@@ -8,6 +8,7 @@ use App\Http\Controllers\FrameController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PenilaianController;
 use App\Http\Controllers\RekomendasiController;
+use App\Http\Controllers\RecommendationHistoryController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -77,19 +78,34 @@ Route::middleware('auth')->group(function () {
         // Tambahkan route ini di dalam group middleware auth
         Route::post('penilaian', [PenilaianController::class, 'store'])->name('penilaian.store');
         Route::post('/penilaian/process', [PenilaianController::class, 'process'])->name('penilaian.process');
+        Route::post('/penilaian/store', [PenilaianController::class, 'store'])
+        ->name('penilaian.store');
 
-        Route::get('rekomendasi', [RekomendasiController::class, 'index'])
-            ->name('rekomendasi.index');
+        // Route::get('rekomendasi', [RekomendasiController::class, 'index'])
+        //     ->name('rekomendasi.index');
         
-        Route::get('rekomendasi/{penilaian}', [RekomendasiController::class, 'show'])
-            ->name('rekomendasi.show');
+        // Route::get('rekomendasi/{penilaian}', [RekomendasiController::class, 'show'])
+        //     ->name('rekomendasi.show');
         
-        Route::get('rekomendasi/{penilaian}/print', [RekomendasiController::class, 'print'])
-            ->name('rekomendasi.print');
+        // Route::get('rekomendasi/{penilaian}/print', [RekomendasiController::class, 'print'])
+        //     ->name('rekomendasi.print');
         
-        Route::delete('rekomendasi/{penilaian}', [RekomendasiController::class, 'destroy'])
-            ->name('rekomendasi.destroy');
+        // Route::delete('rekomendasi/{penilaian}', [RekomendasiController::class, 'destroy'])
+        //     ->name('rekomendasi.destroy');
+
+        // web.php
+        Route::resource('rekomendasi', RecommendationHistoryController::class)
+    ->only(['index', 'show', 'destroy'])
+    ->names([
+        'index' => 'rekomendasi.index',
+        'show' => 'rekomendasi.show',
+        'destroy' => 'rekomendasi.destroy'
+    ]);
+
+    Route::get('/rekomendasi/{id}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
     });
+
+    
 
     
 });

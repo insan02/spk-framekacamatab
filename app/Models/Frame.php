@@ -28,8 +28,4 @@ class Frame extends Model
         return $this->hasMany(FrameSubkriteria::class, 'frame_id');
     }
 
-    public function rekomendasis()
-    {
-        return $this->hasMany(Rekomendasi::class, 'frame_id');
-    }
 }
