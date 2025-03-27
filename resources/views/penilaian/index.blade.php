@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
+{{-- Include SweetAlert CDN --}}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <div class="container">
     {{-- Display incomplete frames warning --}}
     @if(!empty($incompleteFrames))
@@ -20,7 +23,25 @@
     </div>
     @endif
 
-    <h2>Penilaian Pelanggan</h2>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Penilaian Pelanggan</h2>
+        <div>
+            <button 
+                id="editPenilaianBtn" 
+                class="btn btn-warning me-2" 
+                style="display: none;"
+            >
+                Edit Penilaian
+            </button>
+            <button 
+                id="simpanPenilaianBtn" 
+                class="btn btn-success" 
+                style="display: none;"
+            >
+                Simpan Rekomendasi
+            </button>
+        </div>
+    </div>
     
     {{-- Main form for assessment --}}
     <form method="POST" action="{{ route('penilaian.process') }}" id="penilaianForm">
@@ -56,7 +77,7 @@
             <div class="card-body">
                 <div class="row">
                     @foreach($kriterias as $kriteria)
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-12 mb-3">
                         <div class="form-group">
                             <label>{{ $kriteria->kriteria_nama }}</label>
                             <div class="input-group">
@@ -82,7 +103,7 @@
                     <h5>{{ $kriteria->kriteria_nama }}</h5>
                     <div class="row">
                         @foreach($kriteria->subkriterias as $subkriteria)
-                        <div class="col-md-3">
+                        <div class="col-md-12 mb-2">
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" 
                                     name="subkriteria[{{ $kriteria->kriteria_id }}]" 
@@ -100,14 +121,27 @@
             </div>
         </div>
         
-        <button 
-            type="submit" 
-            id="submit-btn" 
-            class="btn btn-primary mt-3"
-            @if(!empty($incompleteFrames)) disabled @endif
-        >
-            Proses Penilaian
-        </button>
+        <div class="d-flex justify-content-between mt-3">
+            <div>
+                <button 
+                    type="submit" 
+                    id="submit-btn" 
+                    class="btn btn-primary me-2"
+                    @if(!empty($incompleteFrames)) disabled @endif
+                >
+                    Proses Penilaian
+                </button>
+            
+                <button
+                    id="batalEditBtn" 
+                    class="btn btn-secondary" 
+                    style="display: none;"
+                >
+                    Batal Edit
+                </button>
+            </div>
+        </div>
+        
     </form>
 
     {{-- Section to display processed results (initially hidden) --}}
@@ -116,121 +150,201 @@
             <div class="card-body" id="hasilPenilaianContent">
                 {{-- Dynamic content will be loaded here --}}
             </div>
-            <div class="card-footer">
-                <button id="editPenilaianBtn" class="btn btn-warning">Edit Penilaian</button>
-                <button id="simpanPenilaianBtn" class="btn btn-success">Simpan Rekomendasi</button>
-            </div>
         </div>
     </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const bobotInputs = document.querySelectorAll('.bobot-kriteria');
-    const submitBtn = document.getElementById('submit-btn');
-    const hasilPenilaianSection = document.getElementById('hasilPenilaianSection');
-    const hasilPenilaianContent = document.getElementById('hasilPenilaianContent');
-    const editPenilaianBtn = document.getElementById('editPenilaianBtn');
-    const simpanPenilaianBtn = document.getElementById('simpanPenilaianBtn');
-    const penilaianForm = document.getElementById('penilaianForm');
-    const bobotWarning = document.getElementById('bobot-warning');
-
-    function validateBobotInputs() {
-        let isValid = true;
+    document.addEventListener('DOMContentLoaded', function() {
+        const bobotInputs = document.querySelectorAll('.bobot-kriteria');
+        const submitBtn = document.getElementById('submit-btn');
+        const hasilPenilaianSection = document.getElementById('hasilPenilaianSection');
+        const hasilPenilaianContent = document.getElementById('hasilPenilaianContent');
+        const editPenilaianBtn = document.getElementById('editPenilaianBtn');
+        const batalEditBtn = document.getElementById('batalEditBtn');
+        const simpanPenilaianBtn = document.getElementById('simpanPenilaianBtn');
+        const penilaianForm = document.getElementById('penilaianForm');
+        const bobotWarning = document.getElementById('bobot-warning');
+    
+        function validateBobotInputs() {
+            let isValid = true;
+            
+            bobotInputs.forEach(input => {
+                const value = parseInt(input.value);
+                if (value < 1 || value > 100) {
+                    isValid = false;
+                    input.classList.add('is-invalid');
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+    
+            // Show/hide warning
+            bobotWarning.style.display = !isValid ? 'block' : 'none';
+            
+            // Disable submit button if inputs are invalid
+            submitBtn.disabled = !isValid || @if(!empty($incompleteFrames)) true @else false @endif;
+        }
         
         bobotInputs.forEach(input => {
-            const value = parseInt(input.value);
-            if (value < 1 || value > 100) {
-                isValid = false;
-                input.classList.add('is-invalid');
-            } else {
-                input.classList.remove('is-invalid');
-            }
+            input.addEventListener('input', validateBobotInputs);
         });
-
-        // Show/hide warning
-        bobotWarning.style.display = !isValid ? 'block' : 'none';
         
-        // Disable submit button if inputs are invalid
-        submitBtn.disabled = !isValid || @if(!empty($incompleteFrames)) true @else false @endif;
-    }
+        // Initial validation
+        validateBobotInputs();
     
-    bobotInputs.forEach(input => {
-        input.addEventListener('input', validateBobotInputs);
-    });
-    
-    // Initial validation
-    validateBobotInputs();
-
-    // Handle form submission via AJAX
-    penilaianForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // Collect form data
-        const formData = new FormData(penilaianForm);
-
-        // Send AJAX request
-        fetch('{{ route('penilaian.process') }}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => {
-            // Tambahkan pengecekan status response
-            if (!response.ok) {
-                return response.json().then(errorData => {
-                    throw new Error(errorData.error || 'Terjadi kesalahan saat memproses penilaian');
+        // Handle form submission via AJAX
+        penilaianForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Check if in edit mode
+            const isEditMode = batalEditBtn.style.display !== 'none';
+            
+            // If in edit mode, show SweetAlert confirmation
+            if (isEditMode) {
+                Swal.fire({
+                    title: 'Konfirmasi Edit',
+                    text: 'Apakah Anda yakin ingin mengedit data penilaian?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Ya, Edit',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        processPenilaian();
+                    }
                 });
+                return;
             }
-            return response.json();
-        })
-        .then(data => {
-            // Pastikan data.html tersedia
-            if (data.html) {
-                // Display results
-                hasilPenilaianContent.innerHTML = data.html;
-                hasilPenilaianSection.style.display = 'block';
-                penilaianForm.style.display = 'none';
-            } else {
-                throw new Error('Data hasil tidak lengkap');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert(error.message || 'Terjadi kesalahan saat memproses penilaian');
+            
+            // If not in edit mode, directly process
+            processPenilaian();
+        });
+    
+        function processPenilaian() {
+            // Collect form data
+            const formData = new FormData(penilaianForm);
+    
+            // Send AJAX request
+            fetch('{{ route('penilaian.process') }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                // Tambahkan pengecekan status response
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.error || 'Terjadi kesalahan saat memproses penilaian');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Pastikan data.html tersedia
+                if (data.html) {
+                    // Display results
+                    hasilPenilaianContent.innerHTML = data.html;
+                    hasilPenilaianSection.style.display = 'block';
+                    penilaianForm.style.display = 'none';
+                    
+                    // Show edit and save buttons
+                    editPenilaianBtn.style.display = 'inline-block';
+                    simpanPenilaianBtn.style.display = 'inline-block';
+                    
+                    // Hide batal edit button if in edit mode
+                    batalEditBtn.style.display = 'none';
+                    submitBtn.style.display = 'inline-block';
+                } else {
+                    throw new Error('Data hasil tidak lengkap');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Kesalahan',
+                    text: error.message || 'Terjadi kesalahan saat memproses penilaian'
+                });
+            });
+        }
+    
+        // Edit Penilaian button
+        editPenilaianBtn.addEventListener('click', function() {
+            penilaianForm.style.display = 'block';
+            hasilPenilaianSection.style.display = 'none';
+            
+            // Show Batal Edit and Proses Penilaian buttons, hide other buttons
+            batalEditBtn.style.display = 'inline-block';
+            submitBtn.style.display = 'inline-block';
+            editPenilaianBtn.style.display = 'none';
+            simpanPenilaianBtn.style.display = 'none';
+        });
+    
+        // Batal Edit button
+        batalEditBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Batalkan Edit',
+                text: 'Apakah Anda yakin ingin membatalkan perubahan?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Batalkan',
+                cancelButtonText: 'Tidak'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Hide form and show results again
+                    penilaianForm.style.display = 'none';
+                    hasilPenilaianSection.style.display = 'block';
+                    
+                    // Restore original buttons
+                    batalEditBtn.style.display = 'none';
+                    submitBtn.style.display = 'none';
+                    editPenilaianBtn.style.display = 'inline-block';
+                    simpanPenilaianBtn.style.display = 'inline-block';
+                }
+            });
+        });
+    
+        // Simpan Penilaian button
+        simpanPenilaianBtn.addEventListener('click', function() {
+            // Send request to save recommendation
+            fetch('{{ route('penilaian.store') }}', {
+                method: 'POST',
+                body: new FormData(penilaianForm),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Redirect to recommendation details
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: 'Rekomendasi berhasil disimpan',
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(() => {
+                    window.location.href = data.redirect_url;
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Kesalahan',
+                    text: 'Terjadi kesalahan saat menyimpan rekomendasi'
+                });
+            });
         });
     });
-
-    // Edit Penilaian button
-    editPenilaianBtn.addEventListener('click', function() {
-        hasilPenilaianSection.style.display = 'none';
-        penilaianForm.style.display = 'block';
-    });
-
-    // Simpan Penilaian button
-    simpanPenilaianBtn.addEventListener('click', function() {
-        // Send request to save recommendation
-        fetch('{{ route('penilaian.store') }}', {
-            method: 'POST',
-            body: new FormData(penilaianForm),
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Redirect to recommendation details
-            window.location.href = data.redirect_url;
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Terjadi kesalahan saat menyimpan rekomendasi');
-        });
-    });
-});
-</script>
+    </script>
 @endsection
