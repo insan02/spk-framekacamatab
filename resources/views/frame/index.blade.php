@@ -19,6 +19,7 @@
     @endif
 
     <div class="d-flex justify-content-between mb-3">
+        @if(auth()->user()->role !== 'owner')
         <div>
             <a href="{{ route('frame.create') }}" class="btn btn-primary me-2">Tambah Frame</a>
             <form action="{{ route('frame.reset-kriteria') }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin mereset kriteria SEMUA frame? Data frame akan tetap tersimpan.');">
@@ -27,6 +28,7 @@
                 <button type="submit" class="btn btn-warning">Reset Kriteria Frame</button>
             </form>
         </div>
+        @endif
         <div>
             <span class="text-muted">Menampilkan {{ $frames->firstItem() ?? 0 }} - {{ $frames->lastItem() ?? 0 }} dari {{ $frames->total() ?? 0 }} data</span>
         </div>
@@ -44,7 +46,9 @@
                             <th>Harga</th>
                             <th>Kriteria</th>
                             <th>Status</th>
+                            @if(auth()->user()->role !== 'owner')
                             <th>Aksi</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -78,7 +82,8 @@
                                     @else
                                         <span class="badge bg-success">Lengkap</span>
                                     @endif
-                                </td>                                                               
+                                </td>  
+                                @if(auth()->user()->role !== 'owner')                                                             
                                 <td>
                                     <div class="btn-group" role="group">
                                         {{-- @if($needsUpdate)
@@ -92,6 +97,7 @@
                                         </form>
                                     </div>
                                 </td>
+                                @endif
                             </tr>
                         @empty
                             <tr>

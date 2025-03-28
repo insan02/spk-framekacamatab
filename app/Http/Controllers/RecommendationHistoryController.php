@@ -9,7 +9,7 @@ class RecommendationHistoryController extends Controller
 {
     public function index()
     {
-        $histories = RecommendationHistory::orderBy('created_at', 'desc')->paginate(10);
+        $histories = RecommendationHistory::orderBy('created_at', 'asc')->paginate(10);
         return view('rekomendasi.index', compact('histories'));
     }
 

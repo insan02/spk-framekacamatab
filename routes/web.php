@@ -35,6 +35,7 @@ Route::middleware('auth')->group(function () {
         Route::get('kriteria', [KriteriaController::class, 'index'])->name('kriteria.index');
         Route::get('subkriteria', [SubkriteriaController::class, 'index'])->name('subkriteria.index');
         Route::get('frame', [FrameController::class, 'index'])->name('frame.index');
+        Route::get('/frame/{frame}', [FrameController::class, 'show'])->name('frame.show');
         Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
         Route::get('/password/edit', [ProfileController::class, 'editPassword'])->name('password.edit');
         Route::put('/password/update', [ProfileController::class, 'updatePassword'])->name('password.update');
@@ -69,10 +70,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/frames/{frame}/check-updates', [FrameController::class, 'checkUpdates'])->name('frame.checkUpdates');
         Route::get('/frame/batch-update', 'FrameController@batchUpdateForm')->name('frame.batchUpdateForm');
         Route::post('/frame/batch-update', 'FrameController@batchUpdate')->name('frame.batchUpdate');
-        
         Route::get('/frames/needs-update', [FrameController::class, 'needsUpdate'])
             ->name('frame.needsUpdate');
-        Route::get('/frame/{frame}', [FrameController::class, 'show'])->name('frame.show');
         Route::delete('/frames/reset-kriteria', [FrameController::class, 'resetFrameKriteria'])->name('frame.reset-kriteria');
 
         // Tambahkan route ini di dalam group middleware auth

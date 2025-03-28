@@ -8,7 +8,10 @@
             {{ session('error') }}
         </div>
     @endif
-    <a href="{{ route('kriteria.create') }}" class="btn btn-primary mb-3">Tambah Kriteria</a>
+
+    @if(Auth::user()->role === 'karyawan')
+        <a href="{{ route('kriteria.create') }}" class="btn btn-primary mb-3">Tambah Kriteria</a>
+    @endif
 
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
@@ -19,7 +22,9 @@
             <tr>
                 <th>No</th>
                 <th>Nama Kriteria</th>
-                <th>Aksi</th>
+                @if(Auth::user()->role === 'karyawan')
+                    <th>Aksi</th>
+                @endif
             </tr>
         </thead>
         <tbody>
@@ -27,15 +32,16 @@
                 <tr>
                     <td>{{ $loop->iteration }}</td>
                     <td>{{ $kriteria->kriteria_nama }}</td>
-                    <td>
-                        <a href="{{ route('kriteria.edit', $kriteria->kriteria_id) }}" class="btn btn-warning btn-sm">Edit</a>
-                        <form action="{{ route('kriteria.destroy', $kriteria->kriteria_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus kriteria ini?')">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
-                        </form>
-                        
-                    </td>
+                    @if(Auth::user()->role === 'karyawan')
+                        <td>
+                            <a href="{{ route('kriteria.edit', $kriteria->kriteria_id) }}" class="btn btn-warning btn-sm">Edit</a>
+                            <form action="{{ route('kriteria.destroy', $kriteria->kriteria_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus kriteria ini?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                            </form>
+                        </td>
+                    @endif
                 </tr>
             @endforeach
         </tbody>

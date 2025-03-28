@@ -41,9 +41,13 @@
             <a href="{{ route('frame.index') }}" class="{{ request()->routeIs('frame.*') ? 'active' : '' }}">
                 <i class="fas fa-glasses"></i> <span>Frame</span>
             </a>
+            
+            @if(auth()->user()->role === 'karyawan')
             <a href="{{ route('penilaian.index') }}" class="{{ request()->routeIs('penilaian.*') ? 'active' : '' }}">
                 <i class="fas fa-tasks"></i> <span>Penilaian</span>
             </a>
+            @endif
+        
             <a href="{{ route('rekomendasi.index') }}" class="{{ request()->routeIs('rekomendasi.*') ? 'active' : '' }}">
                 <i class="fas fa-tasks"></i> <span>Riwayat Rekomendasi</span>
             </a>

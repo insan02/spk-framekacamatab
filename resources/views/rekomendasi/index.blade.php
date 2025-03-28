@@ -22,7 +22,7 @@
                     <tbody>
                         @foreach($histories as $history)
                         <tr>
-                            <td>{{ $history->created_at->format('d M Y H:i') }}</td>
+                            <td>{{ $history->created_at->setTimezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</td>
                             <td>{{ $history->nama_pelanggan }}</td>
                             <td>
                                 @php
@@ -50,6 +50,7 @@
                                        class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i> Detail
                                     </a>
+                                    @if(auth()->user()->role !== 'owner')
                                     <form action="{{ route('rekomendasi.destroy', $history->recommendation_history_id) }}" 
                                           method="POST" class="d-inline delete-form">
                                         @csrf
@@ -58,6 +59,7 @@
                                             <i class="fas fa-trash"></i> Hapus
                                         </button>
                                     </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -77,7 +79,7 @@ $(document).ready(function() {
     $('#riwayatTable').DataTable({
         "pageLength": 10,
         "lengthChange": false,
-        "order": [[0, 'desc']],
+        "order": [[0, 'asc']],
         "language": {
             "search": "Cari:",
             "paginate": {
