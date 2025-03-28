@@ -83,12 +83,14 @@
                             <i class="fas fa-user mr-2"></i> Lihat Profil
                         </a>
                         <div class="dropdown-divider"></div>
-                        <form id="logout-form" action="{{ route('logout') }}" method="POST">
+                        
+                        <form id="logout-form" method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="button" onclick="confirmLogout()" class="dropdown-item">
+                            <button type="button" id="logout-button" class="dropdown-item">
                                 <i class="fas fa-sign-out-alt mr-2"></i> Logout
                             </button>
                         </form>
+                        
                     </div>
                 </li>
             </ul>
@@ -108,24 +110,8 @@
 
     <!-- Custom JS -->
     <script src="{{ asset('js/sidebar.js') }}"></script>
-    <script>
-        function confirmLogout() {
-            Swal.fire({
-                title: 'Konfirmasi Logout',
-                text: 'Apakah Anda yakin ingin keluar?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Logout',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('logout-form').submit();
-                }
-            });
-        }
-    </script>
+    <script src="{{ asset('js/auth.js') }}"></script>
+    <script src="{{ asset('js/kriteria.js') }}"></script>
 
     @stack('scripts')
 </body>

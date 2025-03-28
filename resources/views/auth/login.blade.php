@@ -76,6 +76,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     
     <!-- Custom Login JS -->
-    <script src="{{ asset('js/login.js') }}"></script>
+    <script src="{{ asset('js/auth.js') }}"></script>
 </body>
 </html>

@@ -205,7 +205,7 @@ public function resetSubkriteria($kriteria_id)
     try {
         $kriteria = Kriteria::findOrFail($kriteria_id);
         
-        // Hanya cari subkriteria yang spesifik untuk kriteria ini
+        // Cari subkriteria yang terkait dengan frame
         $restrictedSubkriterias = Subkriteria::where('kriteria_id', $kriteria_id)
             ->whereHas('frameSubkriterias', function($query) use ($kriteria_id) {
                 $query->where('kriteria_id', $kriteria_id);
@@ -213,29 +213,30 @@ public function resetSubkriteria($kriteria_id)
             ->get();
 
         if ($restrictedSubkriterias->isNotEmpty()) {
-            $errorDetails = [];
+            $errorDetails = '<ul>'; // Awal list
             foreach ($restrictedSubkriterias as $subkriteria) {
-                $frameCount = $subkriteria->frameSubkriterias()->where('kriteria_id', $kriteria_id)->count();
+                $frameCount = $subkriteria->frameSubkriterias()
+                    ->where('kriteria_id', $kriteria_id)
+                    ->count();
                 
-                $errorDetails[] = "Subkriteria '{$subkriteria->subkriteria_nama}' tidak dapat dihapus karena: " . 
-                    ($frameCount > 0 ? "digunakan dalam {$frameCount} frame. " : "");
-                    
+                $errorDetails .= "<li>Subkriteria <strong>'{$subkriteria->subkriteria_nama}'</strong> tidak dapat dihapus karena digunakan dalam <strong>{$frameCount} frame</strong>.</li>";
             }
+            $errorDetails .= '</ul>'; // Tutup list
 
-            return redirect()->back()
-                ->with('error', 'Tidak dapat mereset subkriteria. Beberapa subkriteria sedang digunakan:' . 
-                    '<br>' . implode('<br>', $errorDetails));
+            session()->flash('error', "Tidak dapat mereset subkriteria. Beberapa subkriteria sedang digunakan: <br>" . $errorDetails);
+            return redirect()->back();
         }
 
-        // Hapus hanya subkriteria untuk kriteria ini
+        // Hapus subkriteria yang tidak digunakan
         Subkriteria::where('kriteria_id', $kriteria_id)->delete();
 
         return redirect()->route('subkriteria.index')
-            ->with('success', "Semua subkriteria untuk kriteria '{$kriteria->kriteria_nama}' berhasil dihapus");
+            ->with('success', "Semua subkriteria untuk kriteria '<strong>{$kriteria->kriteria_nama}</strong>' berhasil dihapus.");
 
     } catch (\Exception $e) {
         return redirect()->back()
             ->with('error', 'Gagal mereset subkriteria: ' . $e->getMessage());
     }
 }
+
 }

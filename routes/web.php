@@ -29,19 +29,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard')
         ->middleware('role:owner,karyawan');
-
-    
-    Route::middleware('role:owner,karyawan')->group(function () {
-        Route::get('kriteria', [KriteriaController::class, 'index'])->name('kriteria.index');
-        Route::get('subkriteria', [SubkriteriaController::class, 'index'])->name('subkriteria.index');
-        Route::get('frame', [FrameController::class, 'index'])->name('frame.index');
-        Route::get('/frame/{frame}', [FrameController::class, 'show'])->name('frame.show');
-        Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
-        Route::get('/password/edit', [ProfileController::class, 'editPassword'])->name('password.edit');
-        Route::put('/password/update', [ProfileController::class, 'updatePassword'])->name('password.update');
-        Route::get('rekomendasi', [RecommendationHistoryController::class, 'index'])->name('rekomendasi.index');
-        Route::get('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
-    });
     
     // Routes only for karyawan (CRUD operations except show)
     Route::middleware('role:karyawan')->group(function () {
@@ -86,5 +73,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/rekomendasi/{id}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
         });
 
+    Route::middleware('role:owner,karyawan')->group(function () {
+            Route::get('kriteria', [KriteriaController::class, 'index'])->name('kriteria.index');
+            Route::get('subkriteria', [SubkriteriaController::class, 'index'])->name('subkriteria.index');
+            Route::get('frame', [FrameController::class, 'index'])->name('frame.index');
+            Route::get('/frame/{frame}', [FrameController::class, 'show'])->name('frame.show');
+            Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
+            Route::get('/password/edit', [ProfileController::class, 'editPassword'])->name('password.edit');
+            Route::put('/password/update', [ProfileController::class, 'updatePassword'])->name('password.update');
+            Route::get('rekomendasi', [RecommendationHistoryController::class, 'index'])->name('rekomendasi.index');
+            Route::get('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
+        });
  
 });
