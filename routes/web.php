@@ -70,7 +70,7 @@ Route::middleware('auth')->group(function () {
 
         Route::delete('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'destroy'])->name('rekomendasi.destroy');
 
-        Route::get('/rekomendasi/{id}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
+        
         });
 
     Route::middleware('role:owner,karyawan')->group(function () {
@@ -83,6 +83,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/password/update', [ProfileController::class, 'updatePassword'])->name('password.update');
             Route::get('rekomendasi', [RecommendationHistoryController::class, 'index'])->name('rekomendasi.index');
             Route::get('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
+            Route::get('/rekomendasi/{id}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
         });
  
 });

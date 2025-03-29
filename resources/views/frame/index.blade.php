@@ -3,6 +3,7 @@
 @section('content')
 <div class="container">
     <div class="container-fluid">
+
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
@@ -10,7 +11,6 @@
                 </h4>
             </div>
             <div class="card-body">
-
 
                 {{-- Notifikasi frame yang perlu dilengkapi --}}
                 @if($totalNeedsUpdate > 0)
@@ -30,10 +30,10 @@
                     @if(auth()->user()->role !== 'owner')
                     <div>
                         <a href="{{ route('frame.create') }}" class="btn btn-primary me-2">Tambah Frame</a>
-                        <form action="{{ route('frame.reset-kriteria') }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin mereset kriteria SEMUA frame? Data frame akan tetap tersimpan.');">
+                        <form action="{{ route('frame.reset-kriteria') }}" method="POST" class="d-inline">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-warning">Reset Kriteria Frame</button>
+                            <button type="submit" class="btn btn-danger">Reset Kriteria Frame</button>
                         </form>
                     </div>
                     @endif
@@ -101,7 +101,7 @@
                                                     <form action="{{ route('frame.destroy', $frame->frame_id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Yakin ingin menghapus?')">Hapus</button>
+                                                        <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
                                                     </form>
                                                 </div>
                                             </td>

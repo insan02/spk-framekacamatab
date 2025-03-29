@@ -112,6 +112,7 @@
     <script src="{{ asset('js/sidebar.js') }}"></script>
     <script src="{{ asset('js/auth.js') }}"></script>
     <script src="{{ asset('js/kriteria.js') }}"></script>
+    <script src="{{ asset('js/frame.js') }}"></script>
 
     @stack('scripts')
 </body>

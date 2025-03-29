@@ -152,7 +152,7 @@ class FrameController extends Controller
 {
     $request->validate([
         'frame_merek' => 'required|string|max:255',
-        'frame_foto' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'frame_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         'frame_harga' => 'required|numeric',
         'nilai.*' => 'required|array',
         'nilai.*.*' => 'required|exists:subkriterias,subkriteria_id'
