@@ -2,8 +2,11 @@
 
 @section('content')
 <div class="container-fluid">
+    @if(session('success'))
+        <div data-success-message="{{ session('success') }}" style="display: none;"></div>
+        @endif
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0">
                 <i class="fas fa-file-alt me-2"></i>Detail Riwayat Rekomendasi
             </h4>
@@ -125,7 +128,7 @@
             @endphp
 
             <div class="card shadow-sm mb-4">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <div class="card-header bg-secondary text-white">
                     <h4 class="mb-0">
                         <i class="fas fa-calculator me-2"></i>Detail Perhitungan
                     </h4>
@@ -133,7 +136,7 @@
                 <div class="card-body">
                     {{-- 1. Nilai Profile Frame --}}
                     <div class="mb-4">
-                        <h5 class="mb-3">1. Nilai Profile Frame</h5>
+                        <h5 class="mb-3"><strong>1. Nilai Profile Frame</strong></h5>
                         <div class="table-responsive">
                             <table id="nilaiProfileFrameTable" class="table table-striped table-hover">
                                 <thead class="table-primary">
@@ -164,10 +167,10 @@
 
                     {{-- 2. Perhitungan GAP --}}
                     <div class="mb-4">
-                        <h5 class="mb-3">2. Perhitungan GAP</h5>
+                        <h5 class="mb-3"><strong>2. Perhitungan GAP</strong></h5>
                         <div class="table-responsive">
                             <table id="perhitunganGapTable" class="table table-striped table-hover">
-                                <thead class="table-danger">
+                                <thead class="table-primary">
                                     <tr>
                                         <th>Alternatif</th>
                                         @foreach($kriterias as $kriteria)
@@ -191,10 +194,10 @@
 
                     {{-- 3. Konversi Nilai GAP --}}
                     <div class="mb-4">
-                        <h5 class="mb-3">3. Konversi Nilai GAP</h5>
+                        <h5 class="mb-3"><strong>3. Konversi Nilai GAP</strong></h5>
                         <div class="table-responsive">
                             <table id="konversiNilaiGapTable" class="table table-striped table-hover">
-                                <thead class="table-success">
+                                <thead class="table-primary">
                                     <tr>
                                         <th>Alternatif</th>
                                         @foreach($kriterias as $kriteria)
@@ -218,7 +221,7 @@
 
                     {{-- 4. Nilai Akhir SMART --}}
                     <div class="mb-4">
-                        <h5 class="mb-3">4. Nilai Akhir SMART</h5>
+                        <h5 class="mb-3"><strong>4. Nilai Akhir SMART</strong></h5>
                         <div class="table-responsive">
                             <table id="nilaiAkhirSMARTTable" class="table table-striped table-hover">
                                 <thead class="table-primary">
@@ -253,10 +256,10 @@
 
                     {{-- 5. Hasil Perangkingan --}}
                     <div class="mb-4">
-                        <h5 class="mb-3">5. Hasil Perangkingan</h5>
+                        <h5 class="mb-3"><strong>5. Hasil Perangkingan</strong></h5>
                         <div class="table-responsive">
                             <table id="hasilPerangkinganTable" class="table table-hover table-striped">
-                                <thead class="table-light">
+                                <thead class="table-primary">
                                     <tr>
                                         <th class="text-center">Ranking</th>
                                         <th>Foto</th>
@@ -306,70 +309,5 @@
         </div>
     </div>
 </div>
+<script src="{{ asset('js/rekomendasii.js') }}"></script>
 @endsection
-
-@push('styles')
-<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
-@endpush
-
-@push('scripts')
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
-<script>
-$(document).ready(function() {
-    // DataTables initialization with improved search positioning
-    const dataTableConfig = {
-        "pageLength": 10,
-        "lengthChange": false,
-        "language": {
-            "search": "Cari:",
-            "paginate": {
-                "next": "Selanjutnya",
-                "previous": "Sebelumnya"
-            },
-            "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
-            "infoEmpty": "Tidak ada data yang ditampilkan",
-            "zeroRecords": "Tidak ditemukan data yang cocok"
-        },
-        "dom": '<"row"<"col-sm-12 col-md-6"f><"col-sm-12 col-md-6 text-end"l>>rtip'
-    };
-
-    $('#hasilPerangkinganTable').DataTable({
-        ...dataTableConfig,
-        "order": [[0, 'asc']] // Sort by ranking
-    });
-
-    $('#nilaiProfileFrameTable, #perhitunganGapTable, #konversiNilaiGapTable, #nilaiAkhirSMARTTable').DataTable(dataTableConfig);
-
-    // Modal image lightbox functionality (remains unchanged)
-    $('.img-thumbnail').on('click', function() {
-        const src = $(this).attr('src');
-        const alt = $(this).attr('alt');
-        
-        const lightboxHtml = `
-            <div class="modal fade" id="imageLightbox" tabindex="-1">
-                <div class="modal-dialog modal-xl">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">${alt}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body text-center">
-                            <img src="${src}" class="img-fluid" alt="${alt}">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        $('body').append(lightboxHtml);
-        $('#imageLightbox').modal('show');
-        
-        $('#imageLightbox').on('hidden.bs.modal', function () {
-            $(this).remove();
-        });
-    });
-});
-</script>
-@endpush

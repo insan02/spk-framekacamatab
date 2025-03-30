@@ -2,7 +2,7 @@
 @section('content')
 <div class="container-fluid">
     <div class="card shadow-sm">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0">
                 <i class="fas fa-history me-2"></i>Riwayat Rekomendasi
             </h4>
@@ -72,45 +72,5 @@
 </div>
 </div>
 
-@push('scripts')
-<script>
-$(document).ready(function() {
-    // DataTables initialization
-    $('#riwayatTable').DataTable({
-        "pageLength": 10,
-        "lengthChange": false,
-        "order": [[0, 'asc']],
-        "language": {
-            "search": "Cari:",
-            "paginate": {
-                "next": "Selanjutnya",
-                "previous": "Sebelumnya"
-            },
-            "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
-            "infoEmpty": "Tidak ada data yang ditampilkan",
-            "zeroRecords": "Tidak ditemukan data yang cocok"
-        }
-    });
-
-    // Delete confirmation
-    $('.delete-form').on('submit', function(e) {
-        e.preventDefault();
-        Swal.fire({
-            title: 'Anda yakin?',
-            text: "Data riwayat rekomendasi akan dihapus permanen!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Ya, Hapus!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $(this).unbind('submit').submit();
-            }
-        });
-    });
-});
-</script>
-@endpush
+<script src="{{ asset('js/rekomendasi.js') }}"></script>
 @endsection

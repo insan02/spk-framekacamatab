@@ -1,8 +1,6 @@
 @extends('layouts.app')
 
 @section('content')
-{{-- Include SweetAlert CDN --}}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <div class="container">
     <div class="container-fluid">
@@ -27,7 +25,7 @@
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
-                    <i class="fas fa-tasks me-2"></i>Penilaian 
+                    <i class="fas fa-clipboard-check me-2"></i>Penilaian 
                 </h4>
             </div>
             <div class="card-body">
@@ -42,6 +40,7 @@
                     <button 
                         id="simpanPenilaianBtn" 
                         class="btn btn-success" 
+                        type="submit"
                         style="display: none;"
                     >
                         Simpan Rekomendasi
@@ -63,8 +62,18 @@
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label>No HP</label>
-                                        <input type="text" name="nohp_pelanggan" class="form-control" required>
+                                        <label for="nohp_pelanggan">No HP</label>
+                                        <div class="input-group">
+                                            <input 
+                                                type="tel" 
+                                                name="nohp_pelanggan" 
+                                                id="nohp_pelanggan"
+                                                class="form-control" 
+                                                pattern="[0-9]{9,13}" 
+                                                maxlength="13"
+                                                oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                                required>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -153,12 +162,13 @@
                                 type="submit" 
                                 id="submit-btn" 
                                 class="btn btn-primary me-2"
-                                @if(!empty($incompleteFrames)) disabled @endif
+                                @if(!empty($incompleteFrames)) data-incomplete="true" disabled @endif
                             >
                                 Proses Penilaian
                             </button>
                         
                             <button
+                                type="button"
                                 id="batalEditBtn" 
                                 class="btn btn-secondary" 
                                 style="display: none;"
@@ -183,197 +193,6 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const bobotInputs = document.querySelectorAll('.bobot-kriteria');
-        const submitBtn = document.getElementById('submit-btn');
-        const hasilPenilaianSection = document.getElementById('hasilPenilaianSection');
-        const hasilPenilaianContent = document.getElementById('hasilPenilaianContent');
-        const editPenilaianBtn = document.getElementById('editPenilaianBtn');
-        const batalEditBtn = document.getElementById('batalEditBtn');
-        const simpanPenilaianBtn = document.getElementById('simpanPenilaianBtn');
-        const penilaianForm = document.getElementById('penilaianForm');
-        const bobotWarning = document.getElementById('bobot-warning');
-    
-        function validateBobotInputs() {
-            let isValid = true;
-            
-            bobotInputs.forEach(input => {
-                const value = parseInt(input.value);
-                if (value < 1 || value > 100) {
-                    isValid = false;
-                    input.classList.add('is-invalid');
-                } else {
-                    input.classList.remove('is-invalid');
-                }
-            });
-    
-            // Show/hide warning
-            bobotWarning.style.display = !isValid ? 'block' : 'none';
-            
-            // Disable submit button if inputs are invalid
-            submitBtn.disabled = !isValid || @if(!empty($incompleteFrames)) true @else false @endif;
-        }
-        
-        bobotInputs.forEach(input => {
-            input.addEventListener('input', validateBobotInputs);
-        });
-        
-        // Initial validation
-        validateBobotInputs();
-    
-        // Handle form submission via AJAX
-        penilaianForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Check if in edit mode
-            const isEditMode = batalEditBtn.style.display !== 'none';
-            
-            // If in edit mode, show SweetAlert confirmation
-            if (isEditMode) {
-                Swal.fire({
-                    title: 'Konfirmasi Edit',
-                    text: 'Apakah Anda yakin ingin mengedit data penilaian?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Ya, Edit',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        processPenilaian();
-                    }
-                });
-                return;
-            }
-            
-            // If not in edit mode, directly process
-            processPenilaian();
-        });
-    
-        function processPenilaian() {
-            // Collect form data
-            const formData = new FormData(penilaianForm);
-    
-            // Send AJAX request
-            fetch('{{ route('penilaian.process') }}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => {
-                // Tambahkan pengecekan status response
-                if (!response.ok) {
-                    return response.json().then(errorData => {
-                        throw new Error(errorData.error || 'Terjadi kesalahan saat memproses penilaian');
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Pastikan data.html tersedia
-                if (data.html) {
-                    // Display results
-                    hasilPenilaianContent.innerHTML = data.html;
-                    hasilPenilaianSection.style.display = 'block';
-                    penilaianForm.style.display = 'none';
-                    
-                    // Show edit and save buttons
-                    editPenilaianBtn.style.display = 'inline-block';
-                    simpanPenilaianBtn.style.display = 'inline-block';
-                    
-                    // Hide batal edit button if in edit mode
-                    batalEditBtn.style.display = 'none';
-                    submitBtn.style.display = 'inline-block';
-                } else {
-                    throw new Error('Data hasil tidak lengkap');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Kesalahan',
-                    text: error.message || 'Terjadi kesalahan saat memproses penilaian'
-                });
-            });
-        }
-    
-        // Edit Penilaian button
-        editPenilaianBtn.addEventListener('click', function() {
-            penilaianForm.style.display = 'block';
-            hasilPenilaianSection.style.display = 'none';
-            
-            // Show Batal Edit and Proses Penilaian buttons, hide other buttons
-            batalEditBtn.style.display = 'inline-block';
-            submitBtn.style.display = 'inline-block';
-            editPenilaianBtn.style.display = 'none';
-            simpanPenilaianBtn.style.display = 'none';
-        });
-    
-        // Batal Edit button
-        batalEditBtn.addEventListener('click', function() {
-        // Directly revert to results view without SweetAlert
-        penilaianForm.style.display = 'none';
-        hasilPenilaianSection.style.display = 'block';
-        
-        // Restore original buttons
-        batalEditBtn.style.display = 'none';
-        submitBtn.style.display = 'none';
-        editPenilaianBtn.style.display = 'inline-block';
-        simpanPenilaianBtn.style.display = 'inline-block';
-    });
-    
-        // Simpan Penilaian button
-        simpanPenilaianBtn.addEventListener('click', function() {
-    // Send request to save recommendation
-    fetch('{{ route('penilaian.store') }}', {
-        method: 'POST',
-        body: new FormData(penilaianForm),
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Check if there's an error
-        if (data.error) {
-            throw new Error(data.error);
-        }
-
-        // Redirect to recommendation details
-        Swal.fire({
-            icon: 'success',
-            title: 'Berhasil',
-            text: 'Rekomendasi berhasil disimpan',
-            showConfirmButton: false,
-            timer: 1500
-        }).then(() => {
-            // Use redirect_url if available, otherwise fallback
-            if (data.redirect_url) {
-                window.location.href = data.redirect_url;
-            } else if (data.recommendation_history_id) {
-                window.location.href = '/rekomendasi/' + data.recommendation_history_id;
-            } else {
-                // Fallback redirect
-                window.location.href = '{{ route('rekomendasi.index') }}';
-            }
-        });
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Kesalahan',
-            text: error.message || 'Terjadi kesalahan saat menyimpan rekomendasi'
-        });
-    });
-});
-    });
-    </script>
+{{-- Include penilaian.js file --}}
+<script src="{{ asset('js/penilaian.js') }}"></script>
 @endsection

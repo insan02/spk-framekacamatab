@@ -9,7 +9,6 @@
                     <i class="fas fa-tasks me-2"></i>Daftar Subkriteria
                 </h4>
             </div>
-                
 
                 @if(session('success'))
                     <div class="alert alert-success">

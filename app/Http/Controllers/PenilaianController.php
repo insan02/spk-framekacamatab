@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Storage;
 
 class PenilaianController extends Controller
 {
@@ -172,6 +173,24 @@ class PenilaianController extends Controller
             $kriteria_dipilih[$kriteria->kriteria_nama] = $subkriteria->subkriteria_nama;
         }
 
+        // Salin gambar frame ke direktori history
+        foreach ($hasilPerhitungan['rekomendasi'] as &$item) {
+            $frameFoto = $item['frame']['frame_foto'] ?? null;
+            if ($frameFoto && Storage::disk('public')->exists($frameFoto)) {
+                // Generate nama unik untuk file
+                $newFilename = 'history_images/' . uniqid() . '_' . basename($frameFoto);
+                
+                // Salin file ke direktori history
+                Storage::disk('public')->copy($frameFoto, $newFilename);
+                
+                // Update path foto di data rekomendasi
+                $item['frame']['frame_foto'] = $newFilename;
+            } else {
+                $item['frame']['frame_foto'] = null; // Jika foto tidak ada
+            }
+        }
+        unset($item); // Hapus reference terakhir
+
         // Create Recommendation History
         $recommendationHistory = RecommendationHistory::create([
             'nama_pelanggan' => $request->nama_pelanggan,
@@ -197,7 +216,8 @@ class PenilaianController extends Controller
             'html' => $html,
             'rekomendasi' => $hasilPerhitungan['rekomendasi'],
             'recommendation_history_id' => $recommendationHistory->recommendation_history_id,
-            'redirect_url' => route('rekomendasi.show', ['id' => $recommendationHistory->recommendation_history_id])
+            'redirect_url' => route('rekomendasi.show', ['id' => $recommendationHistory->recommendation_history_id]),
+            'success' => 'Rekomendasi berhasil disimpan'
         ]);
     } catch (\Exception $e) {
         // Log the error

@@ -11,8 +11,11 @@ use Illuminate\Http\Request;
 class FrameController extends Controller
 {
     // FrameController.php (index method)
-    public function index()
+    public function index(Request $request)
 {
+    // Get search query
+    $search = $request->input('search');
+    
     // Get all frames to check total updates needed
     $allFrames = Frame::with(['frameSubkriterias.kriteria', 'frameSubkriterias.subkriteria'])
                       ->get();
@@ -33,11 +36,22 @@ class FrameController extends Controller
             $totalNeedsUpdate++;
         }
     }
-
+    
+    // Query builder for frames with search functionality
+    $framesQuery = Frame::with(['frameSubkriterias.kriteria', 'frameSubkriterias.subkriteria']);
+    
+    // Apply search filter if provided
+    if ($search) {
+        $framesQuery->where(function($query) use ($search) {
+            $query->where('frame_merek', 'like', '%' . $search . '%')
+                  ->orWhere('frame_harga', 'like', '%' . $search . '%');
+        });
+    }
+    
     // Get frames with pagination
-    $frames = Frame::with(['frameSubkriterias.kriteria', 'frameSubkriterias.subkriteria'])
-                   ->orderBy('frame_id', 'asc')
-                   ->paginate(20);
+    $frames = $framesQuery->orderBy('frame_id', 'asc')
+                          ->paginate(20)
+                          ->appends(['search' => $search]); // Keep search parameter in pagination links
     
     // Check which frames on current page need updates
     $frameNeedsUpdate = [];
@@ -53,7 +67,7 @@ class FrameController extends Controller
         }
     }
     
-    return view('frame.index', compact('frames', 'frameNeedsUpdate', 'totalNeedsUpdate'));
+    return view('frame.index', compact('frames', 'frameNeedsUpdate', 'totalNeedsUpdate', 'search'));
 }
 
     // Menampilkan informasi pembaruan untuk frame tertentu

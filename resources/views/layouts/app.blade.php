@@ -9,15 +9,21 @@
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
     
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/loading.css') }}">
 
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -44,12 +50,12 @@
             
             @if(auth()->user()->role === 'karyawan')
             <a href="{{ route('penilaian.index') }}" class="{{ request()->routeIs('penilaian.*') ? 'active' : '' }}">
-                <i class="fas fa-tasks"></i> <span>Penilaian</span>
+                <i class="fas fa-clipboard-check"></i> <span>Penilaian</span>
             </a>
             @endif
         
             <a href="{{ route('rekomendasi.index') }}" class="{{ request()->routeIs('rekomendasi.*') ? 'active' : '' }}">
-                <i class="fas fa-tasks"></i> <span>Riwayat Rekomendasi</span>
+                <i class="fas fa-history"></i> <span>Riwayat Rekomendasi</span>
             </a>
         </div>
     </div>
@@ -102,11 +108,22 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <div id="loading-overlay">
+        <svg class="glasses-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="6" cy="12" r="4"></circle>
+            <circle cx="18" cy="12" r="4"></circle>
+            <line x1="10" y1="12" x2="14" y2="12"></line>
+            <line x1="2" y1="12" x2="2" y2="12"></line>
+            <line x1="22" y1="12" x2="22" y2="12"></line>
+        </svg>
+        <p>Loading...</p>
+    </div>
 
-    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
 
     <!-- Custom JS -->
     <script src="{{ asset('js/sidebar.js') }}"></script>

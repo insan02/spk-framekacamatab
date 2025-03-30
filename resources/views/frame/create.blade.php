@@ -52,9 +52,6 @@
                         <div class="card-body">
                             <div class="form-group">
                                 <div class="input-group">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text">Rp</span>
-                                    </div>
                                     <input type="text" name="frame_harga" id="frame_harga" 
                                            class="form-control @error('frame_harga') is-invalid @enderror" 
                                            value="{{ old('frame_harga') ? number_format(old('frame_harga'), 0, ',', '.') : '' }}" 

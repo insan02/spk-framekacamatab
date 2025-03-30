@@ -1,4 +1,24 @@
 document.addEventListener('DOMContentLoaded', function() {
+
+    $(document).ready(function() {
+        // DataTables initialization
+        $('#frameTable').DataTable({
+            "pageLength": 20,
+            "lengthChange": false,
+            "order": [[0, 'asc']],
+            "language": {
+                "search": "Cari:",
+                "paginate": {
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                },
+                "info": "Total Data: _TOTAL_",
+                "infoEmpty": "Total Data: 0",
+                "zeroRecords": "Tidak ditemukan data yang cocok"
+            }
+        });
+    });
+
     const hargaInputs = document.querySelectorAll('input[name="frame_harga"]');
     
     hargaInputs.forEach(function(hargaInput) {

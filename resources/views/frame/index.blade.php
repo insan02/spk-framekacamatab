@@ -3,7 +3,9 @@
 @section('content')
 <div class="container">
     <div class="container-fluid">
-
+        @if(session('success'))
+        <div data-success-message="{{ session('success') }}" style="display: none;"></div>
+        @endif
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
@@ -37,15 +39,12 @@
                         </form>
                     </div>
                     @endif
-                    <div>
-                        <span class="text-muted">Menampilkan {{ $frames->firstItem() ?? 0 }} - {{ $frames->lastItem() ?? 0 }} dari {{ $frames->total() ?? 0 }} data</span>
-                    </div>
                 </div>
 
                 <div class="card">
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-bordered table-striped">
+                            <table class="table table-bordered table-striped" id="frameTable">
                                 <thead class="thead-dark">
                                     <tr>
                                         <th>No</th>
