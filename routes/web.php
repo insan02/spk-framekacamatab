@@ -9,6 +9,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PenilaianController;
 use App\Http\Controllers\RekomendasiController;
 use App\Http\Controllers\RecommendationHistoryController;
+use App\Http\Controllers\EmployeeController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -69,9 +70,17 @@ Route::middleware('auth')->group(function () {
         ->name('penilaian.store');
 
         Route::delete('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'destroy'])->name('rekomendasi.destroy');
-
         
         });
+    
+    Route::middleware('role:owner')->group(function () {
+        Route::get('employees', [EmployeeController::class, 'index'])->name('employees.index');
+        Route::get('employees/create', [EmployeeController::class, 'create'])->name('employees.create');
+        Route::post('employees', [EmployeeController::class, 'store'])->name('employees.store');
+        Route::get('employees/{employees}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
+        Route::put('employees/{employees}', [EmployeeController::class, 'update'])->name('employees.update');
+        Route::delete('employees/{employees}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+    });
 
     Route::middleware('role:owner,karyawan')->group(function () {
             Route::get('kriteria', [KriteriaController::class, 'index'])->name('kriteria.index');
@@ -84,6 +93,6 @@ Route::middleware('auth')->group(function () {
             Route::get('rekomendasi', [RecommendationHistoryController::class, 'index'])->name('rekomendasi.index');
             Route::get('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
             Route::get('/rekomendasi/{id}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
-        });
+    });
  
 });

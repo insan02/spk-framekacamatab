@@ -53,6 +53,12 @@
                 <i class="fas fa-clipboard-check"></i> <span>Penilaian</span>
             </a>
             @endif
+
+            @if(auth()->user()->role === 'owner')
+            <a href="{{ route('employees.index') }}" class="{{ request()->routeIs('frame.*') ? 'active' : '' }}">
+                <i class="fas fa-user-tie"></i> <span>Karyawan</span>
+            </a>
+            @endif
         
             <a href="{{ route('rekomendasi.index') }}" class="{{ request()->routeIs('rekomendasi.*') ? 'active' : '' }}">
                 <i class="fas fa-history"></i> <span>Riwayat Rekomendasi</span>

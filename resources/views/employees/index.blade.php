@@ -1,5 +1,4 @@
 @extends('layouts.app')
-
 @section('content')
 <div class="container">
     <div class="row justify-content-center">
@@ -32,9 +31,9 @@
                                 <td>{{ $employee->name }}</td>
                                 <td>{{ $employee->email }}</td>
                                 <td>
-                                    <a href="{{ route('employees.edit', $employee) }}" 
+                                    <a href="{{ route('employees.edit', $employee->user_id) }}" 
                                         class="btn btn-sm btn-warning">Edit</a>
-                                    <form action="{{ route('employees.destroy', $employee) }}" 
+                                    <form action="{{ route('employees.destroy', $employee->user_id) }}" 
                                         method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
