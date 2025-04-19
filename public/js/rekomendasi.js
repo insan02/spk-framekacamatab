@@ -2,7 +2,7 @@ $(document).ready(function() {
     // DataTables initialization
     $('#riwayatTable').DataTable({
         "pageLength": 20,
-        "lengthChange": false,
+        "lengthChange": true,
         "order": [[0, 'asc']],
         "language": {
             "search": "Cari:",

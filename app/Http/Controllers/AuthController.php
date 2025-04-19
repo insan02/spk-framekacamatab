@@ -32,7 +32,7 @@ class AuthController extends Controller
         }
 
         return back()->withErrors([
-            'email' => 'Email atau password salah.',
+            'email' => 'Periksa kembali email dan password anda!',
         ]);
     }
 

@@ -34,26 +34,29 @@ document.addEventListener('DOMContentLoaded', function () {
     // Validasi sebelum submit pada form tambah dan edit kriteria
     const formEdit = document.getElementById("form-edit");
 
-    if (formEdit) {
-        formEdit.addEventListener("submit", function (event) {
-            event.preventDefault(); // Mencegah submit langsung
+    // Di dalam kriteria.js
+if (formEdit) {
+    formEdit.addEventListener("submit", function (event) {
+        event.preventDefault(); // Mencegah submit langsung
 
-            Swal.fire({
-                title: "Yakin ingin mengedit data?",
-                text: "Data akan diperbarui!",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#3085d6",
-                cancelButtonColor: "#d33",
-                confirmButtonText: "Ya, perbarui!",
-                cancelButtonText: "Batal"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    formEdit.submit(); // Submit form setelah konfirmasi
-                }
-            });
+        Swal.fire({
+            title: "Yakin ingin mengedit data?",
+            text: "Data akan diperbarui!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Ya, perbarui!",
+            cancelButtonText: "Batal"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                console.log('Form submit setelah konfirmasi'); // Tambahkan log
+                formEdit.removeEventListener('submit', arguments.callee); // Hapus listener ini
+                formEdit.submit(); // Submit form setelah konfirmasi
+            }
         });
-    }
+    });
+}
 
     // Konfirmasi sebelum menghapus data
     const deleteForms = document.querySelectorAll('form[method="POST"] button[type="submit"].btn-danger');

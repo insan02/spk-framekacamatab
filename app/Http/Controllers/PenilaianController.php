@@ -60,7 +60,12 @@ class PenilaianController extends Controller
     {
         // Validate the request 
         $validator = Validator::make($request->all(), [
-            'nama_pelanggan' => 'required|string|max:255',
+            'nama_pelanggan' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[a-zA-Z\s]+$/' // Memastikan hanya huruf dan spasi
+            ],
             'nohp_pelanggan' => 'required|string|max:20',
             'alamat_pelanggan' => 'required|string|max:255',
             'subkriteria' => 'required|array',

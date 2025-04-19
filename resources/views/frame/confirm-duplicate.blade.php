@@ -189,7 +189,7 @@
                                 <div class="col-md-4 mb-4">
                                     <div class="card h-100">
                                         <div class="card-header bg-secondary text-white text-center">
-                                            <h6 class="mb-0">ID: {{ $frame->frame_id }} - {{ $frame->frame_merek }}</h6>
+                                            <h6 class="mb-0">ID: {{ $frame->frame_id }}</h6>
                                         </div>
                                         <div class="card-body">
                                             <div class="text-center">
@@ -208,6 +208,10 @@
                                             </div>
                                             
                                             <table class="table table-sm table-bordered">
+                                                <tr>
+                                                    <th width="80" class="bg-light">Merek</th>
+                                                    <td>{{ $frame->frame_merek }}</td>
+                                                </tr>
                                                 <tr>
                                                     <th width="80" class="bg-light">Harga</th>
                                                     <td>Rp {{ number_format($frame->frame_harga, 0, ',', '.') }}</td>

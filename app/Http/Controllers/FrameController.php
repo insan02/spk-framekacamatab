@@ -7,6 +7,7 @@ use App\Models\Kriteria;
 use App\Models\Subkriteria;
 use App\Models\FrameSubkriteria;
 use App\Services\ImageComparisonService;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -431,6 +432,16 @@ private function saveNewFrame(Request $request, $tempImagePath = null)
         }
     }
 
+    // Log activity
+    ActivityLogService::log(
+        'create',
+        'frame',
+        $frame->frame_id,
+        null,
+        $frame->toArray(),
+        'Membuat frame baru: ' . $frame->frame_merek . ' (Rp ' . number_format($frame->frame_harga, 0, ',', '.') . ')'
+    );
+
     return redirect()->route('frame.index')->with('success', 'Frame berhasil ditambahkan');
 }
 
@@ -598,78 +609,69 @@ private function getPriceSubkriteria($kriteria_id, $price)
     }
 
     public function update(Request $request, Frame $frame)
-{
-    $request->validate([
-        'frame_merek' => 'required|string|max:255',
-        'frame_foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        'frame_harga' => 'required|numeric',
-        'frame_lokasi' => 'required|string|max:255',
-        'nilai.*' => 'nullable|array',
-        'nilai.*.*' => 'nullable|exists:subkriterias,subkriteria_id'
-    ]);
+    {
+        $request->validate([
+            'frame_merek' => 'required|string|max:255',
+            'frame_foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'frame_harga' => 'required|numeric',
+            'frame_lokasi' => 'required|string|max:255',
+            'nilai.*' => 'nullable|array',
+            'nilai.*.*' => 'nullable|exists:subkriterias,subkriteria_id'
+        ]);
 
-    // Check if there's a confirmed similarity from session
-    $confirmedSimilarity = session('confirmed_similarity', false);
+        // Store old data for logging
+        $oldData = $frame->toArray();
+        $oldFrameMerek = $frame->frame_merek;
+        $oldFrameHarga = $frame->frame_harga;
 
-    // Check for similarities only if not already confirmed and data has changed
-    if (!$confirmedSimilarity) {
-        $dataChanged = $frame->frame_merek != $request->frame_merek || 
-                    $frame->frame_harga != $request->frame_harga ||
-                    $frame->frame_lokasi != $request->frame_lokasi ||
-                    $request->hasFile('frame_foto');
+        // Check if there's a confirmed similarity from session
+        $confirmedSimilarity = session('confirmed_similarity', false);
+
+        // Check for similarities only if not already confirmed and data has changed
+        if (!$confirmedSimilarity) {
+            $dataChanged = $frame->frame_merek != $request->frame_merek || 
+                        $frame->frame_harga != $request->frame_harga ||
+                        $frame->frame_lokasi != $request->frame_lokasi ||
+                        $request->hasFile('frame_foto');
+                        
+            if ($dataChanged) {
+                $similarityResults = $this->checkForSimilarFrames($request);
+                
+                // If similar frame found (that's not the current frame)
+                if ($similarityResults['similarFrame'] && $similarityResults['similarFrame']->frame_id != $frame->frame_id) {
+                    // Store the temporary image if one was uploaded
+                    if ($request->hasFile('frame_foto')) {
+                        $tempImageName = 'temp_edit_' . time() . '.' . $request->frame_foto->extension();
+                        $request->frame_foto->move(public_path('storage/temp'), $tempImageName);
+                        session(['temp_edit_image' => 'temp/' . $tempImageName]);
+                    }
                     
-        if ($dataChanged) {
-            $similarityResults = $this->checkForSimilarFrames($request);
-            
-            // If similar frame found (that's not the current frame)
-            if ($similarityResults['similarFrame'] && $similarityResults['similarFrame']->frame_id != $frame->frame_id) {
-                // Store the temporary image if one was uploaded
-                if ($request->hasFile('frame_foto')) {
-                    $tempImageName = 'temp_edit_' . time() . '.' . $request->frame_foto->extension();
-                    $request->frame_foto->move(public_path('storage/temp'), $tempImageName);
-                    session(['temp_edit_image' => 'temp/' . $tempImageName]);
+                    // Include the similar frame's data with its subkriterias
+                    $similarityResults['similarFrame']->load(['frameSubkriterias.kriteria', 'frameSubkriterias.subkriteria']);
+                    
+                    // Store form data in session
+                    $formData = $request->except(['frame_foto', '_token', '_method']);
+                    session(['frame_edit_data' => $formData]);
+                    
+                    // Store similarity results in session for display in the view
+                    session(['similarity_results' => $similarityResults]);
+                    
+                    // Set confirmed similarity flag for the next request
+                    session(['confirmed_similarity' => true]);
+                    
+                    // Pass back the input and show similarity alert
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('similarity_results', $similarityResults);
                 }
-                
-                // Include the similar frame's data with its subkriterias
-                $similarityResults['similarFrame']->load(['frameSubkriterias.kriteria', 'frameSubkriterias.subkriteria']);
-                
-                // Store form data in session
-                $formData = $request->except(['frame_foto', '_token', '_method']);
-                session(['frame_edit_data' => $formData]);
-                
-                // Store similarity results in session for display in the view
-                session(['similarity_results' => $similarityResults]);
-                
-                // Set confirmed similarity flag for the next request
-                session(['confirmed_similarity' => true]);
-                
-                // Pass back the input and show similarity alert
-                return redirect()->back()
-                    ->withInput()
-                    ->with('similarity_results', $similarityResults);
             }
+        } else {
+            // Clear the confirmation flag for future requests
+            session()->forget('confirmed_similarity');
         }
-    } else {
-        // Clear the confirmation flag for future requests
-        session()->forget('confirmed_similarity');
-    }
 
-    // Continue with the update process
-    if ($request->hasFile('frame_foto')) {
-        if($frame->frame_foto) {
-            $oldPath = public_path('storage/' . $frame->frame_foto);
-            if(file_exists($oldPath)) {
-                unlink($oldPath);
-            }
-        }
-        
-        $imageName = time().'.'.$request->frame_foto->extension();  
-        $request->frame_foto->move(public_path('storage/frames'), $imageName);
-        $frame->frame_foto = 'frames/' . $imageName;
-    } else {
-        // Check if we have a temporary image from the similarity check
-        $tempEditImage = session('temp_edit_image');
-        if ($tempEditImage && Storage::disk('public')->exists($tempEditImage)) {
+        // Continue with the update process
+        if ($request->hasFile('frame_foto')) {
             if($frame->frame_foto) {
                 $oldPath = public_path('storage/' . $frame->frame_foto);
                 if(file_exists($oldPath)) {
@@ -677,68 +679,107 @@ private function getPriceSubkriteria($kriteria_id, $price)
                 }
             }
             
-            $imageName = time().'.jpg';
-            Storage::disk('public')->move($tempEditImage, 'frames/' . $imageName);
+            $imageName = time().'.'.$request->frame_foto->extension();  
+            $request->frame_foto->move(public_path('storage/frames'), $imageName);
             $frame->frame_foto = 'frames/' . $imageName;
-            
-            // Clear the temporary image from session
-            session()->forget('temp_edit_image');
-        }
-    }
-
-    $frame->frame_merek = $request->frame_merek;
-    $frame->frame_harga = $request->frame_harga;
-    $frame->frame_lokasi = $request->frame_lokasi;
-    $frame->save();
-
-    // Find price criteria
-    $priceKriteria = Kriteria::where('kriteria_nama', 'like', '%harga%')->first();
-
-    // Remove all previous subkriteria
-    $frame->frameSubkriterias()->delete();
-    
-    // Process new criteria inputs
-    if ($request->has('nilai')) {
-        foreach ($request->nilai as $kriteria_id => $subkriteria_ids) {
-            // Filter out empty array elements
-            $subkriteria_ids = array_filter($subkriteria_ids);
-            
-            // Skip price criteria as it will be handled separately
-            if ($priceKriteria && $kriteria_id == $priceKriteria->kriteria_id) {
-                continue;
+        } else {
+            // Check if we have a temporary image from the similarity check
+            $tempEditImage = session('temp_edit_image');
+            if ($tempEditImage && Storage::disk('public')->exists($tempEditImage)) {
+                if($frame->frame_foto) {
+                    $oldPath = public_path('storage/' . $frame->frame_foto);
+                    if(file_exists($oldPath)) {
+                        unlink($oldPath);
+                    }
+                }
+                
+                $imageName = time().'.jpg';
+                Storage::disk('public')->move($tempEditImage, 'frames/' . $imageName);
+                $frame->frame_foto = 'frames/' . $imageName;
+                
+                // Clear the temporary image from session
+                session()->forget('temp_edit_image');
             }
+        }
+
+        $frame->frame_merek = $request->frame_merek;
+        $frame->frame_harga = $request->frame_harga;
+        $frame->frame_lokasi = $request->frame_lokasi;
+        $frame->save();
+
+        // Find price criteria
+        $priceKriteria = Kriteria::where('kriteria_nama', 'like', '%harga%')->first();
+
+        // Remove all previous subkriteria
+        $frame->frameSubkriterias()->delete();
+        
+        // Process new criteria inputs
+        if ($request->has('nilai')) {
+            foreach ($request->nilai as $kriteria_id => $subkriteria_ids) {
+                // Filter out empty array elements
+                $subkriteria_ids = array_filter($subkriteria_ids);
+                
+                // Skip price criteria as it will be handled separately
+                if ($priceKriteria && $kriteria_id == $priceKriteria->kriteria_id) {
+                    continue;
+                }
+                
+                foreach ($subkriteria_ids as $subkriteria_id) {
+                    FrameSubkriteria::create([
+                        'frame_id' => $frame->frame_id,
+                        'kriteria_id' => $kriteria_id,
+                        'subkriteria_id' => $subkriteria_id,
+                    ]);
+                }
+            }
+        }
+
+        // If we found price criteria, assign appropriate subkriteria based on price
+        if ($priceKriteria) {
+            $priceSubkriteria = $this->getPriceSubkriteria($priceKriteria->kriteria_id, $request->frame_harga);
             
-            foreach ($subkriteria_ids as $subkriteria_id) {
+            if ($priceSubkriteria) {
                 FrameSubkriteria::create([
                     'frame_id' => $frame->frame_id,
-                    'kriteria_id' => $kriteria_id,
-                    'subkriteria_id' => $subkriteria_id,
+                    'kriteria_id' => $priceKriteria->kriteria_id,
+                    'subkriteria_id' => $priceSubkriteria->subkriteria_id,
                 ]);
             }
         }
-    }
 
-    // If we found price criteria, assign appropriate subkriteria based on price
-    if ($priceKriteria) {
-        $priceSubkriteria = $this->getPriceSubkriteria($priceKriteria->kriteria_id, $request->frame_harga);
-        
-        if ($priceSubkriteria) {
-            FrameSubkriteria::create([
-                'frame_id' => $frame->frame_id,
-                'kriteria_id' => $priceKriteria->kriteria_id,
-                'subkriteria_id' => $priceSubkriteria->subkriteria_id,
-            ]);
+        // Log activity
+        $changeDescription = 'Mengubah frame: ' . $oldFrameMerek;
+        if ($oldFrameMerek != $frame->frame_merek) {
+            $changeDescription .= ' menjadi ' . $frame->frame_merek;
         }
+        if ($oldFrameHarga != $frame->frame_harga) {
+            $changeDescription .= ' (harga: Rp ' . number_format($oldFrameHarga, 0, ',', '.') . 
+                                ' -> Rp ' . number_format($frame->frame_harga, 0, ',', '.') . ')';
+        }
+
+        ActivityLogService::log(
+            'update',
+            'frame',
+            $frame->frame_id,
+            $oldData,
+            $frame->toArray(),
+            $changeDescription
+        );
+
+        // Clear any remaining session data
+        session()->forget(['frame_edit_data', 'temp_edit_image', 'confirmed_similarity']);
+
+        return redirect()->route('frame.index')->with('success', 'Frame berhasil diperbarui');
     }
-
-    // Clear any remaining session data
-    session()->forget(['frame_edit_data', 'temp_edit_image', 'confirmed_similarity']);
-
-    return redirect()->route('frame.index')->with('success', 'Frame berhasil diperbarui');
-}
 
     public function destroy(Frame $frame)
     {
+
+        $frameData = $frame->toArray();
+        $frameId = $frame->frame_id;
+        $frameMerek = $frame->frame_merek;
+        $frameHarga = $frame->frame_harga;
+
         if($frame->frame_foto) {
             $path = public_path('storage/' . $frame->frame_foto);
             if(file_exists($path)) {
@@ -749,11 +790,30 @@ private function getPriceSubkriteria($kriteria_id, $price)
         $frame->frameSubkriterias()->delete();
         $frame->delete();
 
+         // Log activity
+         ActivityLogService::log(
+            'delete',
+            'frame',
+            $frameId,
+            $frameData,
+            null,
+            'Menghapus frame: ' . $frameMerek . ' (Rp ' . number_format($frameHarga, 0, ',', '.') . ')'
+        );
+
         return redirect()->route('frame.index')->with('success', 'Frame berhasil dihapus');
     }
 
     public function resetFrameKriteria()
 {
+    // Log the reset action
+    ActivityLogService::log(
+        'special',
+        'frame',
+        null,
+        null,
+        null,
+        'Reset semua kriteria frame'
+    );
     // Hapus semua subkriteria untuk semua frame
     FrameSubkriteria::truncate();
 

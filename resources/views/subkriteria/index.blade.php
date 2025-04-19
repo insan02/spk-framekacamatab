@@ -11,16 +11,14 @@
             </div>
 
             @if(session('success'))
-                <div class="alert alert-success">
-                    {!! session('success') !!}
-                </div>
-            @endif
+                    <div data-success-message="{{ session('success') }}" style="display:none;"></div>
+                @endif
 
-            @if(session('error'))
-                <div class="alert alert-danger">
-                    {!! session('error') !!}
-                </div>
-            @endif
+                @if(session('error'))
+                    <div class="alert alert-danger">
+                        {!! session('error') !!}
+                    </div>
+                @endif
 
             @if(session('update_needed'))
                 <div class="alert alert-warning">
@@ -40,7 +38,7 @@
                                         <form action="{{ route('subkriteria.reset', $kriteria->kriteria_id) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-danger" onclick="return confirm('Apakah Anda yakin ingin mereset semua subkriteria untuk kriteria ini?');">Reset Subkriteria</button>
+                                            <button type="submit" class="btn btn-danger">Reset Subkriteria</button>
                                         </form>
                                     @endif
                                 </div>
@@ -79,7 +77,7 @@
                                                         <form action="{{ route('subkriteria.destroy', $subkriteria->subkriteria_id) }}" method="POST" class="d-inline">
                                                             @csrf
                                                             @method('DELETE')
-                                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus subkriteria ini?');">Hapus</button>
+                                                            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
                                                         </form>
                                                     </td>
                                                 @endif

@@ -123,6 +123,7 @@
     </div>
 </div>
 
+<script src="{{ asset('js/rekomendasi.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Handle print individual item

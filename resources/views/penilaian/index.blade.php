@@ -57,7 +57,8 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Nama Pelanggan</label>
-                                        <input type="text" name="nama_pelanggan" class="form-control" required>
+                                        <input type="text" name="nama_pelanggan" class="form-control" pattern="[A-Za-z\s]+" title="Hanya huruf yang diperbolehkan" required>                    
+                                        <span class="invalid-feedback" role="alert">      
                                     </div>
                                 </div>
                                 <div class="col-md-4">

@@ -11,6 +11,7 @@ use App\Http\Controllers\RekomendasiController;
 use App\Http\Controllers\RecommendationHistoryController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
 
@@ -116,6 +117,9 @@ Route::post('/frame/process-duplicate', [FrameController::class, 'processDuplica
             Route::get('/rekomendasi/{id}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
             Route::get('/rekomendasi/print/all', [RecommendationHistoryController::class, 'printAll'])->name('rekomendasi.print-all');
             Route::get('rekomendasi/print/{id}', [RecommendationHistoryController::class, 'print'])->name('rekomendasi.print');
+
+            Route::get('/logs', [ActivityLogController::class, 'index'])->name('logs.index');
+            Route::get('/logs/{id}', [ActivityLogController::class, 'show'])->name('logs.show');
             
 
       

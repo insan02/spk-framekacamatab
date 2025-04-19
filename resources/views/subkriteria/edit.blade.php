@@ -15,7 +15,7 @@
                 </h4>
             </div>
             <div class="card-body">
-                <form action="{{ route('subkriteria.update', $subkriteria->subkriteria_id) }}" method="POST">
+                <form action="{{ route('subkriteria.update', $subkriteria->subkriteria_id) }}" method="POST" id="form-edit">
                     @csrf
                     @method('PUT')
 

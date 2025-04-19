@@ -8,6 +8,7 @@ use App\Models\FrameSubkriteria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use App\Services\ActivityLogService;
 
 class SubkriteriaController extends Controller
 {
@@ -162,6 +163,16 @@ public function store(Request $request)
         Session::flash('update_message', "Subkriteria baru '{$subkriteria->subkriteria_nama}' telah ditambahkan untuk kriteria '{$kriteria->kriteria_nama}'. Frame yang menggunakan kriteria ini mungkin perlu diperbarui.");
     }
 
+    // Catat aktivitas
+    ActivityLogService::log(
+        'create',
+        'subkriteria',
+        $subkriteria->subkriteria_id,
+        null,
+        $subkriteria->toArray(),
+        'Membuat subkriteria baru: ' . $subkriteria->subkriteria_nama . ' (Kriteria: ' . $kriteria->kriteria_nama . ')'
+    );
+
     return redirect()->route('subkriteria.index')->with('success', 'Subkriteria "' . $subkriteria->subkriteria_nama . '" berhasil ditambahkan');
 }
 
@@ -175,6 +186,7 @@ public function store(Request $request)
     // Memperbarui data subkriteria
     public function update(Request $request, Subkriteria $subkriteria)
 {
+    
     // Validasi dasar untuk semua tipe
     $validator = Validator::make($request->all(), [
         'kriteria_id' => 'required|exists:kriterias,kriteria_id',
@@ -261,14 +273,29 @@ public function store(Request $request)
             ->withErrors(['subkriteria_nama' => 'Subkriteria dengan nama ini sudah ada']);
     }
 
+    $oldData = $subkriteria->toArray();
+    $oldName = $subkriteria->subkriteria_nama;
+
     try {
         // Update data
         $subkriteria->update($data);
+
+        // Catat aktivitas
+        ActivityLogService::log(
+            'update',
+            'subkriteria',
+            $subkriteria->subkriteria_id,
+            $oldData,
+            $subkriteria->fresh()->toArray(),
+            'Mengubah subkriteria dari "' . $oldName . '" menjadi "' . $subkriteria->subkriteria_nama . '"'
+        );
         
-        return redirect()->route('subkriteria.index')->with('success', 'Subkriteria berhasil diperbarui');
+        return redirect()->route('subkriteria.index')
+                ->with('success', 'Subkriteria berhasil diperbarui');
     } catch (\Exception $e) {
         return redirect()->back()
-            ->with('error', 'Gagal memperbarui: ' . $e->getMessage());
+            ->with('error', 'Gagal memperbarui subkriteria: ' . $e->getMessage())
+            ->withInput();
     }
 }
 
@@ -278,27 +305,35 @@ public function store(Request $request)
     try {
         $subkriteriaName = $subkriteria->subkriteria_nama;
         $kriteriaName = $subkriteria->kriteria->kriteria_nama;
+        $subkriteriaData = $subkriteria->toArray();
         
         // Cek semua relasi yang menggunakan subkriteria ini
         $frameRelationCount = $subkriteria->frameSubkriterias()->count();
 
-        $errorMessages = [];
-        
+        // Hanya tampilkan error jika benar-benar ada relasi
         if ($frameRelationCount > 0) {
-            $errorMessages[] = "digunakan dalam {$frameRelationCount} frame";
-        }
-        
-
-        if (!empty($errorMessages)) {
             $message = "Subkriteria '{$subkriteriaName}' (Kriteria: {$kriteriaName}) tidak dapat dihapus karena: ";
-            $message .= implode(', ', $errorMessages);
+            $message .= "digunakan dalam {$frameRelationCount} frame";
+            
             return redirect()->back()
                 ->with('error', $message);
         }
 
+        // Jika tidak ada relasi, hapus subkriteria
         $subkriteria->delete();
+
+        // Catat aktivitas
+        ActivityLogService::log(
+            'delete',
+            'subkriteria',
+            $subkriteria->subkriteria_id,
+            $subkriteriaData,
+            null,
+            'Menghapus subkriteria: ' . $subkriteriaName . ' (Kriteria: ' . $kriteriaName . ')'
+        );
         
-        return redirect()->route('subkriteria.index')->with('success', 'Subkriteria "' . $subkriteriaName . '" berhasil dihapus');
+        return redirect()->route('subkriteria.index')
+            ->with('success', 'Subkriteria "' . $subkriteriaName . '" berhasil dihapus');
     } catch (\Exception $e) {
         return redirect()->route('subkriteria.index')
             ->with('error', 'Gagal menghapus subkriteria: ' . $e->getMessage());
@@ -332,11 +367,26 @@ public function resetSubkriteria($kriteria_id)
             return redirect()->back();
         }
 
+        // Ambil data subkriteria sebelum dihapus untuk aktivitas log
+        $subkriterias = Subkriteria::where('kriteria_id', $kriteria_id)->get();
+        $subkriteriasData = $subkriterias->toArray();
+        $subkriteriaCount = $subkriterias->count();
+        
         // Hapus subkriteria yang tidak digunakan
         Subkriteria::where('kriteria_id', $kriteria_id)->delete();
+        
+        // Catat aktivitas log
+        ActivityLogService::log(
+            'delete',
+            'subkriteria',
+            $kriteria_id, // Menggunakan kriteria_id sebagai identifier
+            $subkriteriasData,
+            null,
+            'Mereset ' . $subkriteriaCount . ' subkriteria untuk kriteria: ' . $kriteria->kriteria_nama
+        );
 
         return redirect()->route('subkriteria.index')
-            ->with('success', "Semua subkriteria untuk kriteria '<strong>{$kriteria->kriteria_nama}</strong>' berhasil dihapus.");
+            ->with('success', "Semua subkriteria untuk kriteria {$kriteria->kriteria_nama} berhasil dihapus.");
 
     } catch (\Exception $e) {
         return redirect()->back()

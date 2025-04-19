@@ -5,6 +5,7 @@ use App\Models\Frame;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use App\Services\ActivityLogService; // Tambahkan ini
 
 class KriteriaController extends Controller
 {
@@ -51,6 +52,16 @@ class KriteriaController extends Controller
         }
 
         $kriteria = Kriteria::create($request->all());
+        
+        // Catat aktivitas
+        ActivityLogService::log(
+            'create',
+            'kriteria',
+            $kriteria->kriteria_id,
+            null,
+            $kriteria->toArray(),
+            'Membuat kriteria baru: ' . $kriteria->kriteria_nama
+        );
         
         // Periksa apakah ada frame yang perlu diperbarui
         $frameCount = Frame::count();
@@ -102,11 +113,22 @@ class KriteriaController extends Controller
         }
 
         $oldName = $kriteria->kriteria_nama;
+        $oldData = $kriteria->toArray();
         
         try {
             $kriteria->update([
                 'kriteria_nama' => $request->kriteria_nama
             ]);
+            
+            // Catat aktivitas
+            ActivityLogService::log(
+                'update',
+                'kriteria',
+                $kriteria->kriteria_id,
+                $oldData,
+                $kriteria->toArray(),
+                'Mengubah kriteria dari "' . $oldName . '" menjadi "' . $kriteria->kriteria_nama . '"'
+            );
             
             // Tambahkan pesan flash jika nama berubah
             if ($oldName !== $request->kriteria_nama) {
@@ -132,6 +154,7 @@ class KriteriaController extends Controller
     {
         try {
             $kriteriaName = $kriteria->kriteria_nama;
+            $kriteriaData = $kriteria->toArray();
             
             // Cek semua relasi yang menggunakan kriteria ini
             $subkriteriaCount = $kriteria->subkriterias()->count();
@@ -156,6 +179,16 @@ class KriteriaController extends Controller
             }
 
             $kriteria->delete();
+            
+            // Catat aktivitas
+            ActivityLogService::log(
+                'delete',
+                'kriteria',
+                $kriteria->kriteria_id,
+                $kriteriaData,
+                null,
+                'Menghapus kriteria: ' . $kriteriaName
+            );
             
             return redirect()->route('kriteria.index')
                 ->with('success', "Kriteria '{$kriteriaName}' berhasil dihapus");
