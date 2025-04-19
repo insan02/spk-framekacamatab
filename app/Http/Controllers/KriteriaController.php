@@ -24,23 +24,30 @@ class KriteriaController extends Controller
     // Menyimpan data kriteria baru
     public function store(Request $request)
     {
-        // Cek manual apakah nama kriteria sudah ada
-        $existingKriteria = Kriteria::where('kriteria_nama', $request->kriteria_nama)->first();
-        if ($existingKriteria) {
-            return redirect()->back()
-                ->withInput()
-                ->withErrors(['kriteria_nama' => 'Kriteria dengan nama tersebut sudah ada.']);
-        }
-        
-        // Validasi tambahan
+        // Validasi input
         $validator = Validator::make($request->all(), [
-            'kriteria_nama' => 'required|string|max:255',
+            'kriteria_nama' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[a-zA-Z\s]+$/' // Memastikan hanya huruf dan spasi
+            ],
+        ], [
+            'kriteria_nama.regex' => 'Nama kriteria hanya boleh berisi huruf.'
         ]);
         
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
+        }
+        
+        // Cek manual apakah nama kriteria sudah ada
+        $existingKriteria = Kriteria::where('kriteria_nama', $request->kriteria_nama)->first();
+        if ($existingKriteria) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['kriteria_nama' => 'Kriteria dengan nama tersebut sudah ada.']);
         }
 
         $kriteria = Kriteria::create($request->all());
@@ -65,6 +72,24 @@ class KriteriaController extends Controller
     // Memperbarui data kriteria
     public function update(Request $request, Kriteria $kriteria)
     {
+        // Validasi input
+        $validator = Validator::make($request->all(), [
+            'kriteria_nama' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[a-zA-Z\s]+$/' // Memastikan hanya huruf dan spasi
+            ],
+        ], [
+            'kriteria_nama.regex' => 'Nama kriteria hanya boleh berisi huruf.'
+        ]);
+        
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+        
         // Cek manual untuk nama duplikat (kecuali untuk record saat ini)
         $existingKriteria = Kriteria::where('kriteria_nama', $request->kriteria_nama)
                             ->where('kriteria_id', '!=', $kriteria->kriteria_id)
@@ -74,17 +99,6 @@ class KriteriaController extends Controller
             return redirect()->back()
                 ->withInput()
                 ->withErrors(['kriteria_nama' => 'Kriteria dengan nama tersebut sudah ada.']);
-        }
-        
-        // Validasi tambahan
-        $validator = Validator::make($request->all(), [
-            'kriteria_nama' => 'required|string|max:255',
-        ]);
-        
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
         }
 
         $oldName = $kriteria->kriteria_nama;
@@ -133,7 +147,6 @@ class KriteriaController extends Controller
                 $errorMessages[] = "digunakan dalam {$frameRelationCount} frame";
             }
             
-
             if (!empty($errorMessages)) {
                 $message = "Kriteria '{$kriteriaName}' tidak dapat dihapus karena: ";
                 $message .= implode(', ', $errorMessages);
@@ -151,5 +164,4 @@ class KriteriaController extends Controller
                 ->with('error', "Gagal menghapus kriteria '{$kriteriaName}': " . $e->getMessage());
         }
     }
-
 }

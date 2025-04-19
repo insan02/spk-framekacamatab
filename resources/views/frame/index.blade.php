@@ -1,3 +1,4 @@
+<!-- Tambahan pada file index.blade.php untuk pencarian gambar -->
 @extends('layouts.app')
 
 @section('content')
@@ -6,6 +7,14 @@
         @if(session('success'))
         <div data-success-message="{{ session('success') }}" style="display: none;"></div>
         @endif
+        
+        @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show">
+            <i class="fas fa-exclamation-triangle"></i> {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+        
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
@@ -27,6 +36,13 @@
                     <strong>Perhatian!</strong> {{ Session::get('update_message') }}
                 </div>
                 @endif
+                
+                {{-- Pesan jika pencarian gambar tidak menemukan kecocokan --}}
+                @if(isset($noImageMatch) && $noImageMatch)
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Tidak ditemukan frame yang cocok dengan gambar yang diunggah
+                </div>
+                @endif
 
                 <div class="d-flex justify-content-between mb-3">
                     @if(auth()->user()->role !== 'owner')
@@ -40,6 +56,47 @@
                     </div>
                     @endif
                 </div>
+                
+                <!-- Form Pencarian dengan Text dan Gambar -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Pencarian Teks -->
+                            <div class="col-md-6">
+                                <form action="{{ route('frame.index') }}" method="GET" class="mb-3">
+                                    <div class="input-group">
+                                        <input type="text" name="search" class="form-control" placeholder="Cari berdasarkan merek atau lokasi" value="{{ request('search') }}">
+                                        <button class="btn btn-outline-primary" type="submit">
+                                            <i class="fas fa-search"></i> Cari
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <!-- Di bagian pencarian gambar -->
+                            {{-- <div class="col-md-6">
+                                <form action="{{ route('frame.searchByImage') }}" method="POST" enctype="multipart/form-data">
+                                    @csrf
+                                    <div class="input-group mb-3">
+                                        <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png">
+                                        <button class="btn btn-primary" type="submit">Cari dengan Gambar</button>
+                                    </div>
+                                </form>
+                            </div> --}}
+                        </div>
+                    </div>
+                </div>
+
+                <div id="searchResultsContainer" class="mt-4" style="display: none;">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-search"></i> Hasil Pencarian Berdasarkan Gambar</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="searchResults" class="row"></div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="card">
                     <div class="card-body">
@@ -51,6 +108,7 @@
                                         <th>Foto</th>
                                         <th>Merek</th>
                                         <th>Harga</th>
+                                        <th>Lokasi</th>
                                         <th>Kriteria</th>
                                         <th>Status Kriteria</th>
                                         @if(auth()->user()->role !== 'owner')
@@ -78,6 +136,7 @@
                                             </td>
                                             <td>{{ $frame->frame_merek }}</td>
                                             <td>Rp {{ number_format($frame->frame_harga, 0, ',', '.') }}</td>
+                                            <td>{{ $frame->frame_lokasi }}</td>
                                             <td>
                                                 <a href="{{ route('frame.show', $frame->frame_id) }}" class="btn btn-sm btn-info">
                                                     Lihat Detail
@@ -93,9 +152,6 @@
                                             @if(auth()->user()->role !== 'owner')                                                             
                                             <td>
                                                 <div class="btn-group" role="group">
-                                                    {{-- @if($needsUpdate)
-                                                        <a href="{{ route('frame.checkUpdates', $frame->frame_id) }}" class="btn btn-sm btn-info">Lengkapi</a>
-                                                    @endif --}}
                                                     <a href="{{ route('frame.edit', $frame->frame_id) }}" class="btn btn-sm btn-warning">Edit</a>
                                                     <form action="{{ route('frame.destroy', $frame->frame_id) }}" method="POST" class="d-inline">
                                                         @csrf
@@ -108,7 +164,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="7" class="text-center">Tidak ada data frame</td>
+                                            <td colspan="9" class="text-center">Tidak ada data frame</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -118,7 +174,7 @@
                 </div>
                 
                 <div class="mt-4">
-                    {{-- Improved pagination styling --}}
+                    {{-- Pagination styling --}}
                     @if ($frames->hasPages())
                         <nav aria-label="Page navigation">
                             <ul class="pagination justify-content-center">

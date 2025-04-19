@@ -52,6 +52,16 @@
                                 @endif
                             </div>
                         </div>
+
+                        <!-- Lokasi Frame Card -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                Lokasi Frame
+                            </div>
+                            <div class="card-body">
+                                <p class="form-control-plaintext">{{ $frame->frame_lokasi }}</p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Right Column: Kriteria -->

@@ -10,19 +10,25 @@
                 </h4>
             </div>
 
-                @if(session('success'))
-                    <div class="alert alert-success">
-                        {!! session('success') !!}
-                    </div>
-                @endif
+            @if(session('success'))
+                <div class="alert alert-success">
+                    {!! session('success') !!}
+                </div>
+            @endif
 
-                @if(session('error'))
-                    <div class="alert alert-danger">
-                        {!! session('error') !!}
-                    </div>
-                @endif
+            @if(session('error'))
+                <div class="alert alert-danger">
+                    {!! session('error') !!}
+                </div>
+            @endif
+
+            @if(session('update_needed'))
+                <div class="alert alert-warning">
+                    {!! session('update_message') !!}
+                </div>
+            @endif
+            
             <div class="card-body">
-
                 @foreach($kriterias as $kriteria)
                     <div class="card mb-3">
                         <div class="card-header d-flex justify-content-between align-items-center">
@@ -34,7 +40,7 @@
                                         <form action="{{ route('subkriteria.reset', $kriteria->kriteria_id) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-danger">Reset Subkriteria</button>
+                                            <button type="submit" class="btn btn-danger" onclick="return confirm('Apakah Anda yakin ingin mereset semua subkriteria untuk kriteria ini?');">Reset Subkriteria</button>
                                         </form>
                                     @endif
                                 </div>
@@ -44,11 +50,12 @@
                             @if($kriteria->subkriterias->isEmpty())
                                 <p>Belum ada subkriteria untuk kriteria ini.</p>
                             @else
-                            <table class="table table-hover table-striped">
-                                <thead class="table-light">
+                                <table class="table table-hover table-striped">
+                                    <thead class="table-light">
                                         <tr>
                                             <th>No</th>
                                             <th>Nama Subkriteria</th>
+                                            <th>Tipe</th>
                                             <th>Bobot</th>
                                             @if(auth()->user()->role !== 'owner')
                                                 <th>Aksi</th>
@@ -60,6 +67,11 @@
                                             <tr>
                                                 <td>{{ $loop->iteration }}</td>
                                                 <td>{{ $subkriteria->subkriteria_nama }}</td>
+                                                <td>
+                                                    <span class="badge {{ $subkriteria->tipe_subkriteria == 'rentang nilai' ? 'bg-info' : 'bg-secondary' }}">
+                                                        {{ $subkriteria->tipe_subkriteria == 'rentang nilai' ? 'Rentang nilai' : 'Teks' }}
+                                                    </span>
+                                                </td>
                                                 <td>{{ $subkriteria->subkriteria_bobot }}</td>
                                                 @if(auth()->user()->role !== 'owner')
                                                     <td>
@@ -67,7 +79,7 @@
                                                         <form action="{{ route('subkriteria.destroy', $subkriteria->subkriteria_id) }}" method="POST" class="d-inline">
                                                             @csrf
                                                             @method('DELETE')
-                                                            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus subkriteria ini?');">Hapus</button>
                                                         </form>
                                                     </td>
                                                 @endif
@@ -82,6 +94,5 @@
             </div>
         </div>
     </div>
-
 </div>
 @endsection

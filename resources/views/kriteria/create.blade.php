@@ -21,7 +21,9 @@
                     @csrf
                     <div class="mb-3">
                         <label for="kriteria_nama" class="form-label">Nama Kriteria</label>
-                        <input type="text" class="form-control @error('kriteria_nama') is-invalid @enderror" id="kriteria_nama" name="kriteria_nama" value="{{ old('kriteria_nama') }}" required>
+                        <input type="text" class="form-control @error('kriteria_nama') is-invalid @enderror" 
+                               id="kriteria_nama" name="kriteria_nama" value="{{ old('kriteria_nama') }}" 
+                               pattern="[A-Za-z\s]+" title="Hanya huruf yang diperbolehkan" required>
                         @error('kriteria_nama')
                             <span class="invalid-feedback" role="alert">
                                 <strong>{{ $message }}</strong>

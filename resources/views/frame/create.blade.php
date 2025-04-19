@@ -65,6 +65,21 @@
                         </div>
                     </div>
 
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            Lokasi Frame
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <input type="text" name="frame_lokasi" id="frame_lokasi" class="form-control @error('frame_lokasi') is-invalid @enderror" 
+                               value="{{ old('frame_lokasi') }}" placeholder="Masukkan lokasi frame" required>
+                        @error('frame_lokasi')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                            </div>
+                        </div>
+                    </div>
+
                     @foreach($kriterias as $kriteria)
                         @php
                             $isPriceKriteria = Str::contains(strtolower($kriteria->kriteria_nama), 'harga');

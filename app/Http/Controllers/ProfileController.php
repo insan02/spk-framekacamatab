@@ -29,19 +29,30 @@ class ProfileController extends Controller
         'current_password' => ['required'],
         'new_password' => ['required', 'min:8', 'confirmed'],
     ]);
-
-    $user = User::find(Auth::id()); // Ubah Auth::user() ke User::find(Auth::id())
-
+    
+    $user = User::find(Auth::id());
+    
     // Periksa apakah password lama benar
     if (!Hash::check($request->current_password, $user->password)) {
         return back()->withErrors(['current_password' => 'Password lama salah']);
     }
-
+    
     // Update password baru
     $user->password = Hash::make($request->new_password);
     $user->save();
-
-    return redirect()->route('profile')->with('success', 'Password berhasil diperbarui');
+    
+    // Tambahkan pesan sukses ke session
+    $message = 'Password berhasil diperbarui, silakan login ulang ke aplikasi';
+    
+    // Logout user
+    Auth::logout();
+    
+    // Invalidate session dan regenerate CSRF token
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    
+    // Redirect ke halaman login dengan pesan sukses
+    return redirect()->route('login')->with('success', $message);
 }
 
 

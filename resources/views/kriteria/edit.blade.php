@@ -32,13 +32,14 @@
                     @method('PUT')
                 
                     <div class="form-group">
-                        <label for="kriteria_nama" class="fw-bold">Nama Kriteria</label>
-                        <input type="text" name="kriteria_nama" id="kriteria_nama" 
-                            value="{{ old('kriteria_nama', $kriteria->kriteria_nama) }}" 
-                            class="form-control @error('kriteria_nama') is-invalid @enderror" required>
-                        
+                        <label for="kriteria_nama" class="form-label">Nama Kriteria</label>
+                        <input type="text" class="form-control @error('kriteria_nama') is-invalid @enderror" 
+                               id="kriteria_nama" name="kriteria_nama" value="{{ old('kriteria_nama', $kriteria->kriteria_nama) }}" 
+                               pattern="[A-Za-z\s]+" title="Hanya huruf yang diperbolehkan" required>
                         @error('kriteria_nama')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                            <span class="invalid-feedback" role="alert">
+                                <strong>{{ $message }}</strong>
+                            </span>
                         @enderror
                     </div>
                 

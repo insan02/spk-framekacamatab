@@ -10,6 +10,9 @@ use App\Http\Controllers\PenilaianController;
 use App\Http\Controllers\RekomendasiController;
 use App\Http\Controllers\RecommendationHistoryController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -20,6 +23,18 @@ Route::get('/', function () {
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+// Password Reset Routes
+Route::get('/forgot-password', [PasswordResetController::class, 'showForgotPasswordForm'])
+    ->name('password.request');
+    
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail'])
+    ->name('password.email');
+    
+Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetPasswordForm'])
+    ->name('password.reset');
+    
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])
+    ->name('password.reset.update');
 });
 
 // Protected routes
@@ -52,6 +67,11 @@ Route::middleware('auth')->group(function () {
         // Frames - create, store, edit, update, destroy
         Route::get('frame/create', [FrameController::class, 'create'])->name('frame.create');
         Route::post('frame', [FrameController::class, 'store'])->name('frame.store');
+        // Add these routes in your routes/web.php
+Route::get('/frame/confirm-duplicate/{similar_frame_id}', [FrameController::class, 'confirmDuplicate'])
+->name('frame.confirm-duplicate');
+Route::post('/frame/process-duplicate', [FrameController::class, 'processDuplicateConfirmation'])
+->name('frame.process-duplicate');
         Route::get('frame/{frame}/edit', [FrameController::class, 'edit'])->name('frame.edit');
         Route::put('frame/{frame}', [FrameController::class, 'update'])->name('frame.update');
         Route::delete('frame/{frame}', [FrameController::class, 'destroy'])->name('frame.destroy');
@@ -61,6 +81,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/frames/needs-update', [FrameController::class, 'needsUpdate'])
             ->name('frame.needsUpdate');
         Route::delete('/frames/reset-kriteria', [FrameController::class, 'resetFrameKriteria'])->name('frame.reset-kriteria');
+        Route::post('/frame/search-by-image', [FrameController::class, 'searchByImage'])->name('frame.searchByImage');
 
         // Tambahkan route ini di dalam group middleware auth
         Route::get('penilaian', [PenilaianController::class, 'index'])->name('penilaian.index');
@@ -93,6 +114,12 @@ Route::middleware('auth')->group(function () {
             Route::get('rekomendasi', [RecommendationHistoryController::class, 'index'])->name('rekomendasi.index');
             Route::get('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
             Route::get('/rekomendasi/{id}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
+            Route::get('/rekomendasi/print/all', [RecommendationHistoryController::class, 'printAll'])->name('rekomendasi.print-all');
+            Route::get('rekomendasi/print/{id}', [RecommendationHistoryController::class, 'print'])->name('rekomendasi.print');
+            
+
+      
+
     });
  
 });

@@ -16,16 +16,16 @@ class Frame extends Model
         'frame_merek',
         'frame_foto',
         'frame_harga',
+        'frame_lokasi'
     ];
 
     public function subkriterias()
-{
-    return $this->belongsToMany(Subkriteria::class, 'frame_subkriteria', 'frame_id', 'subkriteria_id');
-}
+    {
+        return $this->belongsToMany(Subkriteria::class, 'frame_subkriteria', 'frame_id', 'subkriteria_id');
+    }
 
     public function frameSubkriterias()
     {
         return $this->hasMany(FrameSubkriteria::class, 'frame_id');
     }
-
 }

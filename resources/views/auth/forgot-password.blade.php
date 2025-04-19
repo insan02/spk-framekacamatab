@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="{{ asset('logokacamata.png') }}">
-    <title>Login - SPK Frame Kacamata</title>
+    <title>Lupa Password - SPK Frame Kacamata</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -15,12 +14,12 @@
 </head>
 <body>
     <div class="container">
-
         <div class="row justify-content-center">
             <div class="col-md-6 col-lg-4">
                 <div class="login-container">
                     <div class="login-header">
                         <h3><i class="fas fa-glasses me-2"></i>SPK Frame Kacamata</h3>
+                        <p class="text-center">Lupa Password</p>
                     </div>
                     <div class="login-body">
                         @if(session('status'))
@@ -28,14 +27,7 @@
                             {{ session('status') }}
                         </div>
                         @endif
-
-                        @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {{ session('success') }}
-                        </div>
-                        @endif
-                        
-                        <form method="POST" action="{{ route('login.submit') }}">
+                        <form method="POST" action="{{ route('password.email') }}">
                             @csrf
                             <div class="mb-3">
                                 <label for="email" class="form-label">
@@ -52,34 +44,14 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">
-                                    <i class="fas fa-lock me-2"></i>Password
-                                </label>
-                                <div class="input-group">
-                                    <input type="password" 
-                                           class="form-control" 
-                                           id="password" 
-                                           name="password" 
-                                           required 
-                                           placeholder="Masukkan password Anda"
-                                           autocomplete="current-password">
-                                    <button class="btn btn-outline-secondary" 
-                                            type="button" 
-                                            id="toggle-password">
-                                        <i class="fas fa-eye-slash"></i>
-                                    </button>
-                                </div>
-                            </div>
-
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-login text-white">
-                                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                                    <i class="fas fa-paper-plane me-2"></i>Kirim Link Reset Password
                                 </button>
                             </div>
-                            <div class="text-center mt-3">
-                                <a href="{{ route('password.request') }}" class="forgot-password">
-                                    <i class="fas fa-key me-1"></i>Lupa Password?
+                            <div class="mt-3 text-center">
+                                <a href="{{ route('login') }}" class="text-decoration-none">
+                                    <i class="fas fa-arrow-left me-1"></i>Kembali ke Login
                                 </a>
                             </div>
                         </form>

@@ -87,6 +87,32 @@
                     </div>
 
                     <div class="card mb-3">
+                        <div class="card-header"><strong>Kriteria Frame</strong></div>
+                        <div class="card-body">
+                            @foreach($kriterias as $kriteria)
+                            <div class="mb-4">
+                                <h5>{{ $kriteria->kriteria_nama }}</h5>
+                                <div class="row">
+                                    @foreach($kriteria->subkriterias as $subkriteria)
+                                    <div class="col-md-12 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" 
+                                                name="subkriteria[{{ $kriteria->kriteria_id }}]" 
+                                                value="{{ $subkriteria->subkriteria_id }}" 
+                                                id="sub{{ $subkriteria->subkriteria_id }}" required>
+                                            <label class="form-check-label" for="sub{{ $subkriteria->subkriteria_id }}">
+                                                {{ $subkriteria->subkriteria_nama }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
                         <div class="card-header"><strong>Bobot Kriteria</strong></div>
                         <div class="card-body">
                             <div class="row">
@@ -127,32 +153,6 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header"><strong>Kriteria Frame</strong></div>
-                        <div class="card-body">
-                            @foreach($kriterias as $kriteria)
-                            <div class="mb-4">
-                                <h5>{{ $kriteria->kriteria_nama }}</h5>
-                                <div class="row">
-                                    @foreach($kriteria->subkriterias as $subkriteria)
-                                    <div class="col-md-12 mb-2">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" 
-                                                name="subkriteria[{{ $kriteria->kriteria_id }}]" 
-                                                value="{{ $subkriteria->subkriteria_id }}" 
-                                                id="sub{{ $subkriteria->subkriteria_id }}" required>
-                                            <label class="form-check-label" for="sub{{ $subkriteria->subkriteria_id }}">
-                                                {{ $subkriteria->subkriteria_nama }}
-                                            </label>
-                                        </div>
-                                    </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                            @endforeach
                         </div>
                     </div>
                     

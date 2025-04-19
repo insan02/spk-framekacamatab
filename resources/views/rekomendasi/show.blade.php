@@ -10,6 +10,7 @@
             <h4 class="mb-0">
                 <i class="fas fa-file-alt me-2"></i>Detail Riwayat Rekomendasi
             </h4>
+
             <div>
                 <a href="{{ route('rekomendasi.index') }}" class="btn btn-sm btn-light">
                     <i class="fas fa-arrow-left me-1"></i>Kembali
@@ -265,6 +266,7 @@
                                         <th>Foto</th>
                                         <th>Merek</th>
                                         <th>Harga</th>
+                                        <th>Lokasi</th>
                                         <th>Kriteria Utama</th>
                                         <th class="text-center">Skor Akhir</th>
                                     </tr>
@@ -285,6 +287,7 @@
                                         </td>
                                         <td>{{ $frame['frame']['frame_merek'] }}</td>
                                         <td>Rp {{ number_format($frame['frame']['frame_harga'], 0, ',', '.') }}</td>
+                                        <td>{{ $frame['frame']['frame_lokasi'] }}</td>
                                         <td>
                                             <small>
                                                 @foreach($frame['details'] as $detail)
@@ -309,5 +312,7 @@
         </div>
     </div>
 </div>
+
+
 <script src="{{ asset('js/rekomendasii.js') }}"></script>
 @endsection

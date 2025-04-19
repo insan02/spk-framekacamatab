@@ -16,6 +16,10 @@ class Subkriteria extends Model
         'kriteria_id',
         'subkriteria_nama',
         'subkriteria_bobot',
+        'tipe_subkriteria', // Pastikan field ini ada
+    'operator',
+    'nilai_minimum',
+    'nilai_maksimum'
     ];
 
     protected $casts = [
