@@ -48,6 +48,7 @@
                 <i class="fas fa-glasses"></i> <span>Frame</span>
             </a>
             
+            
             @if(auth()->user()->role === 'karyawan')
             <a href="{{ route('penilaian.index') }}" class="{{ request()->routeIs('penilaian.*') ? 'active' : '' }}">
                 <i class="fas fa-clipboard-check"></i> <span>Penilaian</span>

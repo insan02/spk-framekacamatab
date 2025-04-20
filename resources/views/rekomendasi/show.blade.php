@@ -30,16 +30,22 @@
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-md-4">
-                                    <strong>Nama:</strong> 
-                                    <span>{{ $history->nama_pelanggan }}</span>
+                                    <div class="d-flex align-items-center">
+                                        <strong class="me-2">Nama:</strong> 
+                                        <span>{{ $history->customer_name ?? ($history->customer->name ?? 'Unknown') }}</span>
+                                    </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <strong>No HP:</strong> 
-                                    <span>{{ $history->nohp_pelanggan }}</span>
+                                    <div class="d-flex align-items-center">
+                                        <strong class="me-2">No HP:</strong> 
+                                        <span>{{ $history->customer_phone ?? ($history->customer->phone ?? 'Unknown') }}</span>
+                                    </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <strong>Alamat:</strong> 
-                                    <span>{{ $history->alamat_pelanggan }}</span>
+                                    <div class="d-flex align-items-center">
+                                        <strong class="me-2">Alamat:</strong> 
+                                        <span>{{ $history->customer_address ?? ($history->customer->address ?? 'Unknown') }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

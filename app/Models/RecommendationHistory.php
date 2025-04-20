@@ -12,16 +12,27 @@ class RecommendationHistory extends Model
     protected $primaryKey = 'recommendation_history_id';
 
     protected $fillable = [
-        'nama_pelanggan',
-        'nohp_pelanggan',
-        'alamat_pelanggan',
+        'customer_id', // Keep this for reference
+        'customer_name', // Add customer snapshot data
+        'customer_phone',
+        'customer_address',
         'kriteria_dipilih',
         'bobot_kriteria',
         'rekomendasi_data',
         'perhitungan_detail'
     ];
 
-    // Mutator to ensure JSON storage for complex data
+    // Relationship with Customer - can be nullable now
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id')->withDefault([
+            'name' => $this->customer_name,
+            'phone' => $this->customer_phone,
+            'address' => $this->customer_address
+        ]);
+    }
+
+    // JSON mutators and accessors remain the same
     public function setKriteriaDipilihAttribute($value)
     {
         $this->attributes['kriteria_dipilih'] = is_array($value) 
@@ -50,7 +61,7 @@ class RecommendationHistory extends Model
             : $value;
     }
 
-    // Accessor methods to parse JSON
+    // Accessor methods
     public function getKriteriaDipilihAttribute($value)
     {
         return json_decode($value, true);

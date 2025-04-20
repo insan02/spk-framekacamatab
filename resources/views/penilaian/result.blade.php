@@ -13,19 +13,19 @@
                         <div class="col-md-4">
                             <div class="d-flex align-items-center">
                                 <strong class="me-2">Nama:</strong> 
-                                <span>{{ $nama_pelanggan }}</span>
+                                <span>{{ $customer->name }}</span>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="d-flex align-items-center">
                                 <strong class="me-2">No HP:</strong> 
-                                <span>{{ $nohp_pelanggan }}</span>
+                                <span>{{ $customer->phone }}</span>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="d-flex align-items-center">
                                 <strong class="me-2">Alamat:</strong> 
-                                <span>{{ $alamat_pelanggan }}</span>
+                                <span>{{ $customer->address }}</span>
                             </div>
                         </div>
                     </div>

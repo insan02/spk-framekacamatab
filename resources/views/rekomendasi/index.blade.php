@@ -28,7 +28,7 @@
                         @foreach($histories as $history)
                         <tr>
                             <td>{{ $history->created_at->setTimezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</td>
-                            <td>{{ $history->nama_pelanggan }}</td>
+                            <td>{{ $history->customer_name ?? ($history->customer->name ?? 'Unknown') }}</td>
                             <td>
                                 @php
                                     $kriteriaTerpilih = $history->kriteria_dipilih ?? [];
