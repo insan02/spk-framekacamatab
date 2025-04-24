@@ -47,67 +47,21 @@ class CustomerController extends Controller
                 ->withInput();
         }
 
+        $existingCustomer = Customer::where('phone', $request->phone)->first();
+        if ($existingCustomer) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['phone' => 'No Hp tersebut sudah ada.']);
+        }
+
         Customer::create([
             'name' => $request->name,
             'phone' => $request->phone,
             'address' => $request->address,
         ]);
 
-        return redirect()->route('customers.index')
+        return redirect()->route('penilaian.index')
             ->with('success', 'Pelanggan berhasil ditambahkan.');
-    }
-
-    /**
-     * Store a new customer via AJAX.
-     */
-    public function storeAjax(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                'regex:/^[a-zA-Z\s]+$/'
-            ],
-            'phone' => 'required|string|max:20',
-            'address' => 'required|string|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Check for similar customers by name (if force is not set)
-        if (!$request->force) {
-            $similarCustomers = Customer::where('name', 'like', $request->name)
-                ->where(function($query) use ($request) {
-                    $query->where('phone', '!=', $request->phone)
-                        ->orWhere('address', '!=', $request->address);
-                })
-                ->get();
-
-            if ($similarCustomers->count() > 0) {
-                return response()->json([
-                    'success' => false,
-                    'similar_customers' => $similarCustomers
-                ]);
-            }
-        }
-
-        // Create new customer
-        $customer = Customer::create([
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'address' => $request->address,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'customer' => $customer
-        ]);
     }
 
     /**
@@ -148,13 +102,24 @@ class CustomerController extends Controller
                 ->withInput();
         }
 
+        // Cek manual untuk nama duplikat (kecuali untuk record saat ini)
+        $existingCustomer = Customer::where('phone', $request->phone)
+                            ->where('customer_id', '!=', $customer->customer_id)
+                            ->first();
+        
+        if ($existingCustomer) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['phone' => 'No HP tersebut sudah ada.']);
+        }
+
         $customer->update([
             'name' => $request->name,
             'phone' => $request->phone,
             'address' => $request->address,
         ]);
 
-        return redirect()->route('customers.index')
+        return redirect()->route('penilaian.index')
             ->with('success', 'Pelanggan berhasil diperbarui.');
     }
 
@@ -165,7 +130,7 @@ class CustomerController extends Controller
     {
         $customer->delete();
 
-        return redirect()->route('customers.index')
+        return redirect()->route('penilaian.index')
             ->with('success', 'Pelanggan berhasil dihapus.');
     }
 

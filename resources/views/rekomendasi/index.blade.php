@@ -19,6 +19,7 @@
                         <tr>
                             <th>Tanggal</th>
                             <th>Nama Pelanggan</th>
+                            <th>No HP</th>
                             <th>Kriteria Terpilih</th>
                             <th>Rekomendasi Teratas</th>
                             <th>Aksi</th>
@@ -29,6 +30,7 @@
                         <tr>
                             <td>{{ $history->created_at->setTimezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</td>
                             <td>{{ $history->customer_name ?? ($history->customer->name ?? 'Unknown') }}</td>
+                            <td>{{ $history->customer_phone ?? ($history->customer->phone ?? 'Unknown') }}</td>
                             <td>
                                 @php
                                     $kriteriaTerpilih = $history->kriteria_dipilih ?? [];

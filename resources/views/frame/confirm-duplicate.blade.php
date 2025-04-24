@@ -11,7 +11,7 @@
             </div>
             <div class="card-body">
                 <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-circle"></i> <strong>Perhatian!</strong> Sistem mendeteksi frame yang Anda unggah memiliki kemiripan dengan frame yang sudah ada.
+                    <i class="fas fa-exclamation-circle"></i> <strong>Perhatian!</strong> Sistem mendeteksi frame yang akan ditambah memiliki kemiripan dengan frame yang sudah ada.
                 </div>
                 
                 <!-- Similarity Details Panel -->
@@ -26,19 +26,19 @@
             @if(isset($similarityDetails['image']) && $similarityDetails['image']['similar'])
                 <li class="list-group-item list-group-item-warning">
                     <strong>Foto Frame:</strong> {{ $similarityDetails['image']['message'] }}
-                    @if(isset($similarityDetails['image']['frame_id']))
+                    <!-- @if(isset($similarityDetails['image']['frame_id']))
                         (ID Frame: {{ $similarityDetails['image']['frame_id'] }})
-                    @endif
+                    @endif -->
                 </li>
             @endif
             
             @if(isset($similarityDetails['data']) && $similarityDetails['data']['similar'])
                 <li class="list-group-item list-group-item-warning">
                     <strong>Data Frame:</strong> {{ $similarityDetails['data']['message'] }}
-                    @if(isset($similarityDetails['data']['frames']) && count($similarityDetails['data']['frames']) > 0)
+                    <!-- @if(isset($similarityDetails['data']['frames']) && count($similarityDetails['data']['frames']) > 0)
                         (ID Frame: {{ implode(', ', array_slice($similarityDetails['data']['frames'], 0, 3)) }}
                         {{ count($similarityDetails['data']['frames']) > 3 ? '...' : '' }})
-                    @endif
+                    @endif -->
                 </li>
             @endif
         </ul>
@@ -273,7 +273,7 @@
                 </div>
                 
                 <div class="mt-4 text-center">
-                    <h5>Apakah frame yang Anda unggah berbeda dengan frame yang sudah ada?</h5>
+                    <h5>Apakah frame yang Anda tambahkan berbeda dengan frame yang sudah ada?</h5>
                     <p class="text-muted">Silakan pilih tindakan yang sesuai:</p>
                     
                     <form action="{{ route('frame.process-duplicate') }}" method="POST">
@@ -289,12 +289,55 @@
                     </form>
                 </div>
             </div>
-            <div class="card-footer text-center">
-                <a href="{{ route('frame.create') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Kembali ke Form Tambah Frame
-                </a>
-            </div>
+            
         </div>
     </div>
 </div>
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Disable sidebar interactions
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.style.pointerEvents = 'none';
+            sidebar.style.opacity = '0.5';
+        }
+        
+        // Disable all other clickable elements
+        document.querySelectorAll('a, button, input, select').forEach(element => {
+            if (!element.closest('.confirmation-buttons') && !element.closest('.navbar-nav')) {
+                element.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Highlight confirmation buttons to draw attention
+                    const confirmationArea = document.querySelector('.confirmation-area');
+                    if (confirmationArea) {
+                        confirmationArea.classList.add('highlight-pulse');
+                        setTimeout(() => {
+                            confirmationArea.classList.remove('highlight-pulse');
+                        }, 800);
+                    }
+                });
+            }
+        });
+        
+        // Create overlay to prevent interaction with other elements
+        const contentArea = document.getElementById('content');
+        const confirmationCard = document.querySelector('.confirmation-card');
+        
+        if (contentArea && confirmationCard) {
+            // Make sure only the confirmation card is interactive
+            const confirmationArea = document.querySelector('.confirmation-area');
+            const children = contentArea.querySelectorAll('*');
+            
+            children.forEach(child => {
+                if (!child.closest('.confirmation-card') && !child.closest('.navbar')) {
+                    child.style.pointerEvents = 'none';
+                }
+            });
+        }
+    });
+</script>
+@endpush
 @endsection

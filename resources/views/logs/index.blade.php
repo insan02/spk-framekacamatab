@@ -15,31 +15,7 @@
                 <div class="card-header">Filter</div>
                 <div class="card-body">
                     <form action="{{ route('logs.index') }}" method="GET" class="row">
-                        <div class="col-md-3 mb-3">
-                            <label for="module">Modul</label>
-                            <select name="module" id="module" class="form-control">
-                                <option value="">-- Semua Modul --</option>
-                                @foreach($modules as $module)
-                                    <option value="{{ $module }}" {{ request('module') == $module ? 'selected' : '' }}>
-                                        {{ ucfirst($module) }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-3 mb-3">
-                            <label for="action">Aksi</label>
-                            <select name="action" id="action" class="form-control">
-                                <option value="">-- Semua Aksi --</option>
-                                @foreach($actions as $action)
-                                    <option value="{{ $action }}" {{ request('action') == $action ? 'selected' : '' }}>
-                                        {{ ucfirst($action) }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="user_id">Karyawan</label>
                             <select name="user_id" id="user_id" class="form-control">
                                 <option value="">-- Semua Karyawan --</option>
@@ -51,12 +27,36 @@
                             </select>
                         </div>
                         
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label for="module">Modul</label>
+                            <select name="module" id="module" class="form-control">
+                                <option value="">-- Semua Modul --</option>
+                                @foreach($modules as $module)
+                                    <option value="{{ $module }}" {{ request('module') == $module ? 'selected' : '' }}>
+                                        {{ ucfirst($module) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="action">Aksi</label>
+                            <select name="action" id="action" class="form-control">
+                                <option value="">-- Semua Aksi --</option>
+                                @foreach($actions as $action)
+                                    <option value="{{ $action }}" {{ request('action') == $action ? 'selected' : '' }}>
+                                        {{ ucfirst($action) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
                             <label for="date_from">Dari Tanggal</label>
                             <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request('date_from') }}">
                         </div>
                         
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label for="date_to">Sampai Tanggal</label>
                             <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request('date_to') }}">
                         </div>

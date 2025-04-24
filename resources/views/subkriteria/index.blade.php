@@ -55,6 +55,7 @@
                                             <th>Nama Subkriteria</th>
                                             <th>Tipe</th>
                                             <th>Bobot</th>
+                                            <th>Keterangan Bobot</th>
                                             @if(auth()->user()->role !== 'owner')
                                                 <th>Aksi</th>
                                             @endif
@@ -71,6 +72,7 @@
                                                     </span>
                                                 </td>
                                                 <td>{{ $subkriteria->subkriteria_bobot }}</td>
+                                                <td>{{ $subkriteria->subkriteria_keterangan }}</td>
                                                 @if(auth()->user()->role !== 'owner')
                                                     <td>
                                                         <a href="{{ route('subkriteria.edit', $subkriteria->subkriteria_id) }}" class="btn btn-warning btn-sm">Edit</a>

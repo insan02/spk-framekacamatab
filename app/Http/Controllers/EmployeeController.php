@@ -3,6 +3,11 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use App\Notifications\NewEmployeeCredentialsNotification;
+use Illuminate\Support\Facades\Log;
+
+
 class EmployeeController extends Controller
 {
     public function index()
@@ -21,18 +26,31 @@ class EmployeeController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed'
         ]);
         
-        User::create([
+        // Generate random password
+        $password = $this->generateRandomPassword();
+        
+        // Create new employee
+        $employee = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'karyawan'
+            'password' => Hash::make($password),
+            'role' => 'karyawan',
+            'password_change_required' => true, // Flag to force password change on first login
         ]);
         
+        // Send notification with credentials
+        try {
+            $employee->notify(new NewEmployeeCredentialsNotification($password));
+        } catch (\Exception $e) {
+            // Log error but continue
+            Log::error('Failed to send notification to new employee: ' . $e->getMessage());
+            // Continue execution without returning here
+        }
+        
         return redirect()->route('employees.index')
-            ->with('success', 'Karyawan berhasil ditambahkan');
+            ->with('success', 'Karyawan berhasil ditambahkan. Kredensial login telah dikirim ke email karyawan.');
     }
     
     public function edit($id)
@@ -48,14 +66,15 @@ class EmployeeController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $employee->user_id . ',user_id',
-            'password' => 'nullable|string|min:8|confirmed'
         ]);
         
         $employee->name = $request->name;
-        $employee->email = $request->email;
         
-        if ($request->filled('password')) {
-            $employee->password = Hash::make($request->password);
+        // Check if email is being changed
+        $emailChanged = $employee->email != $request->email;
+        if ($emailChanged) {
+            $employee->email = $request->email;
+            // You could add email verification logic here if needed
         }
         
         $employee->save();
@@ -71,5 +90,27 @@ class EmployeeController extends Controller
         
         return redirect()->route('employees.index')
             ->with('success', 'Karyawan berhasil dihapus');
+    }
+    
+    /**
+     * Generate random password with 8 characters
+     * 
+     * @return string
+     */
+    private function generateRandomPassword()
+    {
+        // Generate password containing random uppercase, lowercase, numbers and special characters
+        $uppercase = chr(rand(65, 90));
+        $lowercase = chr(rand(97, 122));
+        $number = rand(0, 9);
+        $special = ['!', '@', '#', '$', '%', '^', '&', '*'][rand(0, 7)];
+        
+        // Generate 4 more random characters
+        $remaining = Str::random(4);
+        
+        // Combine all characters and shuffle
+        $password = str_shuffle($uppercase . $lowercase . $number . $special . $remaining);
+        
+        return $password;
     }
 }

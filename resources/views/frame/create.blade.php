@@ -35,12 +35,24 @@
                         <div class="card-body">
                             <div class="form-group">
                                 <input type="file" name="frame_foto" id="frame_foto" 
-                                       class="form-control @error('frame_foto') is-invalid @enderror" 
-                                       accept=".jpg,.jpeg,.png" required>
+                                    class="form-control @error('frame_foto') is-invalid @enderror" 
+                                    accept=".jpg,.jpeg,.png" required>
                                 <small class="form-text text-muted">Hanya menerima file gambar dengan format JPG, JPEG, atau PNG</small>
-                        @error('frame_foto')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                                @error('frame_foto')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                
+                                <!-- Tambahkan preview gambar jika ada -->
+                                @if(session('temp_image') && Storage::disk('public')->exists(session('temp_image')))
+                                    <div class="mt-3">
+                                        <p>Foto yang sudah diupload:</p>
+                                        <img src="{{ asset('storage/' . session('temp_image')) }}" 
+                                            alt="Preview Foto Frame" 
+                                            class="img-thumbnail" 
+                                            style="max-height: 200px;">
+                                        <input type="hidden" name="existing_temp_image" value="{{ session('temp_image') }}">
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -121,4 +133,38 @@
         </div>
     </div>
 </div>
+
+@section('scripts')
+<script>
+    // Preview gambar saat memilih file baru
+    document.getElementById('frame_foto').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Hapus preview sebelumnya jika ada
+                const existingPreview = document.querySelector('.image-preview');
+                if (existingPreview) {
+                    existingPreview.remove();
+                }
+                
+                // Buat elemen preview baru
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'mt-3 image-preview';
+                previewDiv.innerHTML = `
+                    <p>Preview Foto Baru:</p>
+                    <img src="${e.target.result}" 
+                         alt="Preview Foto Frame" 
+                         class="img-thumbnail" 
+                         style="max-height: 200px;">
+                `;
+                
+                // Sisipkan setelah input file
+                e.target.parentNode.appendChild(previewDiv);
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+@endsection
 @endsection

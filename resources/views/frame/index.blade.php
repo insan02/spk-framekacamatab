@@ -74,7 +74,7 @@
                             </div>
                             
                             <!-- Di bagian pencarian gambar -->
-                            {{-- <div class="col-md-6">
+                            <div class="col-md-6">
                                 <form action="{{ route('frame.searchByImage') }}" method="POST" enctype="multipart/form-data">
                                     @csrf
                                     <div class="input-group mb-3">
@@ -82,7 +82,7 @@
                                         <button class="btn btn-primary" type="submit">Cari dengan Gambar</button>
                                     </div>
                                 </form>
-                            </div> --}}
+                            </div> 
                         </div>
                     </div>
                 </div>

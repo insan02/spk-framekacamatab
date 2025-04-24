@@ -38,14 +38,18 @@ public function store(Request $request)
         'kriteria_id' => 'required|exists:kriterias,kriteria_id',
         'tipe_subkriteria' => 'required|in:teks,rentang nilai',
         'subkriteria_bobot' => 'required|integer|min:1|max:5',
+        'subkriteria_keterangan' => 'required|regex:/^[A-Za-z\s]+$/', // Validasi untuk keterangan
     ], [
         'kriteria_id.required' => 'Kriteria harus dipilih',
         'kriteria_id.exists' => 'Kriteria yang dipilih tidak valid',
         'tipe_subkriteria.required' => 'Tipe subkriteria harus dipilih',
         'tipe_subkriteria.in' => 'Tipe subkriteria tidak valid',
         'subkriteria_bobot.required' => 'Bobot subkriteria tidak boleh kosong',
+        'subkriteria_keterangan.required' => 'Keterangan bobot subkriteria tidak boleh kosong',
+        'subkriteria_keterangan.regex' => 'Keterangan bobot subkriteria hanya boleh berisi huruf dan spasi.',
         'subkriteria_bobot.min' => 'Bobot subkriteria minimal 1',
-        'subkriteria_bobot.max' => 'Bobot subkriteria maksimal 5'
+        'subkriteria_bobot.max' => 'Bobot subkriteria maksimal 5',
+        'subkriteria_keterangan.max' => 'Keterangan maksimal 255 karakter',
     ]);
 
     if ($validator->fails()) {
@@ -59,6 +63,7 @@ public function store(Request $request)
         'kriteria_id' => $request->kriteria_id,
         'tipe_subkriteria' => $request->tipe_subkriteria,
         'subkriteria_bobot' => $request->subkriteria_bobot,
+        'subkriteria_keterangan' => $request->subkriteria_keterangan, // Tambahkan keterangan
     ];
 
     if ($request->tipe_subkriteria == 'teks') {
@@ -186,20 +191,23 @@ public function store(Request $request)
     // Memperbarui data subkriteria
     public function update(Request $request, Subkriteria $subkriteria)
 {
-    
     // Validasi dasar untuk semua tipe
     $validator = Validator::make($request->all(), [
         'kriteria_id' => 'required|exists:kriterias,kriteria_id',
         'tipe_subkriteria' => 'required|in:teks,rentang nilai',
         'subkriteria_bobot' => 'required|integer|min:1|max:5',
+        'subkriteria_keterangan' => 'required|regex:/^[A-Za-z\s]+$/', // Validasi untuk keterangan
     ], [
         'kriteria_id.required' => 'Kriteria harus dipilih',
         'kriteria_id.exists' => 'Kriteria yang dipilih tidak valid',
         'tipe_subkriteria.required' => 'Tipe subkriteria harus dipilih',
         'tipe_subkriteria.in' => 'Tipe subkriteria tidak valid',
         'subkriteria_bobot.required' => 'Bobot subkriteria tidak boleh kosong',
+        'subkriteria_keterangan.required' => 'Keterangan bobot subkriteria tidak boleh kosong',
+        'subkriteria_keterangan.regex' => 'Keterangan bobot subkriteria hanya boleh berisi huruf dan spasi.',
         'subkriteria_bobot.min' => 'Bobot subkriteria minimal 1',
-        'subkriteria_bobot.max' => 'Bobot subkriteria maksimal 5'
+        'subkriteria_bobot.max' => 'Bobot subkriteria maksimal 5',
+        'subkriteria_keterangan.max' => 'Keterangan maksimal 255 karakter',
     ]);
 
     if ($validator->fails()) {

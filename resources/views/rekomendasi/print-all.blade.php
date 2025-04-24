@@ -148,7 +148,7 @@
                         <th>No HP</th>
                         <th>Kriteria Terpilih</th>
                         <th>Rekomendasi Teratas</th>
-                        <th>Skor</th>
+                        <!-- <th>Skor</th> -->
                     </tr>
                 </thead>
                 <tbody>
@@ -156,8 +156,8 @@
                     <tr>
                         <td>{{ $index + 1 }}</td>
                         <td>{{ $history->created_at->format('d/m/Y H:i') }}</td>
-                        <td>{{ $history->nama_pelanggan }}</td>
-                        <td>{{ $history->nohp_pelanggan }}</td>
+                        <td>{{ $history->customer_name ?? ($history->customer->name ?? 'Unknown') }}</td>
+                        <td>{{ $history->customer_phone ?? ($history->customer->phone ?? 'Unknown') }}</td>
                         <td>
                             @php
                                 $kriteriaTerpilih = $history->kriteria_dipilih ?? [];
@@ -193,13 +193,13 @@
                             @endif
                         </td>
                         
-                        <td>
+                        <!-- <td>
                             @if($topRekomendasi)
                                 {{ number_format($topRekomendasi['score'] ?? 0, 4) }}
                             @else
                                 -
                             @endif
-                        </td>
+                        </td> -->
                     </tr>
                     @endforeach
                 </tbody>

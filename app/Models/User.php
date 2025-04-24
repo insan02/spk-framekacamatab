@@ -24,7 +24,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role'
+        'role',
+        'password_change_required',
     ];
 
     /**
@@ -45,6 +46,7 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'password_change_required' => 'boolean',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];

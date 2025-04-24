@@ -8,21 +8,11 @@
                 <h4 class="mb-0">
                     <i class="fas fa-user-edit me-2"></i>Edit Pelanggan
                 </h4>
-                <a href="{{ route('customers.index') }}" class="btn btn-light">
+                <a href="{{ route('penilaian.index') }}" class="btn btn-light">
                     <i class="fas fa-arrow-left me-1"></i>Kembali
                 </a>
             </div>
             <div class="card-body">
-                @if($errors->any())
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <ul class="mb-0">
-                        @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-                @endif
 
                 <form method="POST" action="{{ route('customers.update', $customer) }}" id="form-edit">
                     @csrf

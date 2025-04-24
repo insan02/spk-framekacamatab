@@ -2,8 +2,8 @@ $(document).ready(function() {
     // DataTables initialization
     $('#riwayatTable').DataTable({
         "pageLength": 20,
-        "lengthChange": true,
-        "order": [[0, 'asc']],
+        "lengthChange": false,
+        "order": [[0, 'dsc']],
         "language": {
             "search": "Cari:",
             "paginate": {

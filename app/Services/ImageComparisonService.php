@@ -11,11 +11,11 @@ use Illuminate\Support\Facades\Log;
 class ImageComparisonService
 {
     // Increased threshold for better matching tolerance
-    const SIMILARITY_THRESHOLD = 13;
+    const SIMILARITY_THRESHOLD = 25;
     
     // Slightly increased dimensions for better accuracy
-    const COMPARE_WIDTH = 200;
-    const COMPARE_HEIGHT = 200;
+    const COMPARE_WIDTH = 650;
+    const COMPARE_HEIGHT = 650;
     
     /**
      * Mencari kesamaan gambar dengan gambar frame yang sudah ada
@@ -177,6 +177,6 @@ class ImageComparisonService
         }
         
         // Normalisasi perbedaan (0-100)
-        return ($difference / $pixelCount) * 100 / 255;
+        return ($difference / $pixelCount) * 400 / 855;
     }
 }

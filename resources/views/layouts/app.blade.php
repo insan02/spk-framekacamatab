@@ -48,12 +48,15 @@
                 <i class="fas fa-glasses"></i> <span>Frame</span>
             </a>
             
-            
-            @if(auth()->user()->role === 'karyawan')
-            <a href="{{ route('penilaian.index') }}" class="{{ request()->routeIs('penilaian.*') ? 'active' : '' }}">
-                <i class="fas fa-clipboard-check"></i> <span>Penilaian</span>
+            @if(false)
+            <a href="{{ route('customers.index') }}" class="{{ request()->routeIs('customers.*') ? 'active' : '' }}">
+                <i class="fas fa-users"></i> <span>Pelanggan</span>
             </a>
             @endif
+
+            <a href="{{ route('penilaian.index') }}" class="{{ request()->routeIs('penilaian.*') || request()->routeIs('customers.*') ? 'active' : '' }}">
+                <i class="fas fa-clipboard-check"></i> <span>Penilaian</span>
+            </a>
 
             @if(auth()->user()->role === 'owner')
             <a href="{{ route('employees.index') }}" class="{{ request()->routeIs('employees.*') ? 'active' : '' }}">

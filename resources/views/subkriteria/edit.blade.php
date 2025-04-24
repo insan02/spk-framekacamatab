@@ -87,6 +87,18 @@
                         @endif
                     </div>
 
+                    <!-- Tambahan field untuk keterangan -->
+                    <div class="form-group mb-3">
+                        <label for="subkriteria_keterangan">Keterangan Bobot</label>
+                        <textarea name="subkriteria_keterangan" id="subkriteria_keterangan"
+    class="form-control @error('subkriteria_keterangan') is-invalid @enderror"
+    rows="3"
+    pattern="[A-Za-z\s]+" title="Hanya huruf dan spasi yang diperbolehkan" required>{{ old('subkriteria_keterangan', $subkriteria->subkriteria_keterangan) }}</textarea>
+                        @if($errors->has('subkriteria_keterangan'))
+                            <div class="text-danger">{{ $errors->first('subkriteria_keterangan') }}</div>
+                        @endif
+                    </div>
+
                     <button type="submit" class="btn btn-primary">Perbarui Subkriteria</button>
                 </form>
             </div>

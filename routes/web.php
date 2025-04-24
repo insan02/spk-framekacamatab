@@ -70,12 +70,16 @@ Route::middleware('auth')->group(function () {
         Route::get('frame/create', [FrameController::class, 'create'])->name('frame.create');
         Route::post('frame', [FrameController::class, 'store'])->name('frame.store');
         // Add these routes in your routes/web.php
-Route::get('/frame/confirm-duplicate/{similar_frame_id}', [FrameController::class, 'confirmDuplicate'])
-->name('frame.confirm-duplicate');
-Route::post('/frame/process-duplicate', [FrameController::class, 'processDuplicateConfirmation'])
-->name('frame.process-duplicate');
+        Route::get('/frame/confirm-duplicate/{similar_frame_id}', [FrameController::class, 'confirmDuplicate'])
+        ->name('frame.confirm-duplicate');
+        Route::post('/frame/process-duplicate', [FrameController::class, 'processDuplicateConfirmation'])
+        ->name('frame.process-duplicate');
         Route::get('frame/{frame}/edit', [FrameController::class, 'edit'])->name('frame.edit');
         Route::put('frame/{frame}', [FrameController::class, 'update'])->name('frame.update');
+        Route::get('/frame/{frame}/confirm-update-duplicate', [FrameController::class, 'confirmUpdateDuplicate'])
+    ->name('frame.confirm-update-duplicate');
+Route::post('/frame/{frame}/process-update-duplicate', [FrameController::class, 'processUpdateDuplicate'])
+    ->name('frame.process-update-duplicate');
         Route::delete('frame/{frame}', [FrameController::class, 'destroy'])->name('frame.destroy');
         Route::get('/frames/{frame}/check-updates', [FrameController::class, 'checkUpdates'])->name('frame.checkUpdates');
         Route::get('/frame/batch-update', 'FrameController@batchUpdateForm')->name('frame.batchUpdateForm');
@@ -85,30 +89,19 @@ Route::post('/frame/process-duplicate', [FrameController::class, 'processDuplica
         Route::delete('/frames/reset-kriteria', [FrameController::class, 'resetFrameKriteria'])->name('frame.reset-kriteria');
         Route::post('/frame/search-by-image', [FrameController::class, 'searchByImage'])->name('frame.searchByImage');
 
-        // Route group for customers
-Route::prefix('customers')->group(function () {
-    // Place specific routes before wildcard routes
-    Route::get('search', [CustomerController::class, 'search'])->name('customers.search');
-    Route::post('store-ajax', [CustomerController::class, 'storeAjax'])->name('customers.store.ajax');
-    Route::get('details/{id}', [CustomerController::class, 'getCustomerDetails'])->name('customers.get-details');
-    
-    // Standard resource routes
-    Route::get('/', [CustomerController::class, 'index'])->name('customers.index');
-    Route::get('create', [CustomerController::class, 'create'])->name('customers.create');
-    Route::post('/', [CustomerController::class, 'store'])->name('customers.store');
-    Route::get('{customer}', [CustomerController::class, 'show'])->name('customers.show');
-    Route::get('{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
-    Route::put('{customer}', [CustomerController::class, 'update'])->name('customers.update');
-    Route::delete('{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
-});
-
-
-// Penilaian Routes
-Route::prefix('penilaian')->group(function () {
-    Route::get('/', [PenilaianController::class, 'index'])->name('penilaian.index');
-    Route::post('process', [PenilaianController::class, 'process'])->name('penilaian.process');
-    Route::post('store', [PenilaianController::class, 'store'])->name('penilaian.store');
-});
+        Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search');
+        Route::post('customers/store-ajax', [CustomerController::class, 'storeAjax'])->name('customers.store.ajax');
+        Route::get('customers/details/{id}', [CustomerController::class, 'getCustomerDetails'])->name('customers.get-details');
+        Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
+        Route::get('customers/create', [CustomerController::class, 'create'])->name('customers.create');
+        Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
+        Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
+        Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
+        Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+        Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
+        
+        Route::post('penilaian/process', [PenilaianController::class, 'process'])->name('penilaian.process');
+        Route::post('penilaian/store', [PenilaianController::class, 'store'])->name('penilaian.store');
 
         Route::delete('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'destroy'])->name('rekomendasi.destroy');
         
@@ -132,6 +125,7 @@ Route::prefix('penilaian')->group(function () {
             Route::get('/password/edit', [ProfileController::class, 'editPassword'])->name('password.edit');
             Route::put('/password/update', [ProfileController::class, 'updatePassword'])->name('password.update');
             Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
+            Route::get('penilaian', [PenilaianController::class, 'index'])->name('penilaian.index');
             Route::get('rekomendasi', [RecommendationHistoryController::class, 'index'])->name('rekomendasi.index');
             Route::get('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
             Route::get('/rekomendasi/{id}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
@@ -141,9 +135,6 @@ Route::prefix('penilaian')->group(function () {
             Route::get('/logs', [ActivityLogController::class, 'index'])->name('logs.index');
             Route::get('/logs/{id}', [ActivityLogController::class, 'show'])->name('logs.show');
             
-
-      
-
     });
  
 });

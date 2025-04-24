@@ -192,10 +192,10 @@
     <div class="section">
         <h2 class="section-title">Informasi Pelanggan</h2>
         <div class="customer-info">
-            <p><strong>Nama:</strong> {{ $history->nama_pelanggan }}</p>
-            <p><strong>No. Telepon:</strong> {{ $history->nohp_pelanggan }}</p>
-            <p><strong>Alamat:</strong> {{ $history->alamat_pelanggan }}</p>
-            <p><strong>Tanggal Konsultasi:</strong> {{ $history->created_at->setTimezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</p>
+            <p><strong>Nama:</strong> {{ $history->customer_name ?? ($history->customer->name ?? 'Unknown') }}</p>
+            <p><strong>No. Hp:</strong> {{ $history->customer_phone ?? ($history->customer->phone ?? 'Unknown') }}</p>
+            <p><strong>Alamat:</strong> {{ $history->customer_address ?? ($history->customer->address ?? 'Unknown') }}</p>
+            <p><strong>Tanggal:</strong> {{ $history->created_at->setTimezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</p>
         </div>
     </div>
 

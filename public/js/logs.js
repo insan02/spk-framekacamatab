@@ -2,7 +2,7 @@ $(document).ready(function() {
     // DataTables initialization
     $('#logTable').DataTable({
         "pageLength": 10,
-        "lengthChange": true,
+        "lengthChange": false,
         "order": [[0, 'desc']], // Mengurutkan berdasarkan waktu (kolom pertama) secara descending
         "language": {
             "search": "Cari:",

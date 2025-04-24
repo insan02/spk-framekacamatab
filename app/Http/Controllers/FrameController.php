@@ -187,6 +187,7 @@ class FrameController extends Controller
         'nilai.*' => 'required|array',
         'nilai.*.*' => 'required|exists:subkriterias,subkriteria_id'
     ]);
+    
 
     // Check for similar frames based on both image and data
     $similarityResults = $this->checkForSimilarFrames($request);
@@ -228,7 +229,7 @@ private function checkForSimilarFrames(Request $request)
         'similarityDetails' => []
     ];
     
-    // 1. Check for similar images only if a new image is uploaded
+    // 1. Check for similar images if a new image is uploaded
     if ($request->hasFile('frame_foto')) {
         $similarFrame = $this->imageComparisonService->findSimilarFrame($request->file('frame_foto'));
         
@@ -242,20 +243,21 @@ private function checkForSimilarFrames(Request $request)
         }
     }
     
-    // Find frames with similar data (merek, lokasi, and kriteria must all match)
+    // 2. Find frames with similar data (merek, lokasi, and kriteria must all match)
     $framesWithSimilarData = $this->findFramesWithSimilarData($request);
     
     if (!empty($framesWithSimilarData)) {
-        // If we don't have a similar frame yet, use the first one with similar data
-        if (!$result['similarFrame']) {
-            $result['similarFrame'] = Frame::find($framesWithSimilarData[0]);
-        }
-        
+        // Always record data similarity info
         $result['similarityDetails']['data'] = [
             'similar' => true,
             'message' => 'Data frame (merek, lokasi, kriteria) mirip dengan ' . count($framesWithSimilarData) . ' frame lain',
             'frames' => $framesWithSimilarData
         ];
+        
+        // If no similar frame by image found yet, use the first one with similar data
+        if (!$result['similarFrame'] && !empty($framesWithSimilarData)) {
+            $result['similarFrame'] = Frame::find($framesWithSimilarData[0]);
+        }
     }
     
     return $result;
@@ -487,6 +489,9 @@ private function getAllSimilarFrameIds($similarityDetails)
         if (isset($details['frames']) && is_array($details['frames'])) {
             $allIds = array_merge($allIds, $details['frames']);
         }
+        if (isset($details['frame_id'])) {
+            $allIds[] = $details['frame_id'];
+        }
     }
     
     return array_unique($allIds);
@@ -511,18 +516,32 @@ public function processDuplicateConfirmation(Request $request)
         // Process the save
         return $this->saveNewFrame($reconstructedRequest, $tempImagePath);
     } else {
-        // User chose to cancel
-        // Clean up temporary image
+        // User chose to cancel - redirect back to create page with old input
+        $formData = session('frame_form_data', []);
         $tempImagePath = session('temp_image');
-        if ($tempImagePath && Storage::disk('public')->exists($tempImagePath)) {
-            Storage::disk('public')->delete($tempImagePath);
+        
+        // Prepare old input for form repopulation
+        $oldInput = [
+            'frame_merek' => $formData['frame_merek'] ?? null,
+            'frame_harga' => $formData['frame_harga'] ?? null,
+            'frame_lokasi' => $formData['frame_lokasi'] ?? null,
+            'temp_image_path' => $tempImagePath // Tambahkan path gambar ke old input
+        ];
+        
+        // Prepare nilai (criteria) data
+        if (isset($formData['nilai']) && is_array($formData['nilai'])) {
+            foreach ($formData['nilai'] as $kriteriaId => $subkriteriaIds) {
+                $oldInput["nilai.{$kriteriaId}"] = $subkriteriaIds;
+            }
         }
         
         // Clear session
         session()->forget(['temp_image', 'frame_form_data', 'similarity_details']);
         
         return redirect()->route('frame.create')
-                ->with('info', 'Penambahan frame dibatalkan karena kesamaan dengan frame yang sudah ada.');
+            ->withInput($oldInput)
+            ->with('info', 'Penambahan frame dibatalkan karena kesamaan dengan frame yang sudah ada.')
+            ->with('temp_image', $tempImagePath); // Kirim path gambar ke view
     }
 }
 
@@ -562,6 +581,7 @@ public function processDuplicateConfirmation(Request $request)
                          ->with('error', 'Terjadi kesalahan saat memproses gambar.');
     }
 }
+
 
 // New method to get the appropriate price subkriteria
 private function getPriceSubkriteria($kriteria_id, $price)
@@ -609,66 +629,61 @@ private function getPriceSubkriteria($kriteria_id, $price)
     }
 
     public function update(Request $request, Frame $frame)
-    {
-        $request->validate([
-            'frame_merek' => 'required|string|max:255',
-            'frame_foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'frame_harga' => 'required|numeric',
-            'frame_lokasi' => 'required|string|max:255',
-            'nilai.*' => 'nullable|array',
-            'nilai.*.*' => 'nullable|exists:subkriterias,subkriteria_id'
-        ]);
+{
+    $request->validate([
+        'frame_merek' => 'required|string|max:255',
+        'frame_foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'frame_harga' => 'required|numeric',
+        'frame_lokasi' => 'required|string|max:255',
+        'nilai.*' => 'nullable|array',
+        'nilai.*.*' => 'nullable|exists:subkriterias,subkriteria_id'
+    ]);
 
-        // Store old data for logging
-        $oldData = $frame->toArray();
-        $oldFrameMerek = $frame->frame_merek;
-        $oldFrameHarga = $frame->frame_harga;
+    // Store old data for logging
+    $oldData = $frame->toArray();
+    $oldFrameMerek = $frame->frame_merek;
+    $oldFrameHarga = $frame->frame_harga;
 
-        // Check if there's a confirmed similarity from session
-        $confirmedSimilarity = session('confirmed_similarity', false);
+    // Check if there's a confirmed similarity from session
+    $confirmedSimilarity = session('confirmed_similarity', false);
 
-        // Check for similarities only if not already confirmed and data has changed
-        if (!$confirmedSimilarity) {
-            $dataChanged = $frame->frame_merek != $request->frame_merek || 
-                        $frame->frame_harga != $request->frame_harga ||
-                        $frame->frame_lokasi != $request->frame_lokasi ||
-                        $request->hasFile('frame_foto');
-                        
-            if ($dataChanged) {
-                $similarityResults = $this->checkForSimilarFrames($request);
-                
-                // If similar frame found (that's not the current frame)
-                if ($similarityResults['similarFrame'] && $similarityResults['similarFrame']->frame_id != $frame->frame_id) {
-                    // Store the temporary image if one was uploaded
-                    if ($request->hasFile('frame_foto')) {
-                        $tempImageName = 'temp_edit_' . time() . '.' . $request->frame_foto->extension();
-                        $request->frame_foto->move(public_path('storage/temp'), $tempImageName);
-                        session(['temp_edit_image' => 'temp/' . $tempImageName]);
-                    }
+    // Check for similarities only if not already confirmed and data has changed
+    if (!$confirmedSimilarity) {
+        $dataChanged = $frame->frame_merek != $request->frame_merek || 
+                    $frame->frame_harga != $request->frame_harga ||
+                    $frame->frame_lokasi != $request->frame_lokasi ||
+                    $request->hasFile('frame_foto');
                     
-                    // Include the similar frame's data with its subkriterias
-                    $similarityResults['similarFrame']->load(['frameSubkriterias.kriteria', 'frameSubkriterias.subkriteria']);
-                    
-                    // Store form data in session
-                    $formData = $request->except(['frame_foto', '_token', '_method']);
-                    session(['frame_edit_data' => $formData]);
-                    
-                    // Store similarity results in session for display in the view
-                    session(['similarity_results' => $similarityResults]);
-                    
-                    // Set confirmed similarity flag for the next request
-                    session(['confirmed_similarity' => true]);
-                    
-                    // Pass back the input and show similarity alert
-                    return redirect()->back()
-                        ->withInput()
-                        ->with('similarity_results', $similarityResults);
+        if ($dataChanged) {
+            $similarityResults = $this->checkForSimilarFrames($request);
+            
+            // If similar frame found (that's not the current frame)
+            if ($similarityResults['similarFrame'] && $similarityResults['similarFrame']->frame_id != $frame->frame_id) {
+                // Store the temporary image if one was uploaded
+                if ($request->hasFile('frame_foto')) {
+                    $tempImageName = 'temp_edit_' . time() . '.' . $request->frame_foto->extension();
+                    $request->frame_foto->move(public_path('storage/temp'), $tempImageName);
+                    session(['temp_edit_image' => 'temp/' . $tempImageName]);
                 }
+                
+                // Store form data in session
+                $formData = $request->except(['frame_foto', '_token', '_method']);
+                session(['frame_edit_data' => $formData]);
+                
+                // Store similarity results in session for display in the view
+                session(['similarity_results' => $similarityResults]);
+                
+                // Set confirmed similarity flag for the next request
+                session(['confirmed_similarity' => true]);
+                
+                // Redirect to confirmation page instead of returning back
+                return redirect()->route('frame.confirm-update-duplicate', $frame->frame_id);
             }
-        } else {
-            // Clear the confirmation flag for future requests
-            session()->forget('confirmed_similarity');
         }
+    } else {
+        // Clear the confirmation flag for future requests
+        session()->forget('confirmed_similarity');
+    }
 
         // Continue with the update process
         if ($request->hasFile('frame_foto')) {
@@ -772,6 +787,109 @@ private function getPriceSubkriteria($kriteria_id, $price)
         return redirect()->route('frame.index')->with('success', 'Frame berhasil diperbarui');
     }
 
+    // Add to FrameController.php
+    // In the FrameController.php - confirmUpdateDuplicate method
+public function confirmUpdateDuplicate(Request $request, Frame $frame)
+{
+    // Get similarity results from session
+    $similarityResults = session('similarity_results', []);
+    
+    if (empty($similarityResults) || !isset($similarityResults['similarFrame'])) {
+        return redirect()->route('frame.edit', $frame->frame_id)
+            ->with('error', 'Tidak ada data kemiripan yang ditemukan.');
+    }
+    
+    // Load the similar frame with its subkriterias
+    $similarFrame = Frame::with(['frameSubkriterias.kriteria', 'frameSubkriterias.subkriteria'])
+                         ->findOrFail($similarityResults['similarFrame']->frame_id);
+    
+    // Get similarity details and filter out self-similar warnings
+    $similarityDetails = $similarityResults['similarityDetails'] ?? [];
+    
+    // Filter out image similarity if it's the same frame
+    if (isset($similarityDetails['image']) && 
+        isset($similarityDetails['image']['frame_id']) && 
+        $similarityDetails['image']['frame_id'] == $frame->frame_id) {
+        unset($similarityDetails['image']);
+    }
+    
+    // Filter out data similarity if it only includes the current frame
+    if (isset($similarityDetails['data']) && isset($similarityDetails['data']['frames'])) {
+        // Remove current frame from the array of similar frames
+        $similarityDetails['data']['frames'] = array_filter(
+            $similarityDetails['data']['frames'], 
+            function($id) use ($frame) {
+                return $id != $frame->frame_id;
+            }
+        );
+        
+        // If no frames left, remove the data similarity warning completely
+        if (empty($similarityDetails['data']['frames'])) {
+            unset($similarityDetails['data']);
+        } else {
+            // Update the message to reflect the accurate count
+            $count = count($similarityDetails['data']['frames']);
+            $similarityDetails['data']['message'] = 'Data frame (merek, lokasi, kriteria) mirip dengan ' . 
+                                                 $count . ' frame lain';
+        }
+    }
+    
+    // Get other similar frames if available (excluding the current frame)
+    $otherSimilarFrameIds = $this->getAllSimilarFrameIds($similarityDetails);
+    $otherSimilarFrames = [];
+    
+    if (!empty($otherSimilarFrameIds)) {
+        $otherSimilarFrames = Frame::whereIn('frame_id', $otherSimilarFrameIds)
+                                   ->where('frame_id', '!=', $frame->frame_id) // Exclude current frame
+                                   ->where('frame_id', '!=', $similarFrame->frame_id) // Exclude primary similar frame
+                                   ->paginate(5);
+    }
+    
+    // Get temp image path if exists
+    $tempImagePath = session('temp_edit_image');
+    
+    return view('frame.confirm-update-duplicate', compact(
+        'frame',
+        'similarFrame',
+        'similarityDetails',
+        'otherSimilarFrames',
+        'tempImagePath'
+    ));
+}
+
+public function processUpdateDuplicate(Request $request, Frame $frame)
+{
+    if ($request->input('action') === 'continue') {
+        // User wants to continue with updating despite similarity
+        $formData = session('frame_edit_data', []);
+        
+        if (empty($formData)) {
+            return redirect()->route('frame.edit', $frame->frame_id)
+                ->with('error', 'Data frame tidak ditemukan. Silakan coba lagi.');
+        }
+        
+        // Create a new request with the stored form data
+        $reconstructedRequest = new Request($formData);
+        $reconstructedRequest->setMethod('PUT');
+        
+        // Process the update directly
+        return $this->update($reconstructedRequest, $frame);
+    } else {
+        // User chose to cancel
+        // Clean up temporary image
+        $tempImagePath = session('temp_edit_image');
+        if ($tempImagePath && Storage::disk('public')->exists($tempImagePath)) {
+            Storage::disk('public')->delete($tempImagePath);
+        }
+        
+        // Clear session
+        session()->forget(['temp_edit_image', 'frame_edit_data', 'confirmed_similarity', 'similarity_results']);
+        
+        return redirect()->route('frame.edit', $frame->frame_id)
+                ->with('info', 'Perubahan frame dibatalkan karena kesamaan dengan frame yang sudah ada.');
+    }
+}
+
     public function destroy(Frame $frame)
     {
 
@@ -819,4 +937,6 @@ private function getPriceSubkriteria($kriteria_id, $price)
 
     return redirect()->route('frame.index')->with('success', 'Kriteria untuk semua frame berhasil direset');
 }
+
+
 }
