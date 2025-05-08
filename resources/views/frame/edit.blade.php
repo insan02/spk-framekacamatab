@@ -128,16 +128,29 @@
                                                 value="{{ $activeInputType }}">
                                         </div>
                                         
-                                        <!-- Manual input for range values -->
+                                        <!-- Manual input for range values with preview -->
                                         <div class="form-group manual-input-group" id="manual_input_{{ $kriteria->kriteria_id }}" 
                                             style="display: {{ $activeInputType == 'manual' ? 'block' : 'none' }};">
-                                            <label>Masukkan Nilai {{ $kriteria->kriteria_nama }}:</label>
-                                            <input type="number" step="0.01" 
-                                                class="form-control" 
-                                                name="nilai_manual[{{ $kriteria->kriteria_id }}]" 
-                                                value="{{ $manualValue }}" 
-                                                placeholder="Masukkan nilai">
-                                            <small class="form-text text-muted">Masukkan nilai numerik untuk {{ $kriteria->kriteria_nama }}</small>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label>Masukkan Nilai {{ $kriteria->kriteria_nama }}:</label>
+                                                    <input type="number" step="0.01" 
+                                                        class="form-control manual-nilai-input" 
+                                                        name="nilai_manual[{{ $kriteria->kriteria_id }}]" 
+                                                        id="nilai_manual_{{ $kriteria->kriteria_id }}"
+                                                        value="{{ $manualValue }}" 
+                                                        placeholder="Masukkan nilai"
+                                                        data-kriteria="{{ $kriteria->kriteria_id }}">
+                                                        <small class="form-text text-muted">Gunakan . (titik) untuk koma</small>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label>Preview:</label>
+                                                    <input type="text" 
+                                                        class="form-control"
+                                                        id="preview_nilai_{{ $kriteria->kriteria_id }}"
+                                                        readonly>
+                                                </div>
+                                            </div>
                                         </div>
                                     @endif
                                     
@@ -151,22 +164,9 @@
                                                     value="{{ $subkriteria->subkriteria_id }}" 
                                                     id="subkriteria{{ $subkriteria->subkriteria_id }}"
                                                     {{ in_array($subkriteria->subkriteria_id, $selectedSubkriteriaIds) ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="subkriteria{{ $subkriteria->subkriteria_id }}">
-                                                    {{ $subkriteria->subkriteria_nama }}
-                                                    @if($subkriteria->tipe_subkriteria == 'rentang nilai')
-                                                        @if($subkriteria->operator == 'between')
-                                                            ({{ $subkriteria->nilai_minimum }} - {{ $subkriteria->nilai_maksimum }})
-                                                        @elseif($subkriteria->operator == '<')
-                                                            (< {{ $subkriteria->nilai_maksimum }})
-                                                        @elseif($subkriteria->operator == '<=')
-                                                            (≤ {{ $subkriteria->nilai_maksimum }})
-                                                        @elseif($subkriteria->operator == '>')
-                                                            (> {{ $subkriteria->nilai_minimum }})
-                                                        @elseif($subkriteria->operator == '>=')
-                                                            (≥ {{ $subkriteria->nilai_minimum }})
-                                                        @endif
-                                                    @endif
-                                                </label>
+                                                    <label class="form-check-label" for="subkriteria{{ $subkriteria->subkriteria_id }}">
+                                                        {{ $subkriteria->subkriteria_nama }}
+                                                    </label>   
                                             </div>
                                         @endforeach
                                     </div>
@@ -244,6 +244,31 @@
                 document.getElementById(`checkbox_group_${kriteriaId}`).style.display = 'block';
             }
         });
+    });
+
+    // Format number function
+    function formatNumber(num) {
+        if (!num) return '';
+        return new Intl.NumberFormat('id-ID').format(num);
+    }
+
+    // Preview for manual input values
+    document.querySelectorAll('.manual-nilai-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const kriteriaId = this.getAttribute('data-kriteria');
+            const value = this.value;
+            const previewElement = document.getElementById(`preview_nilai_${kriteriaId}`);
+            
+            if (value) {
+                previewElement.value = formatNumber(value);
+            } else {
+                previewElement.value = '';
+            }
+        });
+        
+        // Trigger input event on page load to initialize preview
+        const event = new Event('input');
+        input.dispatchEvent(event);
     });
 </script>
 @endpush

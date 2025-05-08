@@ -826,26 +826,29 @@ private function findSubkriteriaForValue($kriteria_id, $value)
         foreach ($nilai_manual as $kriteria_id => $value) {
             // Only process if input type is manual and value is not empty
             if (isset($input_types[$kriteria_id]) && $input_types[$kriteria_id] == 'manual' && !empty($value)) {
-                $subkriteria = $this->findSubkriteriaForValue($kriteria_id, $value);
+                // Konversi nilai string ke decimal untuk memastikan format yang benar
+                $decimalValue = (float) str_replace(',', '.', $value);
+                
+                $subkriteria = $this->findSubkriteriaForValue($kriteria_id, $decimalValue);
                 
                 if ($subkriteria) {
                     FrameSubkriteria::create([
                         'frame_id' => $frame->frame_id,
                         'kriteria_id' => $kriteria_id,
                         'subkriteria_id' => $subkriteria->subkriteria_id,
-                        'manual_value' => $value // Store the actual value for reference
+                        'manual_value' => $decimalValue // Simpan nilai decimal yang sudah dikonversi
                     ]);
                     
                     Log::info('Created manual subkriteria', [
                         'frame_id' => $frame->frame_id,
                         'kriteria_id' => $kriteria_id,
                         'subkriteria_id' => $subkriteria->subkriteria_id,
-                        'manual_value' => $value
+                        'manual_value' => $decimalValue
                     ]);
                 } else {
                     Log::warning('Could not find matching subkriteria for manual value', [
                         'kriteria_id' => $kriteria_id,
-                        'value' => $value
+                        'value' => $decimalValue
                     ]);
                 }
             }
@@ -1118,22 +1121,31 @@ public function update(Request $request, Frame $frame)
     
     if (is_array($nilai_manual)) {
         foreach ($nilai_manual as $kriteria_id => $value) {
+            // Only process if input type is manual and value is not empty
             if (isset($input_types[$kriteria_id]) && $input_types[$kriteria_id] == 'manual' && !empty($value)) {
-                $subkriteria = $this->findSubkriteriaForValue($kriteria_id, $value);
+                // Konversi nilai string ke decimal untuk memastikan format yang benar
+                $decimalValue = (float) str_replace(',', '.', $value);
+                
+                $subkriteria = $this->findSubkriteriaForValue($kriteria_id, $decimalValue);
                 
                 if ($subkriteria) {
                     FrameSubkriteria::create([
                         'frame_id' => $frame->frame_id,
                         'kriteria_id' => $kriteria_id,
                         'subkriteria_id' => $subkriteria->subkriteria_id,
-                        'manual_value' => $value // Store the actual value for reference
+                        'manual_value' => $decimalValue // Simpan nilai decimal yang sudah dikonversi
                     ]);
                     
                     Log::info('Created manual subkriteria', [
                         'frame_id' => $frame->frame_id,
                         'kriteria_id' => $kriteria_id,
                         'subkriteria_id' => $subkriteria->subkriteria_id,
-                        'manual_value' => $value
+                        'manual_value' => $decimalValue
+                    ]);
+                } else {
+                    Log::warning('Could not find matching subkriteria for manual value', [
+                        'kriteria_id' => $kriteria_id,
+                        'value' => $decimalValue
                     ]);
                 }
             }

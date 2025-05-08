@@ -97,7 +97,7 @@
                                                 @if(count($manualValues) > 0)
                                                     @foreach($manualValues as $manualItem)
                                                         <li class="list-group-item">
-                                                            {{ $manualItem['value'] }} ({{ $manualItem['name'] }})
+                                                            {{ number_format($manualItem['value'], 2, ',', '.') }} ({{ $manualItem['name'] }})
                                                         </li>
                                                     @endforeach
                                                 @endif

@@ -81,7 +81,7 @@
                                                 <tr>
                                                     <th>Kriteria</th>
                                                     <th>Nilai/Subkriteria</th>
-                                                    <th>Tipe</th>
+                                    
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -109,17 +109,12 @@
                                                         }
                                                         
                                                         $displayValue = implode(', ', $subkriteriaNames);
-                                                        if($hasManualValue) {
-                                                            $displayValue = $manualValue . ' (' . $displayValue . ')';
-                                                            $displayType = '<span class="badge bg-success">Manual</span>';
-                                                        } else {
-                                                            $displayType = '<span class="badge bg-primary">Checkbox</span>';
-                                                        }
+                                                        
                                                     @endphp
                                                     <tr>
                                                         <td><strong>{{ $kriteria->kriteria_nama ?? 'Kriteria #'.$kriteria_id }}</strong></td>
                                                         <td>{{ $displayValue }}</td>
-                                                        <td>{!! $displayType !!}</td>
+
                                                     </tr>
                                                 @endforeach
                                             </tbody>
@@ -194,7 +189,7 @@
                                                     <tr>
                                                         <th>Kriteria</th>
                                                         <th>Nilai/Subkriteria</th>
-                                                        <th>Tipe</th>
+                              
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -204,7 +199,7 @@
                                                             $input_type = $input_types[$kriteria_id] ?? 'checkbox';
                                                             
                                                             $display_value = '';
-                                                            $display_type = '';
+                                                           
                                                             
                                                             // Check if criteria values have changed
                                                             $oldValues = [];
@@ -230,7 +225,7 @@
                                                                     }
                                                                 }
                                                                 $display_value = !empty($subkriteriaNames) ? implode(', ', $subkriteriaNames) : 'Tidak ada nilai';
-                                                                $display_type = '<span class="badge bg-primary">Checkbox</span>';
+                                                              
                                                                 
                                                                 // Compare old and new values
                                                                 $hasChanged = count(array_diff($oldValues, $values[$kriteria_id])) > 0 || 
@@ -279,7 +274,7 @@
                                                                     $display_value = $manual_value;
                                                                 }
                                                                 
-                                                                $display_type = '<span class="badge bg-success">Manual</span>';
+                                                                
                                                                 
                                                                 // Check if manual value has changed
                                                                 $oldManualValue = null;
@@ -305,7 +300,7 @@
                                                             <tr class="{{ $hasChanged ? 'bg-warning-subtle' : '' }}">
                                                                 <td><strong>{{ $kriteria->kriteria_nama ?? 'Kriteria #'.$kriteria_id }}</strong></td>
                                                                 <td>{{ $display_value }}</td>
-                                                                <td>{!! $display_type !!}</td>
+                                                                
                                                             </tr>
                                                         @endif
                                                     @endforeach
@@ -366,7 +361,7 @@
                                                     <tr>
                                                         <th>Kriteria</th>
                                                         <th>Nilai/Subkriteria</th>
-                                                        <th>Tipe</th>
+                                                     
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -455,7 +450,7 @@
                                                                 <tr>
                                                                     <th>Kriteria</th>
                                                                     <th>Nilai</th>
-                                                                    <th>Tipe</th>
+                                                                    
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
@@ -483,17 +478,12 @@
                                                                         }
                                                                         
                                                                         $displayValue = implode(', ', $subkriteriaNames);
-                                                                        if($hasManualValue) {
-                                                                            $displayValue = $manualValue . ' (' . $displayValue . ')';
-                                                                            $displayType = '<span class="badge bg-success">Manual</span>';
-                                                                        } else {
-                                                                            $displayType = '<span class="badge bg-primary">Checkbox</span>';
-                                                                        }
+                                                                        
                                                                     @endphp
                                                                     <tr>
                                                                         <td><strong>{{ $kriteria->kriteria_nama ?? 'Kriteria #'.$kriteria_id }}</strong></td>
                                                                         <td>{{ $displayValue }}</td>
-                                                                        <td>{!! $displayType !!}</td>
+
                                                                     </tr>
                                                                 @endforeach
                                                             </tbody>
