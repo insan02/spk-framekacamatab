@@ -29,3 +29,18 @@
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
 }
+
+
+/* Spinner styling */
+.spinner-border {
+    width: 1rem;
+    height: 1rem;
+    display: none;
+    margin-right: 0.5rem;
+}
+
+/* Button styling when loading */
+.btn-loading {
+    opacity: 0.8;
+    cursor: wait;
+}

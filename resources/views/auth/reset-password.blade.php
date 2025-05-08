@@ -21,6 +21,14 @@
         </div>
         @endif
 
+        <!-- Menampilkan pesan error token expired -->
+        @error('token')
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ $message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @enderror
+
         <div class="row justify-content-center">
             <div class="col-md-6 col-lg-4">
                 <div class="login-container">
@@ -47,32 +55,57 @@
                                 @enderror
                             </div>
                             
-                            <div class="mb-3">
+                            <div class="mb-4">
                                 <label for="password" class="form-label">
                                     <i class="fas fa-lock me-2"></i>Password Baru
                                 </label>
+                                <div class="input-group">
                                 <input type="password" 
                                        class="form-control @error('password') is-invalid @enderror" 
                                        id="password" 
                                        name="password" 
                                        required 
                                        autocomplete="new-password">
+                                <button class="btn btn-outline-secondary" 
+                                       type="button" 
+                                       id="toggle-password">
+                                   <i class="fas fa-eye-slash"></i>
+                               </button>
+                                </div>
+                                <small class="form-text text-muted">
+                                    Password minimal 8 karakter, harus mengandung huruf besar, huruf kecil, dan angka
+                                </small>
                                 @error('password')
-                                    <div class="invalid-feedback">{{ $message }}</div>
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
                                 @enderror
+                                <div class="password-strength-meter mt-2">
+                                    <div class="password-strength-meter-fill"></div>
+                                </div>
                             </div>
                             
-                            <div class="mb-3">
+                            <div class="mb-4">
                                 <label for="password_confirmation" class="form-label">
                                     <i class="fas fa-lock me-2"></i>Konfirmasi Password
                                 </label>
+                                <div class="input-group">
                                 <input type="password" 
-                                       class="form-control" 
+                                       class="form-control @error('password_confirmation') is-invalid @enderror" 
                                        id="password_confirmation" 
                                        name="password_confirmation" 
                                        required>
+                                <button class="btn btn-outline-secondary" 
+                                       type="button" 
+                                       id="toggle-confirmation-password">
+                                   <i class="fas fa-eye-slash"></i>
+                               </button>
+                                </div>
+                                @error('password_confirmation')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                
                             </div>
                             
+
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-login text-white">
                                     <i class="fas fa-key me-2"></i>Reset Password

@@ -11,6 +11,8 @@
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/login.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/loading.css') }}">
+    
 </head>
 <body>
     <div class="container">
@@ -27,7 +29,7 @@
                             {{ session('status') }}
                         </div>
                         @endif
-                        <form method="POST" action="{{ route('password.email') }}">
+                        <form method="POST" action="{{ route('password.email') }}" id="resetPasswordForm">
                             @csrf
                             <div class="mb-3">
                                 <label for="email" class="form-label">
@@ -39,14 +41,17 @@
                                        name="email" 
                                        value="{{ old('email') }}" 
                                        required 
-                                       placeholder="Masukkan email Anda">
+                                       placeholder="Masukkan email Gmail Anda">
+                                <small class="form-text text-muted">Gunakan alamat email @gmail.com</small>
                                 @error('email')
-                                    <div class="invalid-feedback">{{ $message }}</div>
+                                <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="d-grid">
-                                <button type="submit" class="btn btn-login text-white">
-                                    <i class="fas fa-paper-plane me-2"></i>Kirim Link Reset Password
+                                <button type="submit" class="btn btn-login text-white" id="submitBtn">
+                                    <span class="spinner-border spinner-border-sm" id="loadingSpinner" role="status" aria-hidden="true"></span>
+                                    <i class="fas fa-paper-plane me-2" id="sendIcon"></i>
+                                    <span id="buttonText">Kirim Link Reset Password</span>
                                 </button>
                             </div>
                             <div class="mt-3 text-center">
@@ -69,5 +74,6 @@
     
     <!-- Custom Login JS -->
     <script src="{{ asset('js/auth.js') }}"></script>
+
 </body>
 </html>

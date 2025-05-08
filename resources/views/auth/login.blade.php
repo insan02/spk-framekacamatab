@@ -156,7 +156,8 @@
                                        name="email" 
                                        value="{{ old('email') }}" 
                                        required 
-                                       placeholder="Masukkan email Anda">
+                                       placeholder="Masukkan email Gmail Anda @gmail.com">
+                                <small class="form-text text-muted">Gunakan alamat email @gmail.com</small>
                                 @error('email')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -167,7 +168,7 @@
                                 </label>
                                 <div class="input-group">
                                     <input type="password" 
-                                           class="form-control" 
+                                           class="form-control @error('password') is-invalid @enderror" 
                                            id="password" 
                                            name="password" 
                                            required 
@@ -179,6 +180,9 @@
                                         <i class="fas fa-eye-slash"></i>
                                     </button>
                                 </div>
+                                @error('password')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
 
                             <div class="d-grid mb-3">
@@ -197,10 +201,6 @@
             </div>
         </div>
     </div>
-
-    {{-- <footer class="text-center text-white py-2 fixed-bottom">
-        <small>&copy; {{date('Y')}} SPK Frame Kacamata. All rights reserved.</small>
-    </footer> --}}
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
