@@ -156,7 +156,7 @@
                                        name="email" 
                                        value="{{ old('email') }}" 
                                        required 
-                                       placeholder="Masukkan email Gmail Anda @gmail.com">
+                                       placeholder="Masukkan email Gmail Anda">
                                 <small class="form-text text-muted">Gunakan alamat email @gmail.com</small>
                                 @error('email')
                                     <div class="invalid-feedback">{{ $message }}</div>

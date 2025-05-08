@@ -164,15 +164,23 @@
                     </div>
 
                     <div class="form-group mb-3">
-                        <label for="subkriteria_bobot">Bobot (1-5)</label>
-                        <input type="number" name="subkriteria_bobot" id="subkriteria_bobot" class="form-control" min="1" max="5" required value="{{ old('subkriteria_bobot', $subkriteria->subkriteria_bobot) }}">
+                        <label for="subkriteria_bobot">Bobot</label>
+                        <select name="subkriteria_bobot" id="subkriteria_bobot" class="form-control" required>
+                            <option value="" disabled>Pilih Bobot</option>
+                            <option value="5" {{ old('subkriteria_bobot', $subkriteria->subkriteria_bobot) == '5' ? 'selected' : '' }}>5</option>
+                            <option value="4" {{ old('subkriteria_bobot', $subkriteria->subkriteria_bobot) == '4' ? 'selected' : '' }}>4</option>
+                            <option value="3" {{ old('subkriteria_bobot', $subkriteria->subkriteria_bobot) == '3' ? 'selected' : '' }}>3</option>
+                            <option value="2" {{ old('subkriteria_bobot', $subkriteria->subkriteria_bobot) == '2' ? 'selected' : '' }}>2</option>
+                            <option value="1" {{ old('subkriteria_bobot', $subkriteria->subkriteria_bobot) == '1' ? 'selected' : '' }}>1</option>
+                        </select>
                         @if($errors->has('subkriteria_bobot'))
                             <div class="text-danger">{{ $errors->first('subkriteria_bobot') }}</div>
                         @endif
                     </div>
+                    
 
                     <div class="form-group mb-3">
-                        <label for="subkriteria_keterangan">Keterangan Bobot</label>
+                        <label for="subkriteria_keterangan">Keterangan</label>
                         <textarea name="subkriteria_keterangan" id="subkriteria_keterangan"
                             class="form-control @error('subkriteria_keterangan') is-invalid @enderror"
                             rows="3" required>{{ old('subkriteria_keterangan', $subkriteria->subkriteria_keterangan) }}</textarea>
@@ -188,121 +196,5 @@
     </div>
 </div>
 
-@push('scripts')
-<script>
-    $(document).ready(function() {
-        // Toggle tampilan form berdasarkan tipe subkriteria
-        $('#tipe-subkriteria').change(function() {
-            if ($(this).val() === 'rentang nilai') {
-                $('#subkriteria-teks').hide();
-                $('#subkriteria-angka').hide();
-                $('#subkriteria-numerik').show();
-                handleOperatorChange(); // Panggil fungsi untuk mengatur tampilan awal
-            } else if ($(this).val() === 'angka') {
-                $('#subkriteria-teks').hide();
-                $('#subkriteria-angka').show();
-                $('#subkriteria-numerik').hide();
-                updateAngkaPreview();
-            } else {
-                $('#subkriteria-teks').show();
-                $('#subkriteria-angka').hide();
-                $('#subkriteria-numerik').hide();
-            }
-        });
-        
-        // Logika tampilan berdasarkan operator
-        $('#operator').change(function() {
-            handleOperatorChange();
-        });
-        
-        // Update preview saat nilai berubah
-        $('.nilai-numerik').on('input', function() {
-            updatePreview();
-        });
-        
-        // Update preview angka
-        $('#subkriteria_nilai_angka, #subkriteria_satuan').on('input', function() {
-            updateAngkaPreview();
-        });
-        
-        // Form submit handler
-        $('#form-edit').submit(function(e) {
-            // Always set the hidden field for 'rentang nilai' type
-            if ($('#tipe-subkriteria').val() === 'rentang nilai') {
-                $('#subkriteria_nama_numerik').val($('#preview-subkriteria').val());
-                console.log('Submitting with rentang nilai:', $('#preview-subkriteria').val());
-            }
-            
-            // Logs for debugging
-            console.log('Form submitted with type:', $('#tipe-subkriteria').val());
-            
-            // Allow the form to submit
-            return true;
-        });
-        
-        // Fungsi untuk mengubah tampilan berdasarkan operator
-        function handleOperatorChange() {
-            let operator = $('#operator').val();
-            
-            if (operator === 'between') {
-                $('#nilai-minimum-container, #nilai-maksimum-container').show();
-            } else if (operator === '<' || operator === '<=') {
-                $('#nilai-minimum-container').hide();
-                $('#nilai-maksimum-container').show();
-            } else {
-                $('#nilai-minimum-container').show();
-                $('#nilai-maksimum-container').hide();
-            }
-            
-            updatePreview();
-        }
-        
-        // Fungsi untuk memperbarui preview rentang nilai
-        function updatePreview() {
-            let operator = $('#operator').val();
-            let min = $('input[name="nilai_minimum"]').val();
-            let max = $('input[name="nilai_maksimum"]').val();
-            let preview = '';
-            
-            if (operator === 'between' && min && max) {
-                preview = formatNumber(min) + ' - ' + formatNumber(max);
-            } else if ((operator === '<' || operator === '<=') && max) {
-                preview = operator + ' ' + formatNumber(max);
-            } else if ((operator === '>' || operator === '>=') && min) {
-                preview = operator + ' ' + formatNumber(min);
-            }
-            
-            $('#preview-subkriteria').val(preview);
-            $('#subkriteria_nama_numerik').val(preview);
-        }
-        
-        // Fungsi untuk memperbarui preview nilai angka
-        function updateAngkaPreview() {
-            let angka = $('#subkriteria_nilai_angka').val();
-            let satuan = $('#subkriteria_satuan').val();
-            let preview = '';
-            
-            if (angka) {
-                preview = formatNumber(angka);
-                if (satuan) {
-                    preview += ' ' + satuan;
-                }
-            }
-            
-            $('#preview-subkriteria-angka').val(preview);
-        }
-        
-        // Fungsi untuk memformat angka
-        function formatNumber(num) {
-            if (!num) return '';
-            return new Intl.NumberFormat('id-ID').format(num);
-        }
-        
-        // Inisialisasi tampilan pada saat halaman dimuat
-        handleOperatorChange();
-        updateAngkaPreview();
-        updatePreview();
-    });
-</script>
-@endpush
+<script src="{{ asset('js/subkriteria.js') }}"></script>
 @endsection

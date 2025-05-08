@@ -89,9 +89,8 @@
                                         <tr>
                                             <th width="5%">No</th>
                                             <th width="20%">Nama Subkriteria</th>
-                                            <th width="10%">Tipe</th>
                                             <th width="10%">Bobot</th>
-                                            <th width="35%">Keterangan Bobot</th>
+                                            <th width="35%">Keterangan</th>
                                             @if(auth()->user()->role !== 'owner')
                                                 <th width="20%">Aksi</th>
                                             @endif
@@ -102,15 +101,6 @@
                                             <tr>
                                                 <td>{{ $loop->iteration }}</td>
                                                 <td>{{ $subkriteria->subkriteria_nama }}</td>
-                                                <td>
-                                                    @if($subkriteria->tipe_subkriteria == 'rentang nilai')
-                                                        <span class="badge bg-info">Rentang nilai</span>
-                                                    @elseif($subkriteria->tipe_subkriteria == 'angka')
-                                                        <span class="badge bg-success">Angka</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">Teks</span>
-                                                    @endif
-                                                </td>
                                                 <td>{{ $subkriteria->subkriteria_bobot }}</td>
                                                 <td class="text-wrap">
                                                     {{ $subkriteria->subkriteria_keterangan }}

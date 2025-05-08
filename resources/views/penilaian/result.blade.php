@@ -386,7 +386,6 @@
                                     <th class="text-center">Ranking</th>
                                     <th>Foto</th>
                                     <th>Merek</th>
-                                    <th>Harga</th>
                                     <th>Lokasi</th>
                                     <th>Kriteria Utama</th>
                                     <th class="text-center">Skor Akhir</th>
@@ -407,7 +406,6 @@
                                         @endif
                                     </td>
                                     <td>{{ $frame['frame']->frame_merek }}</td>
-                                    <td>Rp {{ number_format($frame['frame']->frame_harga, 0, ',', '.') }}</td>
                                     <td>{{ $frame['frame']->frame_lokasi }}</td>
                                     <td>
                                         <small>

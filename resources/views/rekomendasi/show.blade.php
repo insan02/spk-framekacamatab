@@ -222,36 +222,7 @@
                                                     }
                                                 }
                                             }
-                                            
-                                            // APPROACH 4: Special case for criteria "Warna" or other common fields
-                                            // This is specific to handle the 'Warna' example in your case
-                                            $specialFieldMappings = [
-                                                'Warna' => 'warna',
-                                                'Warna Frame' => 'warna',
-                                                'Bahan' => 'bahan',
-                                                'Bahan Frame' => 'bahan',
-                                                'Gender' => 'gender',
-                                                'Gender Frame' => 'gender',
-                                                'Gaya' => 'gaya',
-                                                'Gaya Frame' => 'gaya',
-                                                'Harga' => 'harga',
-                                                'Harga Frame' => 'harga'
-                                            ];
-                                            
-                                            // Check if this kriteria name maps to a specific field
-                                            if (isset($specialFieldMappings[$kriteriaNama])) {
-                                                $fieldName = $specialFieldMappings[$kriteriaNama];
-                                                $subkriteriaArrayKey = "frame_{$fieldName}_subkriterias";
-                                                
-                                                // Check if the field exists in frame data
-                                                if (isset($frame['frame'][$subkriteriaArrayKey]) && is_array($frame['frame'][$subkriteriaArrayKey])) {
-                                                    foreach ($frame['frame'][$subkriteriaArrayKey] as $subk) {
-                                                        // Generate unique key for deduplication
-                                                        $key = $subk['subkriteria_id'] ?? $subk['subkriteria_nama'];
-                                                        $frameSubkriterias[$key] = $subk;
-                                                    }
-                                                }
-                                            }
+                                        
                                             
                                             // APPROACH 5: Try to extract from any data structure that might have been expanded to include multiple subkriteria values
                                             $potentialArrayNames = [
@@ -501,7 +472,6 @@
                                         <th class="text-center">Ranking</th>
                                         <th>Foto</th>
                                         <th>Merek</th>
-                                        <th>Harga</th>
                                         <th>Lokasi</th>
                                         <th>Kriteria Utama</th>
                                         <th class="text-center">Skor Akhir</th>
@@ -522,7 +492,6 @@
                                             @endif
                                         </td>
                                         <td>{{ $frame['frame']['frame_merek'] }}</td>
-                                        <td>Rp {{ number_format($frame['frame']['frame_harga'], 0, ',', '.') }}</td>
                                         <td>{{ $frame['frame']['frame_lokasi'] }}</td>
                                         <td>
                                             <small>

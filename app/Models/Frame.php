@@ -15,7 +15,6 @@ class Frame extends Model
     protected $fillable = [
         'frame_merek',
         'frame_foto',
-        'frame_harga',
         'frame_lokasi'
     ];
 

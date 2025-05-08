@@ -345,7 +345,6 @@ private function storeRecommendationFrames($recommendationHistory, $rekomendasiF
             'recommendation_history_id' => $recommendationHistory->recommendation_history_id,
             'frame_id' => $item['frame']->frame_id,
             'frame_nama' => $item['frame']->frame_merek . ' ' . $item['frame']->frame_model,
-            'frame_harga' => $item['frame']->frame_harga,
             'skor_akhir' => $item['score'],
             'peringkat' => $rank++,
         ]);

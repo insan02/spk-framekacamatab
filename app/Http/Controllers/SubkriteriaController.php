@@ -44,7 +44,7 @@ public function store(Request $request)
         'kriteria_id.exists' => 'Kriteria yang dipilih tidak valid',
         'tipe_subkriteria.required' => 'Tipe subkriteria harus dipilih',
         'tipe_subkriteria.in' => 'Tipe subkriteria tidak valid',
-        'subkriteria_bobot.required' => 'Bobot subkriteria tidak boleh kosong',
+        'subkriteria_bobot.required' => 'Bobot subkriteria harus dipilih',
         'subkriteria_keterangan.required' => 'Keterangan bobot subkriteria tidak boleh kosong',
         'subkriteria_keterangan.regex' => 'Keterangan bobot tidak valid.',
         'subkriteria_bobot.min' => 'Bobot subkriteria minimal 1',
@@ -103,17 +103,16 @@ public function store(Request $request)
         
         // Format angka dan tambahkan satuan jika ada
         $angka = $request->subkriteria_nilai_angka;
-// Cek apakah angka memiliki desimal yang signifikan
-if (floor($angka) == $angka) {
-    // Jika tidak ada desimal atau desimalnya 0, tampilkan sebagai integer
-    $formattedAngka = number_format($angka, 0, ',', '.');
-} else {
-    // Jika ada desimal, tampilkan dengan format desimal
-    $formattedAngka = number_format($angka, 2, ',', '.');
-    // Hapus trailing zeros
-    $formattedAngka = rtrim(rtrim($formattedAngka, '0'), ',');
-}
-$subkriteriaData['subkriteria_nama'] = $formattedAngka;
+        // Cek apakah angka memiliki desimal yang signifikan
+        if (floor($angka) == $angka) {
+            // Jika tidak ada desimal atau desimalnya 0, tampilkan sebagai integer
+            $formattedAngka = number_format($angka, 0, ',', '.');
+        } else {
+            // Jika ada desimal, tampilkan dengan format desimal
+            $formattedAngka = number_format($angka, 2, ',', '.');
+            // Hapus trailing zeros
+            $formattedAngka = rtrim(rtrim($formattedAngka, '0'), ',');
+        }
         $subkriteriaData['subkriteria_nama'] = $formattedAngka;
         
         if (!empty($request->subkriteria_satuan)) {
@@ -172,15 +171,54 @@ $subkriteriaData['subkriteria_nama'] = $formattedAngka;
         if ($request->operator == 'between') {
             $subkriteriaData['nilai_minimum'] = $request->nilai_minimum;
             $subkriteriaData['nilai_maksimum'] = $request->nilai_maksimum;
-            $subkriteriaData['subkriteria_nama'] = number_format($request->nilai_minimum, 0, ',', '.') . 
-                                                   ' - ' . 
-                                                   number_format($request->nilai_maksimum, 0, ',', '.');
+            
+            // Format nilai minimum dengan penanganan desimal
+            $min = $request->nilai_minimum;
+            if (floor($min) == $min) {
+                $formattedMin = number_format($min, 0, ',', '.');
+            } else {
+                $formattedMin = number_format($min, 2, ',', '.');
+                $formattedMin = rtrim(rtrim($formattedMin, '0'), ',');
+            }
+            
+            // Format nilai maksimum dengan penanganan desimal
+            $max = $request->nilai_maksimum;
+            if (floor($max) == $max) {
+                $formattedMax = number_format($max, 0, ',', '.');
+            } else {
+                $formattedMax = number_format($max, 2, ',', '.');
+                $formattedMax = rtrim(rtrim($formattedMax, '0'), ',');
+            }
+            
+            $subkriteriaData['subkriteria_nama'] = $formattedMin . ' - ' . $formattedMax;
+            
         } elseif ($request->operator == '<' || $request->operator == '<=') {
             $subkriteriaData['nilai_maksimum'] = $request->nilai_maksimum;
-            $subkriteriaData['subkriteria_nama'] = $request->operator . ' ' . number_format($request->nilai_maksimum, 0, ',', '.');
-        } else {
+            
+            // Format nilai maksimum dengan penanganan desimal
+            $max = $request->nilai_maksimum;
+            if (floor($max) == $max) {
+                $formattedMax = number_format($max, 0, ',', '.');
+            } else {
+                $formattedMax = number_format($max, 2, ',', '.');
+                $formattedMax = rtrim(rtrim($formattedMax, '0'), ',');
+            }
+            
+            $subkriteriaData['subkriteria_nama'] = $request->operator . ' ' . $formattedMax;
+            
+        } else { // > atau >=
             $subkriteriaData['nilai_minimum'] = $request->nilai_minimum;
-            $subkriteriaData['subkriteria_nama'] = $request->operator . ' ' . number_format($request->nilai_minimum, 0, ',', '.');
+            
+            // Format nilai minimum dengan penanganan desimal
+            $min = $request->nilai_minimum;
+            if (floor($min) == $min) {
+                $formattedMin = number_format($min, 0, ',', '.');
+            } else {
+                $formattedMin = number_format($min, 2, ',', '.');
+                $formattedMin = rtrim(rtrim($formattedMin, '0'), ',');
+            }
+            
+            $subkriteriaData['subkriteria_nama'] = $request->operator . ' ' . $formattedMin;
         }
     }
 
@@ -367,9 +405,27 @@ $subkriteriaData['subkriteria_nama'] = $formattedAngka;
             
             $data['nilai_minimum'] = $request->nilai_minimum;
             $data['nilai_maksimum'] = $request->nilai_maksimum;
-            $data['subkriteria_nama'] = number_format($request->nilai_minimum, 0, ',', '.') . 
-                                        ' - ' . 
-                                        number_format($request->nilai_maksimum, 0, ',', '.');
+            
+            // Format nilai minimum dengan penanganan desimal
+            $min = $request->nilai_minimum;
+            if (floor($min) == $min) {
+                $formattedMin = number_format($min, 0, ',', '.');
+            } else {
+                $formattedMin = number_format($min, 2, ',', '.');
+                $formattedMin = rtrim(rtrim($formattedMin, '0'), ',');
+            }
+            
+            // Format nilai maksimum dengan penanganan desimal
+            $max = $request->nilai_maksimum;
+            if (floor($max) == $max) {
+                $formattedMax = number_format($max, 0, ',', '.');
+            } else {
+                $formattedMax = number_format($max, 2, ',', '.');
+                $formattedMax = rtrim(rtrim($formattedMax, '0'), ',');
+            }
+            
+            $data['subkriteria_nama'] = $formattedMin . ' - ' . $formattedMax;
+            
         } 
         elseif ($request->operator == '<' || $request->operator == '<=') {
             $validator = Validator::make($request->all(), [
@@ -387,7 +443,18 @@ $subkriteriaData['subkriteria_nama'] = $formattedAngka;
             
             $data['nilai_minimum'] = null;
             $data['nilai_maksimum'] = $request->nilai_maksimum;
-            $data['subkriteria_nama'] = $request->operator . ' ' . number_format($request->nilai_maksimum, 0, ',', '.');
+            
+            // Format nilai maksimum dengan penanganan desimal
+            $max = $request->nilai_maksimum;
+            if (floor($max) == $max) {
+                $formattedMax = number_format($max, 0, ',', '.');
+            } else {
+                $formattedMax = number_format($max, 2, ',', '.');
+                $formattedMax = rtrim(rtrim($formattedMax, '0'), ',');
+            }
+            
+            $data['subkriteria_nama'] = $request->operator . ' ' . $formattedMax;
+            
         } 
         else { // > atau >=
             $validator = Validator::make($request->all(), [
@@ -405,7 +472,17 @@ $subkriteriaData['subkriteria_nama'] = $formattedAngka;
             
             $data['nilai_minimum'] = $request->nilai_minimum;
             $data['nilai_maksimum'] = null;
-            $data['subkriteria_nama'] = $request->operator . ' ' . number_format($request->nilai_minimum, 0, ',', '.');
+            
+            // Format nilai minimum dengan penanganan desimal
+            $min = $request->nilai_minimum;
+            if (floor($min) == $min) {
+                $formattedMin = number_format($min, 0, ',', '.');
+            } else {
+                $formattedMin = number_format($min, 2, ',', '.');
+                $formattedMin = rtrim(rtrim($formattedMin, '0'), ',');
+            }
+            
+            $data['subkriteria_nama'] = $request->operator . ' ' . $formattedMin;
         }
         
         // Jika ada input nama subkriteria numerik dari form, prioritaskan itu

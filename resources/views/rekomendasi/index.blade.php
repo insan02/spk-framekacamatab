@@ -57,9 +57,6 @@
                                         <div class="small text-secondary">
                                             <div><span class="text-dark">Merek:</span> {{ $topRekomendasi['frame']['frame_merek'] ?? '-' }}</div>
                                             <div><span class="text-dark">Lokasi:</span> {{ $topRekomendasi['frame']['frame_lokasi'] ?? '-' }}</div>
-                                            <div><span class="text-dark">Harga:</span> 
-                                                Rp {{ isset($topRekomendasi['frame']['frame_harga']) ? number_format($topRekomendasi['frame']['frame_harga'], 0, ',', '.') : '-' }}
-                                            </div>
                                             <div><span class="text-dark">Skor:</span> {{ number_format($topRekomendasi['score'] ?? 0, 4) }}</div>
                                         </div>
                                     </div>

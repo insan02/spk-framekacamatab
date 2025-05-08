@@ -16,13 +16,11 @@ class RecommendationFrame extends Model
         'recommendation_history_id',
         'frame_id',
         'frame_nama',
-        'frame_harga',
         'skor_akhir',
         'peringkat',
     ];
     
     protected $casts = [
-        'frame_harga' => 'decimal:2',
         'skor_akhir' => 'decimal:2',
         'peringkat' => 'integer',
     ];
