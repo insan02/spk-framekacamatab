@@ -205,324 +205,9 @@ class FrameController extends Controller
         }
     }
 
-    /**
- * Find frames with similar data (merek, lokasi, and kriteria must all match exactly)
- * But merek and lokasi comparison is case-insensitive
- *
- * @param Request $request
- * @param int|null $excludeFrameId Frame ID to exclude from similarity check (for updates)
- * @return array
- */
-private function findFramesWithSimilarData(Request $request, $excludeFrameId = null)
-{
-    // Step 1: Find frames with similar merek and lokasi (case-insensitive)
-    $query = Frame::whereRaw('LOWER(frame_merek) = ?', [strtolower($request->frame_merek)])
-                  ->whereRaw('LOWER(frame_lokasi) = ?', [strtolower($request->frame_lokasi)]);
-    
-    // Exclude the current frame if we're updating
-    if ($excludeFrameId) {
-        $query->where('frame_id', '!=', $excludeFrameId);
-    }
-    
-    $similarMerekAndLokasi = $query->get();
-    
-    if ($similarMerekAndLokasi->isEmpty()) {
-        return []; // No matches on basic data
-    }
-    
-    // Step 2: Check for similar criteria combinations
-    $requestedCriteria = [];
-    $input_types = $request->input('input_type', []);
-    
-    // Process checkbox criteria values
-    if ($request->has('nilai')) {
-        foreach ($request->nilai as $kriteria_id => $subkriteria_ids) {
-            // Only process if input type is checkbox or not specified
-            if (!isset($input_types[$kriteria_id]) || $input_types[$kriteria_id] == 'checkbox') {
-                foreach ($subkriteria_ids as $subkriteria_id) {
-                    $requestedCriteria[] = [
-                        'kriteria_id' => $kriteria_id,
-                        'subkriteria_id' => $subkriteria_id,
-                        'input_type' => 'checkbox',
-                        'value' => null
-                    ];
-                }
-            }
-        }
-    }
-    
-    // Process manual input values
-    if ($request->has('nilai_manual')) {
-        foreach ($request->nilai_manual as $kriteria_id => $value) {
-            if (isset($input_types[$kriteria_id]) && $input_types[$kriteria_id] == 'manual' && !empty($value)) {
-                // Find the corresponding subkriteria for this value
-                $subkriteria = $this->findSubkriteriaForValue($kriteria_id, $value);
-                if ($subkriteria) {
-                    $requestedCriteria[] = [
-                        'kriteria_id' => $kriteria_id,
-                        'subkriteria_id' => $subkriteria->subkriteria_id,
-                        'input_type' => 'manual',
-                        'value' => $value
-                    ];
-                }
-            }
-        }
-    }
-    
-    // If no criteria provided, just return frames with similar basic info
-    if (empty($requestedCriteria)) {
-        return $similarMerekAndLokasi->pluck('frame_id')->toArray();
-    }
-    
-    // Filter frames with exactly matching criteria
-    $framesWithExactCriteria = [];
-    
-    foreach ($similarMerekAndLokasi as $frameItem) {
-        // Load frame subkriterias if not already loaded
-        if (!$frameItem->relationLoaded('frameSubkriterias')) {
-            $frameItem->load('frameSubkriterias.subkriteria');
-        }
-        
-        // Group the frame's criteria by input type
-        $frameCriteria = [];
-        foreach ($frameItem->frameSubkriterias as $fs) {
-            $input_type = $fs->manual_value !== null ? 'manual' : 'checkbox';
-            $frameCriteria[] = [
-                'kriteria_id' => $fs->kriteria_id,
-                'subkriteria_id' => $fs->subkriteria_id,
-                'input_type' => $input_type,
-                'value' => $fs->manual_value
-            ];
-        }
-        
-        // Compare requested criteria with frame criteria
-        // For exact match, we need the same number of criteria with the same values
-        if (count($requestedCriteria) != count($frameCriteria)) {
-            continue; // Different number of criteria, not an exact match
-        }
-        
-        // Sort both arrays to make comparison easier
-        $sortedRequestedCriteria = $this->sortCriteriaForComparison($requestedCriteria);
-        $sortedFrameCriteria = $this->sortCriteriaForComparison($frameCriteria);
-        
-        // Check for exact match
-        $isExactMatch = true;
-        
-        // Create criteria comparison lookups for easier matching
-        $requestedLookup = [];
-        foreach ($sortedRequestedCriteria as $reqCriteria) {
-            $key = $reqCriteria['kriteria_id'] . '_' . $reqCriteria['input_type'];
-            $requestedLookup[$key][] = [
-                'subkriteria_id' => $reqCriteria['subkriteria_id'],
-                'value' => $reqCriteria['value']
-            ];
-        }
-        
-        $frameLookup = [];
-        foreach ($sortedFrameCriteria as $frmCriteria) {
-            $key = $frmCriteria['kriteria_id'] . '_' . $frmCriteria['input_type'];
-            $frameLookup[$key][] = [
-                'subkriteria_id' => $frmCriteria['subkriteria_id'],
-                'value' => $frmCriteria['value']
-            ];
-        }
-        
-        // Check if criteria sets match
-        foreach ($requestedLookup as $key => $reqItems) {
-            // If this input type doesn't exist in the frame criteria, it's not a match
-            if (!isset($frameLookup[$key])) {
-                $isExactMatch = false;
-                break;
-            }
-            
-            // Check if the number of items for this criteria/input type matches
-            if (count($reqItems) != count($frameLookup[$key])) {
-                $isExactMatch = false;
-                break;
-            }
-            
-            // For each requested item, verify if it exists in the frame's criteria
-            foreach ($reqItems as $reqItem) {
-                $matchFound = false;
-                
-                foreach ($frameLookup[$key] as $frmItem) {
-                    $inputType = explode('_', $key)[1];
-                    
-                    if ($inputType == 'checkbox') {
-                        // For checkbox, just compare subkriteria_id
-                        if ($reqItem['subkriteria_id'] == $frmItem['subkriteria_id']) {
-                            $matchFound = true;
-                            break;
-                        }
-                    } else if ($inputType == 'manual') {
-                        // For manual inputs, compare subkriteria_id AND value must be exactly the same
-                        if ($reqItem['subkriteria_id'] == $frmItem['subkriteria_id'] && 
-                            $reqItem['value'] == $frmItem['value']) {
-                            $matchFound = true;
-                            break;
-                        }
-                    }
-                }
-                
-                if (!$matchFound) {
-                    $isExactMatch = false;
-                    break;
-                }
-            }
-            
-            if (!$isExactMatch) {
-                break;
-            }
-        }
-        
-        // Also check the reverse: all frame criteria must be in the request
-        if ($isExactMatch) {
-            foreach ($frameLookup as $key => $frmItems) {
-                // If this input type doesn't exist in the requested criteria, it's not a match
-                if (!isset($requestedLookup[$key])) {
-                    $isExactMatch = false;
-                    break;
-                }
-                
-                // We already checked count above, so no need to do it again
-                
-                // For each frame item, verify if it exists in the requested criteria
-                foreach ($frmItems as $frmItem) {
-                    $matchFound = false;
-                    
-                    foreach ($requestedLookup[$key] as $reqItem) {
-                        $inputType = explode('_', $key)[1];
-                        
-                        if ($inputType == 'checkbox') {
-                            // For checkbox, just compare subkriteria_id
-                            if ($frmItem['subkriteria_id'] == $reqItem['subkriteria_id']) {
-                                $matchFound = true;
-                                break;
-                            }
-                        } else if ($inputType == 'manual') {
-                            // For manual inputs, compare subkriteria_id AND value must be exactly the same
-                            if ($frmItem['subkriteria_id'] == $reqItem['subkriteria_id'] && 
-                                $frmItem['value'] == $reqItem['value']) {
-                                $matchFound = true;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if (!$matchFound) {
-                        $isExactMatch = false;
-                        break;
-                    }
-                }
-                
-                if (!$isExactMatch) {
-                    break;
-                }
-            }
-        }
-        
-        if ($isExactMatch) {
-            $framesWithExactCriteria[] = $frameItem->frame_id;
-            
-            // Log the similarity match for debugging
-            Log::info('Frame exact similarity match', [
-                'frame_id' => $frameItem->frame_id,
-                'similarity' => '100% (exact match)',
-                'requested_criteria' => $requestedCriteria,
-                'frame_criteria' => $frameCriteria
-            ]);
-        }
-    }
-    
-    return $framesWithExactCriteria;
-}
-
 /**
- * Enhanced version of checkForSimilarFrames with better handling of image comparison
- * Modified to make merek comparison case-insensitive
- * 
- * @param Request $request
- * @param int|null $excludeFrameId Frame ID to exclude from similarity check (for updates)
- * @return array
- */
-private function checkForSimilarFrames(Request $request, $excludeFrameId = null)
-{
-    // Initialize result array
-    $result = [
-        'similarFrame' => null,
-        'similarityDetails' => []
-    ];
-    
-    // 1. Check for similar images if a new image is uploaded
-    if ($request->hasFile('frame_foto')) {
-        $similarFrame = $this->imageComparisonService->findSimilarFrame($request->file('frame_foto'));
-        
-        // Only consider image similarity if the brand (merek) also matches (case-insensitive) and it's not the current frame
-        if ($similarFrame && 
-            strtolower($similarFrame->frame_merek) === strtolower($request->frame_merek) && 
-            (!$excludeFrameId || $similarFrame->frame_id != $excludeFrameId)) {
-            
-            $result['similarFrame'] = $similarFrame;
-            $result['similarityDetails']['image'] = [
-                'similar' => true,
-                'message' => 'Foto frame serupa dengan frame yang sudah ada dengan merek yang sama',
-                'frame_id' => $similarFrame->frame_id
-            ];
-            
-            Log::info('Detected similar image', [
-                'frame_id' => $similarFrame->frame_id,
-                'frame_merek' => $similarFrame->frame_merek,
-                'requested_merek' => $request->frame_merek
-            ]);
-        }
-    } elseif ($request->has('existing_frame_foto')) {
-        // If using existing frame photo, we need to use a different approach
-        // We'll skip image comparison for existing images or implement a special case
-        // in the imageComparisonService if needed
-        Log::info('Using existing frame photo for comparison', [
-            'existing_frame_foto' => $request->existing_frame_foto
-        ]);
-        
-        // Option 1: Skip image comparison for existing images
-        // Do nothing here
-        
-        // Option 2: If you want to compare existing images, implement this:
-        // $existingPhotoPath = public_path('storage/' . $request->existing_frame_foto);
-        // if (file_exists($existingPhotoPath)) {
-        //     // You would need to modify imageComparisonService to accept a path instead of UploadedFile
-        //     // $similarFrame = $this->imageComparisonService->findSimilarFrameByPath($existingPhotoPath);
-        //     // Then handle similarFrame the same way as above
-        // }
-    }
-    
-    // 2. Find frames with similar data (merek, lokasi, and kriteria must all match)
-    $framesWithSimilarData = $this->findFramesWithSimilarData($request, $excludeFrameId);
-    
-    if (!empty($framesWithSimilarData)) {
-        // Always record data similarity info
-        $result['similarityDetails']['data'] = [
-            'similar' => true,
-            'message' => 'Data frame (merek, lokasi, kriteria) persis sama dengan ' . count($framesWithSimilarData) . ' frame lain',
-            'frames' => $framesWithSimilarData
-        ];
-        
-        Log::info('Detected similar data', [
-            'similar_frames' => $framesWithSimilarData,
-            'count' => count($framesWithSimilarData)
-        ]);
-        
-        // If no similar frame by image found yet, use the first one with similar data
-        if (!$result['similarFrame'] && !empty($framesWithSimilarData)) {
-            $result['similarFrame'] = Frame::find($framesWithSimilarData[0]);
-        }
-    }
-    
-    return $result;
-}
-
-/**
- * Extract all similar frame IDs from similarity details
- * Modified to make brand comparison case-insensitive
+ * Get all similar frame IDs from similarity details with improved filtering
+ * Modified to properly handle multiple subkriteria selections
  */
 private function getAllSimilarFrameIds($similarityDetails)
 {
@@ -554,6 +239,275 @@ private function getAllSimilarFrameIds($similarityDetails)
     }
     
     return array_unique($allIds);
+}
+
+/**
+ * Find frames with similar data with improved multiple subkriteria handling
+ * This version identifies frames with overlapping criteria rather than only exact matches
+ */
+private function findFramesWithSimilarData(Request $request, $excludeFrameId = null)
+{
+    // Step 1: Find frames with similar merek and lokasi (case-insensitive)
+    $query = Frame::whereRaw('LOWER(frame_merek) = ?', [strtolower($request->frame_merek)])
+                  ->whereRaw('LOWER(frame_lokasi) = ?', [strtolower($request->frame_lokasi)]);
+    
+    // Exclude the current frame if we're updating
+    if ($excludeFrameId) {
+        $query->where('frame_id', '!=', $excludeFrameId);
+    }
+    
+    $similarMerekAndLokasi = $query->get();
+    
+    if ($similarMerekAndLokasi->isEmpty()) {
+        return []; // No matches on basic data
+    }
+    
+    // Step 2: Extract requested criteria
+    $requestedCriteria = [];
+    $requestedCriteriaByType = [];
+    $input_types = $request->input('input_type', []);
+    
+    // Process checkbox criteria values
+    if ($request->has('nilai')) {
+        foreach ($request->nilai as $kriteria_id => $subkriteria_ids) {
+            // Only process if input type is checkbox or not specified
+            if (!isset($input_types[$kriteria_id]) || $input_types[$kriteria_id] == 'checkbox') {
+                foreach ($subkriteria_ids as $subkriteria_id) {
+                    $requestedCriteria[] = [
+                        'kriteria_id' => $kriteria_id,
+                        'subkriteria_id' => $subkriteria_id,
+                        'input_type' => 'checkbox',
+                        'value' => null
+                    ];
+                    
+                    // Group by kriteria_id for easier comparison
+                    $key = $kriteria_id . '_checkbox';
+                    if (!isset($requestedCriteriaByType[$key])) {
+                        $requestedCriteriaByType[$key] = [];
+                    }
+                    $requestedCriteriaByType[$key][] = $subkriteria_id;
+                }
+            }
+        }
+    }
+    
+    // Process manual input values
+    if ($request->has('nilai_manual')) {
+        foreach ($request->nilai_manual as $kriteria_id => $value) {
+            if (isset($input_types[$kriteria_id]) && $input_types[$kriteria_id] == 'manual' && !empty($value)) {
+                // Find the corresponding subkriteria for this value
+                $subkriteria = $this->findSubkriteriaForValue($kriteria_id, $value);
+                if ($subkriteria) {
+                    $requestedCriteria[] = [
+                        'kriteria_id' => $kriteria_id,
+                        'subkriteria_id' => $subkriteria->subkriteria_id,
+                        'input_type' => 'manual',
+                        'value' => $value
+                    ];
+                    
+                    // Group by kriteria_id for easier comparison
+                    $key = $kriteria_id . '_manual';
+                    if (!isset($requestedCriteriaByType[$key])) {
+                        $requestedCriteriaByType[$key] = [];
+                    }
+                    $requestedCriteriaByType[$key][] = [
+                        'subkriteria_id' => $subkriteria->subkriteria_id,
+                        'value' => $value
+                    ];
+                }
+            }
+        }
+    }
+    
+    // If no criteria provided, just return frames with similar basic info
+    if (empty($requestedCriteria)) {
+        return $similarMerekAndLokasi->pluck('frame_id')->toArray();
+    }
+    
+    // Results array for frames with similar (not necessarily identical) criteria
+    $similarFrames = [];
+    $exactMatchFrames = []; // For exact matches
+    $partialMatchFrames = []; // For partial matches (overlapping subkriteria)
+    
+    foreach ($similarMerekAndLokasi as $frameItem) {
+        // Load frame subkriterias if not already loaded
+        if (!$frameItem->relationLoaded('frameSubkriterias')) {
+            $frameItem->load('frameSubkriterias.subkriteria');
+        }
+        
+        // Group the frame's criteria by input type and kriteria_id
+        $frameCriteriaByType = [];
+        foreach ($frameItem->frameSubkriterias as $fs) {
+            $input_type = $fs->manual_value !== null ? 'manual' : 'checkbox';
+            $key = $fs->kriteria_id . '_' . $input_type;
+            
+            if (!isset($frameCriteriaByType[$key])) {
+                $frameCriteriaByType[$key] = [];
+            }
+            
+            if ($input_type == 'manual') {
+                $frameCriteriaByType[$key][] = [
+                    'subkriteria_id' => $fs->subkriteria_id,
+                    'value' => $fs->manual_value
+                ];
+            } else {
+                $frameCriteriaByType[$key][] = $fs->subkriteria_id;
+            }
+        }
+        
+        // Track similarity metrics
+        $exactMatchCount = 0;
+        $partialMatchCount = 0;
+        $totalCriteriaTypes = count($requestedCriteriaByType);
+        
+        // Compare criteria
+        foreach ($requestedCriteriaByType as $key => $requestedValues) {
+            list($kriteria_id, $input_type) = explode('_', $key);
+            
+            // If this frame doesn't have this criteria type at all, it's definitely not an exact match
+            if (!isset($frameCriteriaByType[$key])) {
+                continue;
+            }
+            
+            $frameValues = $frameCriteriaByType[$key];
+            
+            if ($input_type == 'checkbox') {
+                // For checkbox values, we need to check overlap in subkriteria_ids
+                $requestedSet = array_values((array)$requestedValues);
+                $frameSet = array_values((array)$frameValues);
+                
+                // Check for exact match (same size and all elements match)
+                if (count($requestedSet) == count($frameSet) && 
+                    empty(array_diff($requestedSet, $frameSet)) && 
+                    empty(array_diff($frameSet, $requestedSet))) {
+                    $exactMatchCount++;
+                }
+                // Check for partial match (at least one common subkriteria)
+                elseif (!empty(array_intersect($requestedSet, $frameSet))) {
+                    $partialMatchCount++;
+                }
+            } else if ($input_type == 'manual') {
+                // For manual inputs, we need to check exact matches including values
+                $matched = false;
+                
+                // There's usually only one manual value per criteria
+                if (isset($requestedValues[0]) && isset($frameValues[0])) {
+                    if ($requestedValues[0]['subkriteria_id'] == $frameValues[0]['subkriteria_id'] &&
+                        $requestedValues[0]['value'] == $frameValues[0]['value']) {
+                        $exactMatchCount++;
+                        $matched = true;
+                    }
+                }
+                
+                // If not an exact match, we don't count manual inputs as partial matches
+            }
+        }
+        
+        // Determine if this is an exact or partial match
+        if ($exactMatchCount == $totalCriteriaTypes && 
+            count($frameCriteriaByType) == $totalCriteriaTypes) {
+            // All criteria match exactly, and there are no extra criteria in the frame
+            $exactMatchFrames[] = $frameItem->frame_id;
+            
+            Log::info('Frame exact similarity match', [
+                'frame_id' => $frameItem->frame_id,
+                'similarity' => '100% (exact match)',
+                'matched_criteria' => $exactMatchCount,
+                'total_criteria' => $totalCriteriaTypes
+            ]);
+        } 
+        elseif ($exactMatchCount + $partialMatchCount > 0) {
+            // At least some criteria match partially
+            $partialMatchFrames[] = $frameItem->frame_id;
+            
+            $similarityPercentage = ($exactMatchCount / $totalCriteriaTypes) * 100;
+            
+            Log::info('Frame partial similarity match', [
+                'frame_id' => $frameItem->frame_id,
+                'similarity' => $similarityPercentage . '% (partial match)',
+                'exact_matches' => $exactMatchCount,
+                'partial_matches' => $partialMatchCount,
+                'total_criteria' => $totalCriteriaTypes
+            ]);
+        }
+    }
+    
+    // Combine exact and partial matches, prioritizing exact matches
+    $similarFrames = array_merge($exactMatchFrames, $partialMatchFrames);
+    
+    return array_unique($similarFrames);
+}
+
+/**
+ * Enhanced version of checkForSimilarFrames with better handling for multiple subkriteria
+ * 
+ * @param Request $request
+ * @param int|null $excludeFrameId Frame ID to exclude from similarity check (for updates)
+ * @return array
+ */
+private function checkForSimilarFrames(Request $request, $excludeFrameId = null)
+{
+    // Initialize result array
+    $result = [
+        'similarFrame' => null,
+        'similarityDetails' => [
+            'exactMatches' => [],
+            'partialMatches' => []
+        ]
+    ];
+    
+    // 1. Check for similar images if a new image is uploaded
+    if ($request->hasFile('frame_foto')) {
+        $similarFrame = $this->imageComparisonService->findSimilarFrame($request->file('frame_foto'));
+        
+        // Only consider image similarity if the brand (merek) also matches (case-insensitive) and it's not the current frame
+        if ($similarFrame && 
+            strtolower($similarFrame->frame_merek) === strtolower($request->frame_merek) && 
+            (!$excludeFrameId || $similarFrame->frame_id != $excludeFrameId)) {
+            
+            $result['similarFrame'] = $similarFrame;
+            $result['similarityDetails']['image'] = [
+                'similar' => true,
+                'message' => 'Foto frame serupa dengan frame yang sudah ada dengan merek yang sama',
+                'frame_id' => $similarFrame->frame_id
+            ];
+            
+            Log::info('Detected similar image', [
+                'frame_id' => $similarFrame->frame_id,
+                'frame_merek' => $similarFrame->frame_merek,
+                'requested_merek' => $request->frame_merek
+            ]);
+        }
+    } elseif ($request->has('existing_frame_foto')) {
+        // Using existing frame photo, skip image comparison
+        Log::info('Using existing frame photo for comparison', [
+            'existing_frame_foto' => $request->existing_frame_foto
+        ]);
+    }
+    
+    // 2. Find frames with similar data using the improved method
+    $framesWithSimilarData = $this->findFramesWithSimilarData($request, $excludeFrameId);
+    
+    if (!empty($framesWithSimilarData)) {
+        // Record data similarity info
+        $result['similarityDetails']['data'] = [
+            'similar' => true,
+            'message' => 'Data frame (merek, lokasi, kriteria) serupa dengan ' . count($framesWithSimilarData) . ' frame lain',
+            'frames' => $framesWithSimilarData
+        ];
+        
+        Log::info('Detected similar data', [
+            'similar_frames' => $framesWithSimilarData,
+            'count' => count($framesWithSimilarData)
+        ]);
+        
+        // If no similar frame by image found yet, use the first one with similar data
+        if (!$result['similarFrame'] && !empty($framesWithSimilarData)) {
+            $result['similarFrame'] = Frame::find($framesWithSimilarData[0]);
+        }
+    }
+    
+    return $result;
 }
 
 /**
@@ -696,6 +650,202 @@ private function findSubkriteriaForValue($kriteria_id, $value)
     ]);
     
     return null;
+}
+
+
+
+/**
+ * Helper method to prepare comparison data between the frame and form data
+ * This helps visualize the differences in the confirmation view
+ * 
+ * @param Frame $similarFrame
+ * @param array $formData
+ * @return array
+ */
+private function prepareComparisonData($similarFrame, $formData)
+{
+    $comparison = [];
+    
+    // Extract existing frame's criteria
+    $existingCriteria = [];
+    foreach ($similarFrame->frameSubkriterias as $fs) {
+        $kriteria_id = $fs->kriteria_id;
+        $subkriteria_id = $fs->subkriteria_id;
+        $kriteria_name = $fs->kriteria->nama_kriteria ?? 'Unknown';
+        $subkriteria_name = $fs->subkriteria->nama_subkriteria ?? 'Unknown';
+        $input_type = $fs->manual_value !== null ? 'manual' : 'checkbox';
+        $value = $fs->manual_value;
+        
+        if (!isset($existingCriteria[$kriteria_id])) {
+            $existingCriteria[$kriteria_id] = [
+                'name' => $kriteria_name,
+                'input_type' => $input_type,
+                'values' => []
+            ];
+        }
+        
+        if ($input_type === 'manual') {
+            $existingCriteria[$kriteria_id]['values'][$subkriteria_id] = [
+                'name' => $subkriteria_name,
+                'value' => $value
+            ];
+        } else {
+            $existingCriteria[$kriteria_id]['values'][$subkriteria_id] = [
+                'name' => $subkriteria_name
+            ];
+        }
+    }
+    
+    // Extract form data criteria
+    $formCriteria = [];
+    
+    // Process checkbox values
+    if (isset($formData['nilai']) && is_array($formData['nilai'])) {
+        foreach ($formData['nilai'] as $kriteria_id => $subkriteria_ids) {
+            if (!isset($formCriteria[$kriteria_id])) {
+                // Get kriteria name (would need to be fetched from DB in real implementation)
+                $kriteria_name = Kriteria::find($kriteria_id)->nama_kriteria ?? 'Unknown';
+                
+                $formCriteria[$kriteria_id] = [
+                    'name' => $kriteria_name,
+                    'input_type' => 'checkbox',
+                    'values' => []
+                ];
+            }
+            
+            foreach ($subkriteria_ids as $subkriteria_id) {
+                // Get subkriteria name
+                $subkriteria_name = Subkriteria::find($subkriteria_id)->nama_subkriteria ?? 'Unknown';
+                
+                $formCriteria[$kriteria_id]['values'][$subkriteria_id] = [
+                    'name' => $subkriteria_name
+                ];
+            }
+        }
+    }
+    
+    // Process manual input values
+    if (isset($formData['nilai_manual']) && is_array($formData['nilai_manual'])) {
+        foreach ($formData['nilai_manual'] as $kriteria_id => $value) {
+            if (empty($value) && $value !== '0' && $value !== 0) {
+                continue;
+            }
+            
+            // Find the corresponding subkriteria for this value
+            $subkriteria = $this->findSubkriteriaForValue($kriteria_id, $value);
+            if (!$subkriteria) {
+                continue;
+            }
+            
+            if (!isset($formCriteria[$kriteria_id])) {
+                // Get kriteria name
+                $kriteria_name = Kriteria::find($kriteria_id)->nama_kriteria ?? 'Unknown';
+                
+                $formCriteria[$kriteria_id] = [
+                    'name' => $kriteria_name,
+                    'input_type' => 'manual',
+                    'values' => []
+                ];
+            }
+            
+            $formCriteria[$kriteria_id]['values'][$subkriteria->subkriteria_id] = [
+                'name' => $subkriteria->nama_subkriteria,
+                'value' => $value
+            ];
+        }
+    }
+    
+    // Combine all criteria for comparison
+    $allKriteriaIds = array_unique(array_merge(array_keys($existingCriteria), array_keys($formCriteria)));
+    
+    foreach ($allKriteriaIds as $kriteria_id) {
+        $comparison[$kriteria_id] = [
+            'name' => $existingCriteria[$kriteria_id]['name'] ?? $formCriteria[$kriteria_id]['name'] ?? 'Unknown',
+            'existing' => $existingCriteria[$kriteria_id]['values'] ?? null,
+            'new' => $formCriteria[$kriteria_id]['values'] ?? null,
+            'input_type' => $existingCriteria[$kriteria_id]['input_type'] ?? $formCriteria[$kriteria_id]['input_type'] ?? 'checkbox',
+            'status' => $this->determineCriteriaStatus(
+                $existingCriteria[$kriteria_id]['values'] ?? [], 
+                $formCriteria[$kriteria_id]['values'] ?? [],
+                $existingCriteria[$kriteria_id]['input_type'] ?? $formCriteria[$kriteria_id]['input_type'] ?? 'checkbox'
+            )
+        ];
+    }
+    
+    return $comparison;
+}
+
+/**
+ * Determine the status of a criteria comparison
+ * 
+ * @param array $existingValues
+ * @param array $newValues
+ * @param string $inputType
+ * @return string 'identical', 'subset', 'superset', 'partial-overlap', or 'different'
+ */
+private function determineCriteriaStatus($existingValues, $newValues, $inputType)
+{
+    if (empty($existingValues) && empty($newValues)) {
+        return 'identical'; // Both empty
+    }
+    
+    if (empty($existingValues)) {
+        return 'new-only'; // Only in new frame
+    }
+    
+    if (empty($newValues)) {
+        return 'existing-only'; // Only in existing frame
+    }
+    
+    // For manual input type - direct value comparison
+    if ($inputType === 'manual') {
+        $existingKeys = array_keys($existingValues);
+        $newKeys = array_keys($newValues);
+        
+        // Usually there's only one value for manual inputs
+        if (count($existingKeys) === 1 && count($newKeys) === 1) {
+            $existingKey = reset($existingKeys);
+            $newKey = reset($newKeys);
+            
+            if ($existingKey === $newKey && 
+                $existingValues[$existingKey]['value'] === $newValues[$newKey]['value']) {
+                return 'identical';
+            }
+        }
+        
+        return 'different';
+    }
+    
+    // For checkbox type - set comparison
+    $existingKeys = array_keys($existingValues);
+    $newKeys = array_keys($newValues);
+    
+    // Check for identical sets
+    if (count($existingKeys) === count($newKeys) &&
+        empty(array_diff($existingKeys, $newKeys)) &&
+        empty(array_diff($newKeys, $existingKeys))) {
+        return 'identical';
+    }
+    
+    // Check for subset (new is subset of existing)
+    if (empty(array_diff($newKeys, $existingKeys)) && 
+        !empty(array_diff($existingKeys, $newKeys))) {
+        return 'subset';
+    }
+    
+    // Check for superset (new contains all of existing plus more)
+    if (empty(array_diff($existingKeys, $newKeys)) && 
+        !empty(array_diff($newKeys, $existingKeys))) {
+        return 'superset';
+    }
+    
+    // Check for partial overlap
+    if (!empty(array_intersect($existingKeys, $newKeys))) {
+        return 'partial-overlap';
+    }
+    
+    // Completely different sets
+    return 'different';
 }
     
     public function create()
@@ -888,6 +1038,9 @@ private function findSubkriteriaForValue($kriteria_id, $value)
     $formData = session('frame_form_data', []);
     $brand = $formData['frame_merek'] ?? null;
     
+    // Load the criteria data for comparison display in the view
+    $criteriaComparison = $this->prepareComparisonData($similarFrame, $formData);
+    
     if (!empty($otherSimilarFrameIds)) {
         // Fetch frames with the same ID and filter by brand (case-insensitive)
         $query = Frame::whereIn('frame_id', $otherSimilarFrameIds)
@@ -905,7 +1058,8 @@ private function findSubkriteriaForValue($kriteria_id, $value)
         'similarFrame', 
         'tempImagePath', 
         'similarityDetails', 
-        'otherSimilarFrames'
+        'otherSimilarFrames',
+        'criteriaComparison'
     ));
 }
 
@@ -1200,8 +1354,15 @@ public function confirmUpdateDuplicate($frame_id)
     // Get temp image from session
     $tempImagePath = session('temp_edit_image');
     
-    // Retrieve and log the form data from session to help with debugging
+    // Retrieve the form data from session for comparison
     $formData = session('frame_edit_data', []);
+    
+    // Prepare comparison data to show differences in criteria
+    $criteriaComparison = null;
+    if ($similarFrame) {
+        $criteriaComparison = $this->prepareComparisonData($similarFrame, $formData);
+    }
+    
     Log::info('Form data in confirmUpdateDuplicate', [
         'frame_id' => $frame_id,
         'nilai' => $formData['nilai'] ?? [],
@@ -1214,7 +1375,8 @@ public function confirmUpdateDuplicate($frame_id)
         'similarFrame',
         'otherSimilarFrames',
         'tempImagePath',
-        'similarityResults'
+        'similarityResults',
+        'criteriaComparison'
     ));
 }
 /**
