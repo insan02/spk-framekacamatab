@@ -413,16 +413,46 @@
                                                 <strong>{{ $kriteria->kriteria_nama }}:</strong><br>
                                                 @php
                                                     $frameSubkriterias = $frame['frame']->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id);
+                                                    $hasManualValue = false;
+                                                    $manualValues = [];
+                                                    $checkboxValues = [];
+                                                    
+                                                    foreach($frameSubkriterias as $fs) {
+                                                        if($fs->subkriteria) {
+                                                            if($fs->manual_value !== null) {
+                                                                // This is a manual value
+                                                                $hasManualValue = true;
+                                                                $manualValues[] = [
+                                                                    'value' => $fs->manual_value,
+                                                                    'name' => $fs->subkriteria->subkriteria_nama
+                                                                ];
+                                                            } else {
+                                                                // This is a checkbox value
+                                                                $checkboxValues[] = $fs->subkriteria->subkriteria_nama;
+                                                            }
+                                                        }
+                                                    }
                                                 @endphp
                                                 
-                                                @if($frameSubkriterias->count() > 0)
-                                                <span class="ps-2">
-                                                    {{ $frameSubkriterias->pluck('subkriteria.subkriteria_nama')->implode(', ') }}
-                                                </span><br>
-                                                
-                                                @else
-                                                    <span class="ps-2 text-muted">- Tidak ada data</span><br>
-                                                @endif
+                                                <div class="ps-2 mb-2">
+                                                    @if(count($manualValues) > 0)
+                                                        @foreach($manualValues as $manualItem)
+                                                            <div>
+                                                                {{ number_format($manualItem['value'], 2, ',', '.') }} ({{ $manualItem['name'] }})
+                                                            </div>
+                                                        @endforeach
+                                                    @endif
+                                                    
+                                                    @if(count($checkboxValues) > 0)
+                                                        <div>
+                                                            {{ implode(', ', $checkboxValues) }}
+                                                        </div>
+                                                    @endif
+                                                    
+                                                    @if(count($manualValues) == 0 && count($checkboxValues) == 0)
+                                                        <span class="text-muted">- Tidak ada data</span>
+                                                    @endif
+                                                </div>
                                             @endforeach
                                         </small>
                                     </td>

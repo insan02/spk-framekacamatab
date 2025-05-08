@@ -155,7 +155,10 @@
                     @foreach($histories as $index => $history)
                     <tr>
                         <td>{{ $index + 1 }}</td>
-                        <td>{{ $history->created_at->format('d/m/Y H:i') }}</td>
+                        <td>
+                            {{ $history->created_at->setTimezone('Asia/Jakarta')->format('d M Y') }}<br>
+                            {{ $history->created_at->setTimezone('Asia/Jakarta')->format('H:i') }} WIB
+                        </td>   
                         <td>{{ $history->customer_name ?? ($history->customer->name ?? 'Unknown') }}</td>
                         <td>{{ $history->customer_phone ?? ($history->customer->phone ?? 'Unknown') }}</td>
                         <td>

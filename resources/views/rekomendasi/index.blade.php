@@ -35,7 +35,10 @@
                     <tbody>
                         @foreach($histories as $history)
                         <tr>
-                            <td>{{ $history->created_at->setTimezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</td>
+                            <td>
+                                {{ $history->created_at->setTimezone('Asia/Jakarta')->format('d M Y') }}<br>
+                                {{ $history->created_at->setTimezone('Asia/Jakarta')->format('H:i') }} WIB
+                            </td>                            
                             <td>{{ $history->customer_name ?? ($history->customer->name ?? 'Unknown') }}</td>
                             <td>{{ $history->customer_phone ?? ($history->customer->phone ?? 'Unknown') }}</td>
                             <td>
@@ -77,8 +80,9 @@
                                     </a>
                                     @if(auth()->user()->role === 'karyawan')
                                     <a href="{{ route('rekomendasi.print', $history->recommendation_history_id) }}" 
-                                        class="btn btn-sm btn-secondary print-btn">
-                                         <i class="fas fa-print"></i> Cetak
+                                        class="btn btn-sm btn-secondary print-btn"
+                                        target="_blank">
+                                        <i class="fas fa-print"></i> Cetak
                                      </a>
                                      @endif
                                     @if(auth()->user()->role !== 'owner')

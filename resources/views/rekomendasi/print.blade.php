@@ -174,8 +174,21 @@
             tfoot { display: table-footer-group; }
         }
     </style>
+    <script>
+        // Automatically trigger print dialog when page is loaded
+        window.onload = function() {
+            window.print();
+        }
+        
+        // Return to previous page when print dialog is closed
+        window.onafterprint = function() {
+            window.close();
+        }
+    </script>
 </head>
+
 <body>
+        
     <div class="header">
         <!-- Uncomment and update with your actual logo path -->
         <img src="{{ asset('logokacamata.png') }}" alt="Logo" class="logo">
@@ -260,7 +273,7 @@
     @endphp
 
     <!-- Detail Perhitungan Section -->
-    <div class="page-break"></div>
+    {{-- <div class="page-break"></div> --}}
     {{-- <h2 class="section-title">Detail Perhitungan</h2> --}}
 
     {{-- <!-- 1. Nilai Profile Frame -->
@@ -385,6 +398,7 @@
                     <th>Foto</th>
                     <th>Merek</th>
                     <th>Lokasi</th>
+                    <th>Kriteria Frame</th>
                     <th>Skor Akhir</th>
                 </tr>
             </thead>
@@ -404,6 +418,89 @@
                     </td>
                     <td>{{ $frame['frame']['frame_merek'] }}</td>
                     <td>{{ $frame['frame']['frame_lokasi'] }}</td>
+                    <td>
+                        <small>
+                            @foreach($kriterias as $kriteria)
+                                <strong>{{ $kriteria['kriteria_nama'] }}:</strong><br>
+                                @php
+                                    $kriteriaId = $kriteria['kriteria_id'];
+                                    $manualValues = [];
+                                    $checkboxValues = [];
+                                    
+                                    // Ambil dari all_subkriteria yang sudah tersimpan sebagai 'snapshot'
+                                    if (isset($frame['frame']['all_subkriteria']) && is_array($frame['frame']['all_subkriteria'])) {
+                                        foreach ($frame['frame']['all_subkriteria'] as $subk) {
+                                            if ($subk['kriteria_id'] == $kriteriaId) {
+                                                // Check if it has manual_value
+                                                if (isset($subk['manual_value']) && $subk['manual_value'] !== null) {
+                                                    $manualValues[] = [
+                                                        'value' => $subk['manual_value'],
+                                                        'name' => $subk['subkriteria_nama']
+                                                    ];
+                                                } else {
+                                                    // It's a checkbox value
+                                                    $checkboxValues[] = $subk['subkriteria_nama'];
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Fallback ke data dari frameSubkriterias jika all_subkriteria tidak tersedia
+                                    if (count($manualValues) == 0 && count($checkboxValues) == 0) {
+                                        if (isset($frame['frame']['frameSubkriterias']) && is_array($frame['frame']['frameSubkriterias'])) {
+                                            foreach ($frame['frame']['frameSubkriterias'] as $fs) {
+                                                if (isset($fs['kriteria_id']) && $fs['kriteria_id'] == $kriteriaId) {
+                                                    if (isset($fs['manual_value']) && $fs['manual_value'] !== null) {
+                                                        $manualValues[] = [
+                                                            'value' => $fs['manual_value'],
+                                                            'name' => isset($fs['subkriteria']['subkriteria_nama']) ? $fs['subkriteria']['subkriteria_nama'] : ''
+                                                        ];
+                                                    } elseif (isset($fs['subkriteria']['subkriteria_nama'])) {
+                                                        $checkboxValues[] = $fs['subkriteria']['subkriteria_nama'];
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Fallback ke data dari recommendation_frames jika diperlukan
+                                    if (count($manualValues) == 0 && count($checkboxValues) == 0) {
+                                        if (isset($recommendation->recommendationFrames)) {
+                                            foreach ($recommendation->recommendationFrames as $recFrame) {
+                                                if ($recFrame->frame_id == $frame['frame']['frame_id']) {
+                                                    // Ambil data dari rekomendasiFrames jika tersedia
+                                                    // Logika tambahan disini jika diperlukan
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Remove duplicates
+                                    $checkboxValues = array_unique($checkboxValues);
+                                @endphp
+                                
+                                <div class="ps-2 mb-2">
+                                    @if(count($manualValues) > 0)
+                                        @foreach($manualValues as $manualItem)
+                                            <div>
+                                                {{ number_format($manualItem['value'], 2, ',', '.') }} ({{ $manualItem['name'] }})
+                                            </div>
+                                        @endforeach
+                                    @endif
+                                    
+                                    @if(count($checkboxValues) > 0)
+                                        <div>
+                                            {{ implode(', ', $checkboxValues) }}
+                                        </div>
+                                    @endif
+                                    
+                                    @if(count($manualValues) == 0 && count($checkboxValues) == 0)
+                                        <span class="text-muted">- Tidak ada data</span>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </small>
+                    </td>
                     <td class="text-center">
                         <span class="badge">
                             {{ number_format($frame['score'], 4) }}
@@ -416,16 +513,10 @@
         </table>
     </div>
 
-
     <div class="footer">
         <p>Dokumen ini dihasilkan oleh Sistem Pendukung Keputusan Pemilihan Frame Kacamata</p>
         <p>&copy; {{ date('Y') }} - Toko Kacamata Sidi Pingai Bukittinggi</p>
     </div>
-    
-    <div class="no-print" style="text-align: center; margin-top: 30px;">
-        <button onclick="window.print();" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
-            Cetak Sekarang
-        </button>
-    </div>
+
 </body>
 </html>

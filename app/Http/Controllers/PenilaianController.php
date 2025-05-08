@@ -377,18 +377,24 @@ private function processImageFiles($rekomendasiData)
             $item['frame']['frame_foto'] = null; // Jika foto tidak ada
         }
         
-        // Make sure frameSubkriterias are properly preserved
+        // Make sure frameSubkriterias are properly preserved with manual values
         if (!isset($item['frame']['all_subkriteria']) && isset($item['frame']['frameSubkriterias'])) {
             $allSubkriteria = [];
             foreach ($item['frame']['frameSubkriterias'] as $fsk) {
+                // Capture manual_value if it exists
+                $manualValue = isset($fsk['manual_value']) ? $fsk['manual_value'] : null;
+                
                 if (isset($fsk['subkriteria'])) {
                     $subk = $fsk['subkriteria'];
                     // Create a flattened structure that's easier to work with in the view
+                    // Include manual_value in the structure
                     $allSubkriteria[] = [
                         'kriteria_id' => $fsk['kriteria_id'],
                         'subkriteria_id' => $subk['subkriteria_id'],
                         'subkriteria_nama' => $subk['subkriteria_nama'],
-                        'subkriteria_bobot' => $subk['subkriteria_bobot']
+                        'subkriteria_bobot' => $subk['subkriteria_bobot'],
+                        'manual_value' => $manualValue, // Store manual value
+                        'tipe_subkriteria' => $subk['tipe_subkriteria'] ?? 'checkbox' // Default to checkbox if not specified
                     ];
                 }
             }

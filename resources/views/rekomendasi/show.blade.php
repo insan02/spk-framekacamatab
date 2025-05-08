@@ -466,59 +466,80 @@
                                                     <strong>{{ $kriteria['kriteria_nama'] }}:</strong><br>
                                                     @php
                                                         $kriteriaId = $kriteria['kriteria_id'];
-                                                        $subkriteriaList = [];
+                                                        $manualValues = [];
+                                                        $checkboxValues = [];
                                                         
-                                                        // Check all possible places where subkriteria might be stored
-                                                        // Same logic as above to find all subkriteria for this frame and kriteria
-                                                        
-                                                        // 1. Check in frameSubkriterias
-                                                        if (isset($frame['frame']['frameSubkriterias']) && is_array($frame['frame']['frameSubkriterias'])) {
-                                                            foreach ($frame['frame']['frameSubkriterias'] as $fsk) {
-                                                                if ($fsk['kriteria_id'] == $kriteriaId && isset($fsk['subkriteria'])) {
-                                                                    $subkriteriaList[] = $fsk['subkriteria']['subkriteria_nama'];
-                                                                }
-                                                            }
-                                                        }
-                                                        
-                                                        // 2. Check in frame_subkriterias
-                                                        if (isset($frame['frame']['frame_subkriterias']) && is_array($frame['frame']['frame_subkriterias'])) {
-                                                            foreach ($frame['frame']['frame_subkriterias'] as $fsk) {
-                                                                if ($fsk['kriteria_id'] == $kriteriaId) {
-                                                                    $subkriteriaList[] = $fsk['subkriteria']['subkriteria_nama'] ?? $fsk['subkriteria_nama'] ?? '';
-                                                                }
-                                                            }
-                                                        }
-                                                        
-                                                        // 3. Check in all_subkriteria
+                                                        // Ambil dari all_subkriteria yang sudah tersimpan sebagai 'snapshot'
                                                         if (isset($frame['frame']['all_subkriteria']) && is_array($frame['frame']['all_subkriteria'])) {
                                                             foreach ($frame['frame']['all_subkriteria'] as $subk) {
                                                                 if ($subk['kriteria_id'] == $kriteriaId) {
-                                                                    $subkriteriaList[] = $subk['subkriteria_nama'];
+                                                                    // Check if it has manual_value
+                                                                    if (isset($subk['manual_value']) && $subk['manual_value'] !== null) {
+                                                                        $manualValues[] = [
+                                                                            'value' => $subk['manual_value'],
+                                                                            'name' => $subk['subkriteria_nama']
+                                                                        ];
+                                                                    } else {
+                                                                        // It's a checkbox value
+                                                                        $checkboxValues[] = $subk['subkriteria_nama'];
+                                                                    }
                                                                 }
                                                             }
                                                         }
                                                         
-                                                        // 4. Check in details array
-                                                        if (isset($frame['details'])) {
-                                                            foreach ($frame['details'] as $detail) {
-                                                                if ($detail['kriteria']['kriteria_id'] == $kriteriaId) {
-                                                                    $subkriteriaList[] = $detail['frame_subkriteria']['subkriteria_nama'];
+                                                        // Fallback ke data dari frameSubkriterias jika all_subkriteria tidak tersedia
+                                                        if (count($manualValues) == 0 && count($checkboxValues) == 0) {
+                                                            if (isset($frame['frame']['frameSubkriterias']) && is_array($frame['frame']['frameSubkriterias'])) {
+                                                                foreach ($frame['frame']['frameSubkriterias'] as $fs) {
+                                                                    if (isset($fs['kriteria_id']) && $fs['kriteria_id'] == $kriteriaId) {
+                                                                        if (isset($fs['manual_value']) && $fs['manual_value'] !== null) {
+                                                                            $manualValues[] = [
+                                                                                'value' => $fs['manual_value'],
+                                                                                'name' => isset($fs['subkriteria']['subkriteria_nama']) ? $fs['subkriteria']['subkriteria_nama'] : ''
+                                                                            ];
+                                                                        } elseif (isset($fs['subkriteria']['subkriteria_nama'])) {
+                                                                            $checkboxValues[] = $fs['subkriteria']['subkriteria_nama'];
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        // Fallback ke data dari recommendation_frames jika diperlukan
+                                                        if (count($manualValues) == 0 && count($checkboxValues) == 0) {
+                                                            if (isset($recommendation->recommendationFrames)) {
+                                                                foreach ($recommendation->recommendationFrames as $recFrame) {
+                                                                    if ($recFrame->frame_id == $frame['frame']['frame_id']) {
+                                                                        // Ambil data dari rekomendasiFrames jika tersedia
+                                                                        // Logika tambahan disini jika diperlukan
+                                                                    }
                                                                 }
                                                             }
                                                         }
                                                         
                                                         // Remove duplicates
-                                                        $subkriteriaList = array_unique($subkriteriaList);
+                                                        $checkboxValues = array_unique($checkboxValues);
                                                     @endphp
                                                     
-                                                    @if(count($subkriteriaList) > 0)
-                                                        <span class="ps-2">
-                                                            {{ implode(', ', $subkriteriaList) }}
-                                                        </span>
-                                                    @else
-                                                        <span class="ps-2 text-muted">- Tidak ada data</span>
-                                                    @endif
-                                                    <br>
+                                                    <div class="ps-2 mb-2">
+                                                        @if(count($manualValues) > 0)
+                                                            @foreach($manualValues as $manualItem)
+                                                                <div>
+                                                                    {{ number_format($manualItem['value'], 2, ',', '.') }} ({{ $manualItem['name'] }})
+                                                                </div>
+                                                            @endforeach
+                                                        @endif
+                                                        
+                                                        @if(count($checkboxValues) > 0)
+                                                            <div>
+                                                                {{ implode(', ', $checkboxValues) }}
+                                                            </div>
+                                                        @endif
+                                                        
+                                                        @if(count($manualValues) == 0 && count($checkboxValues) == 0)
+                                                            <span class="text-muted">- Tidak ada data</span>
+                                                        @endif
+                                                    </div>
                                                 @endforeach
                                             </small>
                                         </td>

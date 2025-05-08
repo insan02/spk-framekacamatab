@@ -20,10 +20,10 @@ class RecommendationHistoryController extends Controller
     }
 
     public function print($id)
-    {
-        $history = RecommendationHistory::findOrFail($id);
-        return view('rekomendasi.print', compact('history'));
-    }
+{
+    $history = RecommendationHistory::findOrFail($id);
+    return view('rekomendasi.print', compact('history'));
+}
 
     public function destroy($id)
     {
