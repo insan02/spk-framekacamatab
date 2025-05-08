@@ -36,9 +36,9 @@ public function store(Request $request)
     // Validasi dasar untuk semua jenis subkriteria
     $validator = Validator::make($request->all(), [
         'kriteria_id' => 'required|exists:kriterias,kriteria_id',
-        'tipe_subkriteria' => 'required|in:teks,rentang nilai',
+        'tipe_subkriteria' => 'required|in:teks,angka,rentang nilai',
         'subkriteria_bobot' => 'required|integer|min:1|max:5',
-        'subkriteria_keterangan' => 'required|regex:/^[A-Za-z\s]+$/', // Validasi untuk keterangan
+        'subkriteria_keterangan' => 'required|regex:/^[A-Za-z\s\,\.\-]+$/', // Validasi untuk keterangan
     ], [
         'kriteria_id.required' => 'Kriteria harus dipilih',
         'kriteria_id.exists' => 'Kriteria yang dipilih tidak valid',
@@ -46,10 +46,9 @@ public function store(Request $request)
         'tipe_subkriteria.in' => 'Tipe subkriteria tidak valid',
         'subkriteria_bobot.required' => 'Bobot subkriteria tidak boleh kosong',
         'subkriteria_keterangan.required' => 'Keterangan bobot subkriteria tidak boleh kosong',
-        'subkriteria_keterangan.regex' => 'Keterangan bobot subkriteria hanya boleh berisi huruf dan spasi.',
+        'subkriteria_keterangan.regex' => 'Keterangan bobot tidak valid.',
         'subkriteria_bobot.min' => 'Bobot subkriteria minimal 1',
         'subkriteria_bobot.max' => 'Bobot subkriteria maksimal 5',
-        'subkriteria_keterangan.max' => 'Keterangan maksimal 255 karakter',
     ]);
 
     if ($validator->fails()) {
@@ -58,20 +57,22 @@ public function store(Request $request)
             ->withInput();
     }
 
-    // Tentukan nama subkriteria berdasarkan tipe
+    // Data dasar subkriteria
     $subkriteriaData = [
         'kriteria_id' => $request->kriteria_id,
         'tipe_subkriteria' => $request->tipe_subkriteria,
         'subkriteria_bobot' => $request->subkriteria_bobot,
-        'subkriteria_keterangan' => $request->subkriteria_keterangan, // Tambahkan keterangan
+        'subkriteria_keterangan' => $request->subkriteria_keterangan,
     ];
 
+    // Proses berdasarkan tipe subkriteria
     if ($request->tipe_subkriteria == 'teks') {
         // Validasi tambahan untuk subkriteria teks
         $validator = Validator::make($request->all(), [
-            'subkriteria_nama_teks' => 'required|string|max:255',
+            'subkriteria_nama_teks' => 'required|regex:/^[A-Za-z\s\-]+$/',
         ], [
             'subkriteria_nama_teks.required' => 'Nama subkriteria tidak boleh kosong',
+            'subkriteria_nama_teks.regex' => 'Nama subkriteria tidak valid',
             'subkriteria_nama_teks.max' => 'Nama subkriteria maksimal 255 karakter',
         ]);
 
@@ -82,7 +83,47 @@ public function store(Request $request)
         }
 
         $subkriteriaData['subkriteria_nama'] = $request->subkriteria_nama_teks;
-    } else {
+    } 
+    elseif ($request->tipe_subkriteria == 'angka') {
+        // Validasi tambahan untuk subkriteria angka
+        $validator = Validator::make($request->all(), [
+            'subkriteria_nilai_angka' => 'required|numeric',
+            'subkriteria_satuan' => 'nullable|string|max:20',
+        ], [
+            'subkriteria_nilai_angka.required' => 'Nilai angka tidak boleh kosong',
+            'subkriteria_nilai_angka.numeric' => 'Nilai harus berupa angka',
+            'subkriteria_satuan.max' => 'Satuan maksimal 20 karakter',
+        ]);
+        
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+        
+        // Format angka dan tambahkan satuan jika ada
+        $angka = $request->subkriteria_nilai_angka;
+// Cek apakah angka memiliki desimal yang signifikan
+if (floor($angka) == $angka) {
+    // Jika tidak ada desimal atau desimalnya 0, tampilkan sebagai integer
+    $formattedAngka = number_format($angka, 0, ',', '.');
+} else {
+    // Jika ada desimal, tampilkan dengan format desimal
+    $formattedAngka = number_format($angka, 2, ',', '.');
+    // Hapus trailing zeros
+    $formattedAngka = rtrim(rtrim($formattedAngka, '0'), ',');
+}
+$subkriteriaData['subkriteria_nama'] = $formattedAngka;
+        $subkriteriaData['subkriteria_nama'] = $formattedAngka;
+        
+        if (!empty($request->subkriteria_satuan)) {
+            $subkriteriaData['subkriteria_nama'] .= ' ' . $request->subkriteria_satuan;
+        }
+        
+        // Simpan nilai angka asli untuk keperluan komparasi
+        $subkriteriaData['nilai_minimum'] = $request->subkriteria_nilai_angka;
+    } 
+    else { // rentang nilai
         // Validasi tambahan untuk subkriteria numerik
         $validator = Validator::make($request->all(), [
             'operator' => 'required|in:<,<=,>,>=,between',
@@ -132,8 +173,8 @@ public function store(Request $request)
             $subkriteriaData['nilai_minimum'] = $request->nilai_minimum;
             $subkriteriaData['nilai_maksimum'] = $request->nilai_maksimum;
             $subkriteriaData['subkriteria_nama'] = number_format($request->nilai_minimum, 0, ',', '.') . 
-                                                  ' - ' . 
-                                                  number_format($request->nilai_maksimum, 0, ',', '.');
+                                                   ' - ' . 
+                                                   number_format($request->nilai_maksimum, 0, ',', '.');
         } elseif ($request->operator == '<' || $request->operator == '<=') {
             $subkriteriaData['nilai_maksimum'] = $request->nilai_maksimum;
             $subkriteriaData['subkriteria_nama'] = $request->operator . ' ' . number_format($request->nilai_maksimum, 0, ',', '.');
@@ -165,7 +206,6 @@ public function store(Request $request)
     
     if ($frameCount > 0) {
         Session::flash('update_needed', true);
-        Session::flash('update_message', "Subkriteria baru '{$subkriteria->subkriteria_nama}' telah ditambahkan untuk kriteria '{$kriteria->kriteria_nama}'. Frame yang menggunakan kriteria ini mungkin perlu diperbarui.");
     }
 
     // Catat aktivitas
@@ -194,9 +234,9 @@ public function store(Request $request)
     // Validasi dasar untuk semua tipe
     $validator = Validator::make($request->all(), [
         'kriteria_id' => 'required|exists:kriterias,kriteria_id',
-        'tipe_subkriteria' => 'required|in:teks,rentang nilai',
+        'tipe_subkriteria' => 'required|in:teks,angka,rentang nilai',
         'subkriteria_bobot' => 'required|integer|min:1|max:5',
-        'subkriteria_keterangan' => 'required|regex:/^[A-Za-z\s]+$/', // Validasi untuk keterangan
+        'subkriteria_keterangan' => 'required|regex:/^[A-Za-z\s\,\.\-]+$/',
     ], [
         'kriteria_id.required' => 'Kriteria harus dipilih',
         'kriteria_id.exists' => 'Kriteria yang dipilih tidak valid',
@@ -204,10 +244,9 @@ public function store(Request $request)
         'tipe_subkriteria.in' => 'Tipe subkriteria tidak valid',
         'subkriteria_bobot.required' => 'Bobot subkriteria tidak boleh kosong',
         'subkriteria_keterangan.required' => 'Keterangan bobot subkriteria tidak boleh kosong',
-        'subkriteria_keterangan.regex' => 'Keterangan bobot subkriteria hanya boleh berisi huruf dan spasi.',
+        'subkriteria_keterangan.regex' => 'Keterangan bobot subkriteria tidak valid.',
         'subkriteria_bobot.min' => 'Bobot subkriteria minimal 1',
         'subkriteria_bobot.max' => 'Bobot subkriteria maksimal 5',
-        'subkriteria_keterangan.max' => 'Keterangan maksimal 255 karakter',
     ]);
 
     if ($validator->fails()) {
@@ -216,60 +255,166 @@ public function store(Request $request)
             ->withInput();
     }
 
-    $data = $request->all();
+    $data = [
+        'kriteria_id' => $request->kriteria_id,
+        'tipe_subkriteria' => $request->tipe_subkriteria,
+        'subkriteria_bobot' => $request->subkriteria_bobot,
+        'subkriteria_keterangan' => $request->subkriteria_keterangan,
+    ];
     
     // Handle berdasarkan tipe subkriteria
     if ($request->tipe_subkriteria == 'teks') {
         // Validasi untuk teks
-        $validator = Validator::make($data, [
-            'subkriteria_nama' => 'required|string|max:255',
+        $validator = Validator::make($request->all(), [
+            'subkriteria_nama_teks' => 'required|regex:/^[A-Za-z\s\-]+$/',
         ], [
-            'subkriteria_nama.required' => 'Nama subkriteria tidak boleh kosong',
-            'subkriteria_nama.max' => 'Nama subkriteria maksimal 255 karakter',
+            'subkriteria_nama_teks.required' => 'Nama subkriteria tidak boleh kosong',
+            'subkriteria_nama_teks.regex' => 'Nama subkriteria tidak valid',
         ]);
 
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        $data['subkriteria_nama'] = $request->subkriteria_nama_teks;
+        
         // Reset field numerik
         $data['operator'] = null;
         $data['nilai_minimum'] = null;
         $data['nilai_maksimum'] = null;
-    } else {
-        // Validasi untuk rentang nilai
-        $validator = Validator::make($data, [
+    } 
+    elseif ($request->tipe_subkriteria == 'angka') {
+        // Validasi untuk angka
+        $validator = Validator::make($request->all(), [
+            'subkriteria_nilai_angka' => 'required|numeric',
+            'subkriteria_satuan' => 'nullable|string|max:20',
+        ], [
+            'subkriteria_nilai_angka.required' => 'Nilai angka tidak boleh kosong',
+            'subkriteria_nilai_angka.numeric' => 'Nilai harus berupa angka',
+            'subkriteria_satuan.max' => 'Satuan maksimal 20 karakter',
+        ]);
+        
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+        
+        // Reset field operator dan rentang nilai
+        $data['operator'] = null;
+        
+        // Format angka dan tambahkan satuan jika ada
+        $angka = $request->subkriteria_nilai_angka;
+        
+        // Cek apakah angka memiliki desimal yang signifikan
+        if (floor($angka) == $angka) {
+            // Jika tidak ada desimal atau desimalnya 0, tampilkan sebagai integer
+            $formattedAngka = number_format($angka, 0, ',', '.');
+        } else {
+            // Jika ada desimal, tampilkan dengan format desimal
+            $formattedAngka = number_format($angka, 2, ',', '.');
+            // Hapus trailing zeros
+            $formattedAngka = rtrim(rtrim($formattedAngka, '0'), ',');
+        }
+        
+        $data['subkriteria_nama'] = $formattedAngka;
+        
+        if (!empty($request->subkriteria_satuan)) {
+            $data['subkriteria_nama'] .= ' ' . $request->subkriteria_satuan;
+        }
+        
+        // Simpan nilai angka asli untuk keperluan komparasi
+        $data['nilai_minimum'] = $request->subkriteria_nilai_angka;
+        $data['nilai_maksimum'] = null;
+    }
+    else { // rentang nilai
+        // Validasi operator
+        $validator = Validator::make($request->all(), [
             'operator' => 'required|in:<,<=,>,>=,between',
-            'subkriteria_nama_numerik' => 'required',
         ], [
             'operator.required' => 'Operator perbandingan harus dipilih',
             'operator.in' => 'Operator perbandingan tidak valid',
-            'subkriteria_nama_numerik.required' => 'Rentang nilai tidak valid',
         ]);
 
-        // Handle validasi numerik berdasarkan operator
-        if ($data['operator'] == 'between') {
-            $validator->addRules([
-                'nilai_minimum' => 'required|numeric',
-                'nilai_maksimum' => 'required|numeric|gt:nilai_minimum',
-            ]);
-        } elseif ($data['operator'] == '<' || $data['operator'] == '<=') {
-            $validator->addRules([
-                'nilai_maksimum' => 'required|numeric',
-            ]);
-        } else {
-            $validator->addRules([
-                'nilai_minimum' => 'required|numeric',
-            ]);
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
         }
 
-        // Update nama subkriteria dari preview
-        $data['subkriteria_nama'] = $data['subkriteria_nama_numerik'];
+        $data['operator'] = $request->operator;
+        
+        // Validasi dan set data berdasarkan operator
+        if ($request->operator == 'between') {
+            $validator = Validator::make($request->all(), [
+                'nilai_minimum' => 'required|numeric',
+                'nilai_maksimum' => 'required|numeric|gt:nilai_minimum',
+            ], [
+                'nilai_minimum.required' => 'Nilai minimum harus diisi',
+                'nilai_minimum.numeric' => 'Nilai minimum harus berupa angka',
+                'nilai_maksimum.required' => 'Nilai maksimum harus diisi',
+                'nilai_maksimum.numeric' => 'Nilai maksimum harus berupa angka',
+                'nilai_maksimum.gt' => 'Nilai maksimum harus lebih besar dari nilai minimum',
+            ]);
+            
+            if ($validator->fails()) {
+                return redirect()->back()
+                    ->withErrors($validator)
+                    ->withInput();
+            }
+            
+            $data['nilai_minimum'] = $request->nilai_minimum;
+            $data['nilai_maksimum'] = $request->nilai_maksimum;
+            $data['subkriteria_nama'] = number_format($request->nilai_minimum, 0, ',', '.') . 
+                                        ' - ' . 
+                                        number_format($request->nilai_maksimum, 0, ',', '.');
+        } 
+        elseif ($request->operator == '<' || $request->operator == '<=') {
+            $validator = Validator::make($request->all(), [
+                'nilai_maksimum' => 'required|numeric',
+            ], [
+                'nilai_maksimum.required' => 'Nilai maksimum harus diisi',
+                'nilai_maksimum.numeric' => 'Nilai maksimum harus berupa angka',
+            ]);
+            
+            if ($validator->fails()) {
+                return redirect()->back()
+                    ->withErrors($validator)
+                    ->withInput();
+            }
+            
+            $data['nilai_minimum'] = null;
+            $data['nilai_maksimum'] = $request->nilai_maksimum;
+            $data['subkriteria_nama'] = $request->operator . ' ' . number_format($request->nilai_maksimum, 0, ',', '.');
+        } 
+        else { // > atau >=
+            $validator = Validator::make($request->all(), [
+                'nilai_minimum' => 'required|numeric',
+            ], [
+                'nilai_minimum.required' => 'Nilai minimum harus diisi',
+                'nilai_minimum.numeric' => 'Nilai minimum harus berupa angka',
+            ]);
+            
+            if ($validator->fails()) {
+                return redirect()->back()
+                    ->withErrors($validator)
+                    ->withInput();
+            }
+            
+            $data['nilai_minimum'] = $request->nilai_minimum;
+            $data['nilai_maksimum'] = null;
+            $data['subkriteria_nama'] = $request->operator . ' ' . number_format($request->nilai_minimum, 0, ',', '.');
+        }
+        
+        // Jika ada input nama subkriteria numerik dari form, prioritaskan itu
+        if (isset($request->subkriteria_nama_numerik) && !empty($request->subkriteria_nama_numerik)) {
+            $data['subkriteria_nama'] = $request->subkriteria_nama_numerik;
+        }
     }
 
-    if ($validator->fails()) {
-        return redirect()->back()
-            ->withErrors($validator)
-            ->withInput();
-    }
-
-    // Cek duplikat
+    // Cek duplikat pada kriteria yang sama (kecuali subkriteria ini sendiri)
     $existingSubkriteria = Subkriteria::where('kriteria_id', $data['kriteria_id'])
         ->where('subkriteria_nama', $data['subkriteria_nama'])
         ->where('subkriteria_id', '!=', $subkriteria->subkriteria_id)
@@ -278,7 +423,7 @@ public function store(Request $request)
     if ($existingSubkriteria) {
         return redirect()->back()
             ->withInput()
-            ->withErrors(['subkriteria_nama' => 'Subkriteria dengan nama ini sudah ada']);
+            ->withErrors(['subkriteria_nama' => 'Subkriteria dengan nama "' . $data['subkriteria_nama'] . '" sudah ada untuk kriteria ini. Silakan gunakan nama yang berbeda.']);
     }
 
     $oldData = $subkriteria->toArray();
@@ -298,8 +443,18 @@ public function store(Request $request)
             'Mengubah subkriteria dari "' . $oldName . '" menjadi "' . $subkriteria->subkriteria_nama . '"'
         );
         
+        // Cek jika perlu update frame
+        $kriteria = Kriteria::find($request->kriteria_id);
+        $frameCount = FrameSubkriteria::where('kriteria_id', $kriteria->kriteria_id)
+            ->distinct('frame_id')
+            ->count('frame_id');
+        
+        if ($frameCount > 0) {
+            Session::flash('update_needed', true);
+        }
+        
         return redirect()->route('subkriteria.index')
-                ->with('success', 'Subkriteria berhasil diperbarui');
+                ->with('success', 'Subkriteria "' . $subkriteria->subkriteria_nama . '" berhasil diperbarui');
     } catch (\Exception $e) {
         return redirect()->back()
             ->with('error', 'Gagal memperbarui subkriteria: ' . $e->getMessage())

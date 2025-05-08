@@ -16,6 +16,7 @@ class FrameSubkriteria extends Model
         'frame_id',
         'kriteria_id',
         'subkriteria_id',
+        'manual_value'
     ];
 
     public function frame()

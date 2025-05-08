@@ -6,7 +6,7 @@
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
-                    <i class="fas fa-users me-2"></i>Daftar Karyawan
+                    <i class="fas fa-users me-2"></i>Daftar Akun Karyawan
                 </h4>
             </div>
 
@@ -21,7 +21,7 @@
             @endif
 
             <div class="card-body">
-            <a href="{{ route('employees.create') }}" class="btn btn-primary mb-3">Tambah Karyawan</a>
+            <a href="{{ route('employees.create') }}" class="btn btn-primary mb-3">Tambah Akun</a>
                 <div class="table-responsive">
                     <table class="table table-hover table-striped" id="employeesTable">
                         <thead class="table-light">

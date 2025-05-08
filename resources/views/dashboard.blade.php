@@ -28,7 +28,7 @@
                                             {{ \App\Models\Frame::count() }}
                                         </span>
                                     </div>
-                                    <h5 class="card-title mb-2">Frame Kacamata</h5>
+                                    <h5 class="card-title mb-2">Alternatif Frame Kacamata</h5>
                                     <p class="card-text text-muted mb-3">
                                         Kelola dan pantau data frame kacamata secara komprehensif.
                                     </p>
@@ -51,7 +51,7 @@
                                             {{ \App\Models\Kriteria::count() }}
                                         </span>
                                     </div>
-                                    <h5 class="card-title mb-2">Kriteria SPK</h5>
+                                    <h5 class="card-title mb-2">Kriteria</h5>
                                     <p class="card-text text-muted mb-3">
                                         Atur kriteria sistem pendukung keputusan untuk analisis mendalam.
                                     </p>
@@ -97,9 +97,9 @@
                                             {{ \App\Models\RecommendationHistory::count() }}
                                         </span>
                                     </div>
-                                    <h5 class="card-title mb-2">Riwayat Rekomendasi</h5>
+                                    <h5 class="card-title mb-2">Riwayat Penilaian</h5>
                                     <p class="card-text text-muted mb-3">
-                                        Telusuri dan analisis riwayat rekomendasi sebelumnya.
+                                        Telusuri dan analisis riwayat penilaian rekomendasi sebelumnya.
                                     </p>
                                     <a href="{{ route('rekomendasi.index') }}" class="btn btn-outline-info mt-auto">
                                         Lihat Riwayat <i class="fas fa-arrow-right ms-2"></i>
@@ -120,11 +120,65 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="row text-center">
+                                        <div class="col-md-12 mb-3">
+                                            <h6 class="text-primary">Menu Sistem</h6>
                                         </div>
                                         <div class="col-md-3 col-6 border-end">
-                                            <p class="text-muted mb-0">Bla bla bla</p>
+                                            <div class="feature-icon mb-2">
+                                                <i class="fas fa-chart-pie text-success"></i>
+                                            </div>
+                                            <h6>Menu Kriteria</h6>
+                                            <p class="text-muted mb-3">Mengelola data kriteria SPK termasuk nama, bobot, dan jenis kriteria. Memungkinkan penetapan parameter evaluasi untuk rekomendasi yang akurat.</p>
                                         </div>
-                                        
+                                        <div class="col-md-3 col-6 border-end">
+                                            <div class="feature-icon mb-2">
+                                                <i class="fas fa-layer-group text-warning"></i>
+                                            </div>
+                                            <h6>Menu Subkriteria</h6>
+                                            <p class="text-muted mb-3">Mengelola nilai dan parameter subkriteria dari setiap kriteria utama. Memungkinkan penentuan skala nilai yang lebih terperinci untuk proses evaluasi.</p>
+                                        </div>
+                                        <div class="col-md-3 col-6 border-end">
+                                            <div class="feature-icon mb-2">
+                                                <i class="fas fa-glasses text-primary"></i>
+                                            </div>
+                                            <h6>Menu Alternatif</h6>
+                                            <p class="text-muted mb-3">Mengelola data frame kacamata sebagai alternatif SPK. Termasuk fitur tambah, edit, hapus dan detail spesifikasi setiap frame.</p>
+                                        </div>
+                                        <div class="col-md-3 col-6">
+                                            <div class="feature-icon mb-2">
+                                                <i class="fas fa-calculator text-danger"></i>
+                                            </div>
+                                            <h6>Menu Penilaian</h6>
+                                            <p class="text-muted mb-3">Melakukan proses penilaian dengan metode Profile Matching SMART untuk mendapatkan rekomendasi frame terbaik sesuai kriteria yang ditentukan.</p>
+                                        </div>
+                                        <div class="col-md-3 col-6 border-end mt-4">
+                                            <div class="feature-icon mb-2">
+                                                <i class="fas fa-history text-info"></i>
+                                            </div>
+                                            <h6>Riwayat Penilaian</h6>
+                                            <p class="text-muted mb-3">Melihat dan mencetak laporan hasil penilaian SPK sebelumnya, memudahkan untuk melacak dan membandingkan rekomendasi yang telah diberikan.</p>
+                                        </div>
+                                        <div class="col-md-3 col-6 border-end mt-4">
+                                            <div class="feature-icon mb-2">
+                                                <i class="fas fa-users-cog text-secondary"></i>
+                                            </div>
+                                            <h6>Kelola Akun</h6>
+                                            <p class="text-muted mb-3">Khusus untuk owner. Mengelola akun karyawan termasuk menambah, mengedit, dan menonaktifkan akun pengguna sistem.</p>
+                                        </div>
+                                        <div class="col-md-3 col-6 border-end mt-4">
+                                            <div class="feature-icon mb-2">
+                                                <i class="fas fa-clipboard-list text-purple"></i>
+                                            </div>
+                                            <h6>Log Aktivitas</h6>
+                                            <p class="text-muted mb-3">Mencatat dan menampilkan aktivitas pengguna dalam sistem. Memudahkan pemantauan dan audit terhadap perubahan yang dilakukan.</p>
+                                        </div>
+                                        <div class="col-md-3 col-6 mt-4">
+                                            <div class="feature-icon mb-2">
+                                                <i class="fas fa-lightbulb text-warning"></i>
+                                            </div>
+                                            <h6>SPK Cerdas</h6>
+                                            <p class="text-muted mb-3">Sistem mengimplementasikan metode Profile Matching dan SMART untuk rekomendasi frame kacamata yang optimal dan sesuai kebutuhan pelanggan.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -148,6 +202,23 @@
             border-right: none !important;
             border-bottom: 1px solid #dee2e6 !important;
         }
+    }
+    .feature-icon {
+        font-size: 1.75rem;
+        height: 3rem;
+        width: 3rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+        border-radius: 50%;
+    }
+    h6 {
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+    .text-purple {
+        color: #6f42c1;
     }
 </style>
 @endpush

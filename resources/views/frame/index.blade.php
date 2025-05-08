@@ -1,4 +1,3 @@
-<!-- Tambahan pada file index.blade.php untuk pencarian gambar -->
 @extends('layouts.app')
 
 @section('content')
@@ -48,11 +47,9 @@
                     @if(auth()->user()->role !== 'owner')
                     <div>
                         <a href="{{ route('frame.create') }}" class="btn btn-primary me-2">Tambah Frame</a>
-                        <form action="{{ route('frame.reset-kriteria') }}" method="POST" class="d-inline">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger">Reset Kriteria Frame</button>
-                        </form>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetKriteriaModal">
+                            Reset Kriteria Frame
+                        </button>
                     </div>
                     @endif
                 </div>
@@ -73,7 +70,7 @@
                                 </form>
                             </div>
                             
-                            <!-- Di bagian pencarian gambar -->
+                            {{-- <!-- Di bagian pencarian gambar -->
                             <div class="col-md-6">
                                 <form action="{{ route('frame.searchByImage') }}" method="POST" enctype="multipart/form-data">
                                     @csrf
@@ -82,7 +79,7 @@
                                         <button class="btn btn-primary" type="submit">Cari dengan Gambar</button>
                                     </div>
                                 </form>
-                            </div> 
+                            </div>  --}}
                         </div>
                     </div>
                 </div>
@@ -107,10 +104,9 @@
                                         <th>No</th>
                                         <th>Foto</th>
                                         <th>Merek</th>
-                                        <th>Harga</th>
                                         <th>Lokasi</th>
                                         <th>Kriteria</th>
-                                        <th>Status Kriteria</th>
+                                        {{-- <th>Status Kriteria</th> --}}
                                         @if(auth()->user()->role !== 'owner')
                                         <th>Aksi</th>
                                         @endif
@@ -135,20 +131,19 @@
                                                 @endif
                                             </td>
                                             <td>{{ $frame->frame_merek }}</td>
-                                            <td>Rp {{ number_format($frame->frame_harga, 0, ',', '.') }}</td>
                                             <td>{{ $frame->frame_lokasi }}</td>
                                             <td>
                                                 <a href="{{ route('frame.show', $frame->frame_id) }}" class="btn btn-sm btn-info">
                                                     Lihat Detail
                                                 </a>
                                             </td>
-                                            <td>
+                                            {{-- <td>
                                                 @if($needsUpdate)
                                                     <span class="badge bg-warning">Perlu dilengkapi</span>
                                                 @else
                                                     <span class="badge bg-success">Lengkap</span>
                                                 @endif
-                                            </td>  
+                                            </td>   --}}
                                             @if(auth()->user()->role !== 'owner')                                                             
                                             <td>
                                                 <div class="btn-group" role="group">
@@ -220,4 +215,102 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="resetKriteriaModal" tabindex="-1" aria-labelledby="resetKriteriaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('frame.reset-kriteria') }}" method="POST">
+                @csrf
+                @method('DELETE')
+                
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title text-center w-100" id="resetKriteriaModalLabel">Reset Kriteria Frame</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <p class="text-danger">Perhatian! Tindakan ini akan menghapus kriteria yang dipilih untuk semua frame.</p>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="resetAll" name="reset_all" value="1">
+                        <label class="form-check-label fw-bold" for="resetAll">
+                            Reset Semua Kriteria
+                        </label>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="kriteria-list">
+                        @php
+                            $kriteriaWithFrames = \App\Models\FrameSubkriteria::select('kriteria_id')
+                                ->distinct()
+                                ->pluck('kriteria_id')
+                                ->toArray();
+                        @endphp
+                        
+                        @foreach(\App\Models\Kriteria::all() as $kriteria)
+                        <div class="form-check mb-2">
+                            <input class="form-check-input kriteria-checkbox" 
+                                   type="checkbox" 
+                                   name="kriteria_ids[]" 
+                                   value="{{ $kriteria->kriteria_id }}" 
+                                   id="kriteria{{ $kriteria->kriteria_id }}"
+                                   {{ in_array($kriteria->kriteria_id, $kriteriaWithFrames) ? '' : 'disabled' }}>
+                            <label class="form-check-label {{ !in_array($kriteria->kriteria_id, $kriteriaWithFrames) ? 'text-muted' : '' }}" 
+                                   for="kriteria{{ $kriteria->kriteria_id }}">
+                                {{ $kriteria->kriteria_nama }}
+                                @if(!in_array($kriteria->kriteria_id, $kriteriaWithFrames))
+                                    <small>(Sudah di reset dari frame)</small>
+                                @endif
+                            </label>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">Reset Kriteria</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get references to checkboxes
+        const resetAllCheckbox = document.getElementById('resetAll');
+        const kriteriaCheckboxes = document.querySelectorAll('.kriteria-checkbox');
+        
+        // Check if any criteria checkboxes are enabled
+        const hasEnabledKriteria = Array.from(kriteriaCheckboxes).some(checkbox => !checkbox.disabled);
+        
+        // Disable "Reset All" if no criteria are available
+        if (!hasEnabledKriteria) {
+            resetAllCheckbox.disabled = true;
+            resetAllCheckbox.nextElementSibling.classList.add('text-muted');
+            resetAllCheckbox.nextElementSibling.innerHTML += ' <small>(tidak ada data)</small>';
+        }
+        
+        // Toggle criteria checkboxes when "Reset All" is checked
+        resetAllCheckbox.addEventListener('change', function() {
+            kriteriaCheckboxes.forEach(function(checkbox) {
+                if (!checkbox.disabled) {
+                    checkbox.disabled = this.checked;
+                    checkbox.checked = false;
+                }
+            }, this);
+        });
+        
+        // Handle situation when individual criteria are selected
+        kriteriaCheckboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                if (this.checked && resetAllCheckbox.checked) {
+                    resetAllCheckbox.checked = false;
+                }
+            });
+        });
+    });
+</script>
 @endsection

@@ -4,13 +4,15 @@
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0">
-                <i class="fas fa-history me-2"></i>Riwayat Rekomendasi
+                <i class="fas fa-history me-2"></i>Riwayat Penilaian
             </h4>
+            @if(auth()->user()->role === 'owner')
             <div>
                 <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#printReportModal">
                     <i class="fas fa-print me-1"></i>Cetak Laporan
                 </button>
             </div>
+            @endif
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -71,10 +73,12 @@
                                        class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i> Detail
                                     </a>
+                                    @if(auth()->user()->role === 'karyawan')
                                     <a href="{{ route('rekomendasi.print', $history->recommendation_history_id) }}" 
                                         class="btn btn-sm btn-secondary print-btn">
                                          <i class="fas fa-print"></i> Cetak
                                      </a>
+                                     @endif
                                     @if(auth()->user()->role !== 'owner')
                                     <form action="{{ route('rekomendasi.destroy', $history->recommendation_history_id) }}" 
                                           method="POST" class="d-inline delete-form">

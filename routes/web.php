@@ -67,13 +67,14 @@ Route::middleware('auth')->group(function () {
         ->name('subkriteria.reset');
         
         // Frames - create, store, edit, update, destroy
+        // Frames - create, store, edit, update, destroy
         Route::get('frame/create', [FrameController::class, 'create'])->name('frame.create');
         Route::post('frame', [FrameController::class, 'store'])->name('frame.store');
         // Add these routes in your routes/web.php
-        Route::get('/frame/confirm-duplicate/{similar_frame_id}', [FrameController::class, 'confirmDuplicate'])
-        ->name('frame.confirm-duplicate');
-        Route::post('/frame/process-duplicate', [FrameController::class, 'processDuplicateConfirmation'])
-        ->name('frame.process-duplicate');
+        Route::get('frame/confirm-duplicate/{similar_frame_id}', [FrameController::class, 'confirmDuplicate'])
+    ->name('frame.confirm-duplicate');
+Route::post('frame/process-duplicate-confirmation', [FrameController::class, 'processDuplicateConfirmation'])
+    ->name('frame.process-duplicate-confirmation');
         Route::get('frame/{frame}/edit', [FrameController::class, 'edit'])->name('frame.edit');
         Route::put('frame/{frame}', [FrameController::class, 'update'])->name('frame.update');
         Route::get('/frame/{frame}/confirm-update-duplicate', [FrameController::class, 'confirmUpdateDuplicate'])
@@ -114,6 +115,9 @@ Route::post('/frame/{frame}/process-update-duplicate', [FrameController::class, 
         Route::get('employees/{employees}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
         Route::put('employees/{employees}', [EmployeeController::class, 'update'])->name('employees.update');
         Route::delete('employees/{employees}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+
+        Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
     });
 
     Route::middleware('role:owner,karyawan')->group(function () {

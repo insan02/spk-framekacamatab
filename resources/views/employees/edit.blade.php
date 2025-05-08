@@ -13,7 +13,7 @@
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
-                    <i class="fas fa-edit"></i> Edit Karyawan
+                    <i class="fas fa-edit"></i> Edit Akun Karyawan
                 </h4>
             </div>
 
@@ -52,7 +52,7 @@
 
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Perbarui Karyawan
+                            <i class="fas fa-save"></i> Perbarui Akun
                         </button>
                         <a href="{{ route('employees.index') }}" class="btn btn-secondary">Batal</a>
                     </div>

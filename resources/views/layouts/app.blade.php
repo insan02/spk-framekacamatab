@@ -45,7 +45,7 @@
                 <i class="fas fa-tasks"></i> <span>Subkriteria</span>
             </a>
             <a href="{{ route('frame.index') }}" class="{{ request()->routeIs('frame.*') ? 'active' : '' }}">
-                <i class="fas fa-glasses"></i> <span>Frame</span>
+                <i class="fas fa-glasses"></i> <span>Alternatif Frame</span>
             </a>
             
             @if(false)
@@ -57,19 +57,19 @@
             <a href="{{ route('penilaian.index') }}" class="{{ request()->routeIs('penilaian.*') || request()->routeIs('customers.*') ? 'active' : '' }}">
                 <i class="fas fa-clipboard-check"></i> <span>Penilaian</span>
             </a>
+        
+            <a href="{{ route('rekomendasi.index') }}" class="{{ request()->routeIs('rekomendasi.*') ? 'active' : '' }}">
+                <i class="fas fa-history"></i> <span>Riwayat Penilaian</span>
+            </a>
 
             @if(auth()->user()->role === 'owner')
             <a href="{{ route('employees.index') }}" class="{{ request()->routeIs('employees.*') ? 'active' : '' }}">
-                <i class="fas fa-user-tie"></i> <span>Karyawan</span>
+                <i class="fas fa-user-tie"></i> <span>Akun Karyawan</span>
             </a>
             @endif
-        
-            <a href="{{ route('rekomendasi.index') }}" class="{{ request()->routeIs('rekomendasi.*') ? 'active' : '' }}">
-                <i class="fas fa-history"></i> <span>Riwayat Rekomendasi</span>
-            </a>
 
             <a href="{{ route('logs.index') }}" class="{{ request()->routeIs('logs.*') ? 'active' : '' }}">
-                <i class="fas fa-clipboard-list"></i> <span>Log</span>
+                <i class="fas fa-clipboard-list"></i> <span>Log Aktivitas</span>
             </a>
         </div>
     </div>

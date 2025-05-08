@@ -27,55 +27,139 @@
                         <input type="hidden" name="kriteria_id" value="{{ $subkriteria->kriteria_id }}">
                     </div>
                     
-
                     <div class="form-group mb-3">
                         <label>Tipe Subkriteria</label>
                         <select name="tipe_subkriteria" class="form-control" id="tipe-subkriteria">
                             <option value="teks" {{ $subkriteria->tipe_subkriteria == 'teks' ? 'selected' : '' }}>Teks Biasa</option>
+                            <option value="angka" {{ $subkriteria->tipe_subkriteria == 'angka' ? 'selected' : '' }}>Angka</option>
                             <option value="rentang nilai" {{ $subkriteria->tipe_subkriteria == 'rentang nilai' ? 'selected' : '' }}>Rentang Nilai</option>
                         </select>
                     </div>
 
                     <!-- Form untuk subkriteria teks -->
-                    <div id="subkriteria-teks" {{ $subkriteria->tipe_subkriteria == 'rentang nilai' ? 'style=display:none;' : '' }}>
+                    <div id="subkriteria-teks" {{ $subkriteria->tipe_subkriteria != 'teks' ? 'style=display:none;' : '' }}>
                         <div class="form-group mb-3">
-                            <label for="subkriteria_nama">Nama Subkriteria</label>
-                            <input type="text" name="subkriteria_nama" id="subkriteria_nama" class="form-control" value="{{ old('subkriteria_nama', $subkriteria->subkriteria_nama) }}">
+                            <label for="subkriteria_nama_teks">Nama Subkriteria</label>
+                            <input type="text" name="subkriteria_nama_teks" id="subkriteria_nama_teks" 
+                                class="form-control" value="{{ old('subkriteria_nama_teks', $subkriteria->tipe_subkriteria == 'teks' ? $subkriteria->subkriteria_nama : '') }}">
+                            @if($errors->has('subkriteria_nama_teks'))
+                                <div class="text-danger">{{ $errors->first('subkriteria_nama_teks') }}</div>
+                            @endif
+                            @if($errors->has('subkriteria_nama'))
+                                <div class="text-danger">{{ $errors->first('subkriteria_nama') }}</div>
+                            @endif
+                        </div>
+                    </div>
+                    
+                    <!-- Form untuk subkriteria angka -->
+                    <div id="subkriteria-angka" {{ $subkriteria->tipe_subkriteria != 'angka' ? 'style=display:none;' : '' }}>
+                        <div class="row">
+                            <div class="col-md-6 form-group mb-3">
+                                <label for="subkriteria_nilai_angka">Nilai Angka</label>
+                                @php
+                                    $nilai_angka = old('subkriteria_nilai_angka');
+                                    if (!$nilai_angka && $subkriteria->tipe_subkriteria == 'angka') {
+                                        $nilai_angka = $subkriteria->nilai_minimum;
+                                    }
+                                @endphp
+                                <input type="number" name="subkriteria_nilai_angka" id="subkriteria_nilai_angka" class="form-control" 
+                                value="{{ $nilai_angka }}" step="any">
+                                @if($errors->has('subkriteria_nilai_angka'))
+                                    <div class="text-danger">{{ $errors->first('subkriteria_nilai_angka') }}</div>
+                                @endif
+                            </div>
+                            <div class="col-md-6 form-group mb-3">
+                                <label for="subkriteria_satuan">Satuan (Opsional)</label>
+                                @php
+                                    $satuan = old('subkriteria_satuan');
+                                    if (!$satuan && $subkriteria->tipe_subkriteria == 'angka') {
+                                        $nama_parts = explode(' ', $subkriteria->subkriteria_nama);
+                                        if (count($nama_parts) > 1) {
+                                            array_shift($nama_parts); // Remove first element (the number)
+                                            $satuan = implode(' ', $nama_parts);
+                                        }
+                                    }
+                                @endphp
+                                <input type="text" name="subkriteria_satuan" id="subkriteria_satuan" class="form-control" 
+                                value="{{ $satuan }}" placeholder="contoh: kg, cm, tahun">
+                                @if($errors->has('subkriteria_satuan'))
+                                    <div class="text-danger">{{ $errors->first('subkriteria_satuan') }}</div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label>Preview</label>
+                            <input type="text" id="preview-subkriteria-angka" class="form-control" readonly>
                             @if($errors->has('subkriteria_nama'))
                                 <div class="text-danger">{{ $errors->first('subkriteria_nama') }}</div>
                             @endif
                         </div>
                     </div>
 
-                    <!-- Form untuk subkriteria numerik -->
-                    <div id="subkriteria-numerik" {{ $subkriteria->tipe_subkriteria == 'teks' ? 'style=display:none;' : '' }}>
+                    <!-- Form untuk subkriteria numerik (rentang nilai) -->
+                    <div id="subkriteria-numerik" {{ $subkriteria->tipe_subkriteria != 'rentang nilai' ? 'style=display:none;' : '' }}>
                         <div class="form-group mb-3">
                             <label>Operator</label>
+                            @php
+                                $operator = old('operator', $subkriteria->operator);
+                                // Detect operator from name if not set
+                                if (!$operator && $subkriteria->tipe_subkriteria == 'rentang nilai') {
+                                    if (strpos($subkriteria->subkriteria_nama, ' - ') !== false) {
+                                        $operator = 'between';
+                                    } elseif (strpos($subkriteria->subkriteria_nama, '<=') === 0) {
+                                        $operator = '<=';
+                                    } elseif (strpos($subkriteria->subkriteria_nama, '<') === 0) {
+                                        $operator = '<';
+                                    } elseif (strpos($subkriteria->subkriteria_nama, '>=') === 0) {
+                                        $operator = '>=';
+                                    } elseif (strpos($subkriteria->subkriteria_nama, '>') === 0) {
+                                        $operator = '>';
+                                    }
+                                }
+                            @endphp
                             <select name="operator" class="form-control" id="operator">
-                                <option value="<" {{ strpos($subkriteria->subkriteria_nama, '<') === 0 && strpos($subkriteria->subkriteria_nama, '<=') === false ? 'selected' : '' }}>Kurang dari (<)</option>
-                                <option value="<=" {{ strpos($subkriteria->subkriteria_nama, '<=') === 0 ? 'selected' : '' }}>Kurang dari sama dengan (<=)</option>
-                                <option value=">" {{ strpos($subkriteria->subkriteria_nama, '>') === 0 && strpos($subkriteria->subkriteria_nama, '>=') === false ? 'selected' : '' }}>Lebih dari (>)</option>
-                                <option value=">=" {{ strpos($subkriteria->subkriteria_nama, '>=') === 0 ? 'selected' : '' }}>Lebih dari sama dengan (>=)</option>
-                                <option value="between" {{ strpos($subkriteria->subkriteria_nama, ' - ') !== false ? 'selected' : '' }}>Antara</option>
+                                <option value="<" {{ $operator == '<' ? 'selected' : '' }}>Kurang dari (<)</option>
+                                <option value="<=" {{ $operator == '<=' ? 'selected' : '' }}>Kurang dari sama dengan (<=)</option>
+                                <option value=">" {{ $operator == '>' ? 'selected' : '' }}>Lebih dari (>)</option>
+                                <option value=">=" {{ $operator == '>=' ? 'selected' : '' }}>Lebih dari sama dengan (>=)</option>
+                                <option value="between" {{ $operator == 'between' ? 'selected' : '' }}>Antara</option>
                             </select>
+                            @if($errors->has('operator'))
+                                <div class="text-danger">{{ $errors->first('operator') }}</div>
+                            @endif
                         </div>
                         
                         <div class="row">
                             <div class="col-md-6 form-group mb-3" id="nilai-minimum-container">
                                 <label>Nilai Minimum</label>
-                                <input type="number" name="nilai_minimum" class="form-control nilai-numerik" value="{{ old('nilai_minimum', isset($subkriteria->nilai_minimum) ? intval($subkriteria->nilai_minimum) : '') }}">
+                                @php
+                                    $nilai_minimum = old('nilai_minimum', $subkriteria->nilai_minimum);
+                                @endphp
+                                <input type="number" name="nilai_minimum" class="form-control nilai-numerik" value="{{ $nilai_minimum }}">
+                                @if($errors->has('nilai_minimum'))
+                                    <div class="text-danger">{{ $errors->first('nilai_minimum') }}</div>
+                                @endif
                             </div>
                             
                             <div class="col-md-6 form-group mb-3" id="nilai-maksimum-container">
                                 <label>Nilai Maksimum</label>
-                                <input type="number" name="nilai_maksimum" class="form-control nilai-numerik" value="{{ old('nilai_maksimum', isset($subkriteria->nilai_maksimum) ? intval($subkriteria->nilai_maksimum) : '') }}">
+                                @php
+                                    $nilai_maksimum = old('nilai_maksimum', $subkriteria->nilai_maksimum);
+                                @endphp
+                                <input type="number" name="nilai_maksimum" class="form-control nilai-numerik" value="{{ $nilai_maksimum }}">
+                                @if($errors->has('nilai_maksimum'))
+                                    <div class="text-danger">{{ $errors->first('nilai_maksimum') }}</div>
+                                @endif
                             </div>
                         </div>
                         
                         <div class="form-group mb-3">
-                            <label>Preview Nama Subkriteria</label>
-                            <input type="text" id="preview-subkriteria" class="form-control" readonly value="{{ $subkriteria->subkriteria_nama }}">
-                            <input type="hidden" name="subkriteria_nama_numerik" id="subkriteria_nama_numerik" value="{{ $subkriteria->subkriteria_nama }}">
+                            <label>Preview</label>
+                            <input type="text" id="preview-subkriteria" class="form-control" readonly>
+                            <input type="hidden" name="subkriteria_nama_numerik" id="subkriteria_nama_numerik">
+                            @if($errors->has('subkriteria_nama'))
+                                <div class="text-danger">{{ $errors->first('subkriteria_nama') }}</div>
+                            @endif
                         </div>
                     </div>
 
@@ -87,13 +171,11 @@
                         @endif
                     </div>
 
-                    <!-- Tambahan field untuk keterangan -->
                     <div class="form-group mb-3">
                         <label for="subkriteria_keterangan">Keterangan Bobot</label>
                         <textarea name="subkriteria_keterangan" id="subkriteria_keterangan"
-    class="form-control @error('subkriteria_keterangan') is-invalid @enderror"
-    rows="3"
-    pattern="[A-Za-z\s]+" title="Hanya huruf dan spasi yang diperbolehkan" required>{{ old('subkriteria_keterangan', $subkriteria->subkriteria_keterangan) }}</textarea>
+                            class="form-control @error('subkriteria_keterangan') is-invalid @enderror"
+                            rows="3" required>{{ old('subkriteria_keterangan', $subkriteria->subkriteria_keterangan) }}</textarea>
                         @if($errors->has('subkriteria_keterangan'))
                             <div class="text-danger">{{ $errors->first('subkriteria_keterangan') }}</div>
                         @endif
@@ -113,10 +195,17 @@
         $('#tipe-subkriteria').change(function() {
             if ($(this).val() === 'rentang nilai') {
                 $('#subkriteria-teks').hide();
+                $('#subkriteria-angka').hide();
                 $('#subkriteria-numerik').show();
                 handleOperatorChange(); // Panggil fungsi untuk mengatur tampilan awal
+            } else if ($(this).val() === 'angka') {
+                $('#subkriteria-teks').hide();
+                $('#subkriteria-angka').show();
+                $('#subkriteria-numerik').hide();
+                updateAngkaPreview();
             } else {
                 $('#subkriteria-teks').show();
+                $('#subkriteria-angka').hide();
                 $('#subkriteria-numerik').hide();
             }
         });
@@ -131,12 +220,24 @@
             updatePreview();
         });
         
+        // Update preview angka
+        $('#subkriteria_nilai_angka, #subkriteria_satuan').on('input', function() {
+            updateAngkaPreview();
+        });
+        
         // Form submit handler
-        $('form').submit(function() {
+        $('#form-edit').submit(function(e) {
+            // Always set the hidden field for 'rentang nilai' type
             if ($('#tipe-subkriteria').val() === 'rentang nilai') {
-                // Set nilai subkriteria_nama dari preview
-                $('input[name="subkriteria_nama"]').val($('#preview-subkriteria').val());
+                $('#subkriteria_nama_numerik').val($('#preview-subkriteria').val());
+                console.log('Submitting with rentang nilai:', $('#preview-subkriteria').val());
             }
+            
+            // Logs for debugging
+            console.log('Form submitted with type:', $('#tipe-subkriteria').val());
+            
+            // Allow the form to submit
+            return true;
         });
         
         // Fungsi untuk mengubah tampilan berdasarkan operator
@@ -156,7 +257,7 @@
             updatePreview();
         }
         
-        // Fungsi untuk memperbarui preview
+        // Fungsi untuk memperbarui preview rentang nilai
         function updatePreview() {
             let operator = $('#operator').val();
             let min = $('input[name="nilai_minimum"]').val();
@@ -175,14 +276,32 @@
             $('#subkriteria_nama_numerik').val(preview);
         }
         
+        // Fungsi untuk memperbarui preview nilai angka
+        function updateAngkaPreview() {
+            let angka = $('#subkriteria_nilai_angka').val();
+            let satuan = $('#subkriteria_satuan').val();
+            let preview = '';
+            
+            if (angka) {
+                preview = formatNumber(angka);
+                if (satuan) {
+                    preview += ' ' + satuan;
+                }
+            }
+            
+            $('#preview-subkriteria-angka').val(preview);
+        }
+        
         // Fungsi untuk memformat angka
         function formatNumber(num) {
             if (!num) return '';
             return new Intl.NumberFormat('id-ID').format(num);
         }
         
-        // Inisialisasi tampilan berdasarkan nilai yang dipilih
+        // Inisialisasi tampilan pada saat halaman dimuat
         handleOperatorChange();
+        updateAngkaPreview();
+        updatePreview();
     });
 </script>
 @endpush

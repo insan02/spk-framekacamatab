@@ -1,3 +1,4 @@
+// Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Element references
     const bobotInputs = document.querySelectorAll('.bobot-kriteria');
@@ -6,38 +7,117 @@ document.addEventListener('DOMContentLoaded', function() {
     const hasilPenilaianContent = document.getElementById('hasilPenilaianContent');
     const editPenilaianBtn = document.getElementById('editPenilaianBtn');
     const batalEditBtn = document.getElementById('batalEditBtn');
-    const simpanPenilaianBtn = document.getElementById('simpanPenilaianBtn');
+    const simpanPenilaianBtn = document.getElementById('saveRecommendationBtn'); // FIXED: Correct button ID reference
     const penilaianForm = document.getElementById('penilaianForm');
     const bobotWarning = document.getElementById('bobot-warning');
     const searchCustomerInput = document.getElementById('searchCustomer');
     const searchCustomerBtn = document.getElementById('searchCustomerBtn');
     const noResults = document.getElementById('noResults');
     const selectedCustomerCard = document.getElementById('selectedCustomerCard');
-    const changeCustomerBtn = document.getElementById('changeCustomerBtn');
     const penilaianCard = document.getElementById('penilaianCard');
     const noPelangganAlert = document.getElementById('noPelangganAlert');
     const penilaianInputs = document.querySelectorAll('.penilaian-input');
     const customerTableBody = document.getElementById('customerTableBody');
-    const customerSearchSection = document.querySelector('.card.shadow-sm.mb-4');
+    const customerSelectionCard = document.getElementById('customerSelectionCard');
+    const hasilPenilaianCard = document.getElementById('hasilPenilaianCard');
+    const progressBar = document.getElementById('wizard-progress-bar');
+    const wizardSteps = document.querySelectorAll('.wizard-step');
     const hasIncompleteFrames = document.getElementById('submit-btn') && document.getElementById('submit-btn').hasAttribute('data-incomplete');
+    
+    // Debug elements to console
+    console.log('Debug simpanPenilaianBtn element:', simpanPenilaianBtn);
+    console.log('Debug saveRecommendationBtn element:', document.getElementById('saveRecommendationBtn'));
+    
+    const prevToCustomerFromFormBtn = document.getElementById('prevToCustomerFromFormBtn');
+    const backToFormFromResultBtn = document.getElementById('backToFormFromResultBtn');
+    const editFromResultBtn = document.getElementById('editFromResultBtn');
+    const saveRecommendationBtn = document.getElementById('saveRecommendationBtn');
 
     // Initialize DataTable
-    $('#customerTable').DataTable({
-        "pageLength": 20,
-        "lengthChange": false,
-        "searching": false,
-        "order": [[0, 'dsc']],
-        "language": {
-            "search": "Cari:",
-            "paginate": {
-                "next": "Selanjutnya",
-                "previous": "Sebelumnya"
-            },
-            "info": "Total Data: _TOTAL_",
-            "infoEmpty": "Total Data: 0",
-            "zeroRecords": "Tidak ditemukan data yang cocok"
+    if ($.fn.DataTable && $('#customerTable').length) {
+        $('#customerTable').DataTable({
+            "pageLength": 20,
+            "lengthChange": false,
+            "searching": false,
+            "order": [[0, 'dsc']],
+            "language": {
+                "search": "Cari:",
+                "paginate": {
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                },
+                "info": "Total Data: _TOTAL_",
+                "infoEmpty": "Total Data: 0",
+                "zeroRecords": "Tidak ditemukan data yang cocok"
+            }
+        });
+    }
+
+    // Show success message if exists
+    const successMessage = document.querySelector('[data-success-message]');
+    if (successMessage) {
+        const message = successMessage.getAttribute('data-success-message');
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: message,
+            timer: 2000
+        });
+    }
+
+    // Function to update wizard step UI
+    function updateWizardStep(stepNumber) {
+        // Update progress bar
+        const progress = (stepNumber / wizardSteps.length) * 100;
+        progressBar.style.width = progress + '%';
+        progressBar.setAttribute('aria-valuenow', progress);
+        
+        // Update step icons
+        wizardSteps.forEach((step, index) => {
+            if (index < stepNumber) {
+                step.classList.add('completed');
+                step.classList.add('active');
+            } else if (index === stepNumber - 1) {
+                step.classList.add('active');
+                step.classList.remove('completed');
+            } else {
+                step.classList.remove('active');
+                step.classList.remove('completed');
+            }
+        });
+    }
+
+    // Function to show specific wizard step
+    function showWizardStep(stepNumber) {
+        // Hide all cards
+        customerSelectionCard.style.display = 'none';
+        selectedCustomerCard.style.display = 'none';
+        penilaianCard.style.display = 'none';
+        hasilPenilaianCard.style.display = 'none';
+        
+        // Show specific card based on step
+        switch(stepNumber) {
+            case 1:
+                customerSelectionCard.style.display = 'block';
+                break;
+            case 2:
+                selectedCustomerCard.style.display = 'block';
+                penilaianCard.style.display = 'block';
+                break;
+            case 3:
+                selectedCustomerCard.style.display = 'block';
+                hasilPenilaianCard.style.display = 'block';
+                break;
+            case 4:
+                selectedCustomerCard.style.display = 'block';
+                hasilPenilaianCard.style.display = 'block';
+                // Additional settings for recommendation step could be added here
+                break;
         }
-    });
+        
+        // Update wizard UI
+        updateWizardStep(stepNumber);
+    }
 
     // Function to validate bobot inputs
     function validateBobotInputs() {
@@ -75,8 +155,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!document.getElementById('loading-overlay')) {
             const loadingOverlay = document.createElement('div');
             loadingOverlay.id = 'loading-overlay';
+            loadingOverlay.style.display = 'none';
+            loadingOverlay.style.position = 'fixed';
+            loadingOverlay.style.top = '0';
+            loadingOverlay.style.left = '0';
+            loadingOverlay.style.width = '100%';
+            loadingOverlay.style.height = '100%';
+            loadingOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            loadingOverlay.style.zIndex = '9999';
+            loadingOverlay.style.display = 'flex';
+            loadingOverlay.style.justifyContent = 'center';
+            loadingOverlay.style.alignItems = 'center';
+            loadingOverlay.style.flexDirection = 'column';
+            loadingOverlay.style.color = 'white';
+            
             loadingOverlay.innerHTML = `
-                <div class="spinner-border text-primary" role="status">
+                <div class="spinner-border text-light" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
                 <p class="mt-2">Memproses penilaian...</p>
@@ -110,7 +204,8 @@ document.addEventListener('DOMContentLoaded', function() {
             body: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             }
         })
         .then(response => {
@@ -130,8 +225,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.html) {
                 // Display results
                 hasilPenilaianContent.innerHTML = data.html;
-                hasilPenilaianSection.style.display = 'block';
+                
+                // Show hasil penilaian section
+                showWizardStep(3);
+                
+                // Hide form and show result
                 penilaianForm.style.display = 'none';
+                hasilPenilaianSection.style.display = 'block';
                 
                 // Show edit and save buttons
                 editPenilaianBtn.style.display = 'inline-block';
@@ -140,11 +240,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Hide batal edit button if in edit mode
                 batalEditBtn.style.display = 'none';
                 submitBtn.style.display = 'inline-block';
-                
-                // MAKE SURE CUSTOMER SEARCH SECTION STAYS HIDDEN - FIX FOR ISSUE #2
-                if (customerSearchSection) {
-                    customerSearchSection.style.display = 'none';
-                }
                 
                 // Initialize DataTables for results if jQuery and DataTables are loaded
                 if (typeof $ !== 'undefined' && $.fn.DataTable) {
@@ -168,166 +263,246 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Initialize DataTables function
-    function initializeDataTables() {
-        $('#hasilPerangkinganTable, #nilaiProfileFrameTable, #perhitunganGapTable, #konversiNilaiGapTable, #nilaiAkhirSMARTTable').DataTable({
-            "pageLength": 10,
-            "lengthChange": false,
-            "language": {
-                "search": "Cari:",
-                "paginate": {
-                    "next": "Selanjutnya",
-                    "previous": "Sebelumnya"
-                },
-                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
-                "infoEmpty": "Tidak ada data yang ditampilkan",
-                "zeroRecords": "Tidak ditemukan data yang cocok"
-            }
-        });
+function initializeDataTables() {
+    $('#hasilPerangkinganTable').DataTable({
+        "pageLength": 10,
+        "lengthChange": false,
+        "language": {
+            "search": "Cari:",
+            "paginate": {
+                "next": "Selanjutnya",
+                "previous": "Sebelumnya"
+            },
+            "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+            "infoEmpty": "Tidak ada data yang ditampilkan",
+            "zeroRecords": "Tidak ditemukan data yang cocok"
+        }
+    });
+    
+    // Untuk tabel 1-4, tetap gunakan pengurutan tapi atur kolom pertama sebagai urutan default
+    $('#nilaiProfileFrameTable, #perhitunganGapTable, #konversiNilaiGapTable, #nilaiAkhirSMARTTable').DataTable({
+        "pageLength": 10,
+        "lengthChange": false,
+        "order": [], // Kosongkan order default agar data tetap dalam urutan original dari database
+        "columnDefs": [
+            { "orderable": false, "targets": "_all" } // Nonaktifkan kemampuan pengurutan untuk semua kolom
+        ],
+        "language": {
+            "search": "Cari:",
+            "paginate": {
+                "next": "Selanjutnya",
+                "previous": "Sebelumnya"
+            },
+            "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+            "infoEmpty": "Tidak ada data yang ditampilkan",
+            "zeroRecords": "Tidak ditemukan data yang cocok"
+        }
+    });
 
-        // Modal image lightbox functionality
-        $('.img-fluid, .img-thumbnail').on('click', function() {
-            const src = $(this).attr('src');
-            const alt = $(this).attr('alt');
-            
-            const lightboxHtml = `
-                <div class="modal fade" id="imageLightbox" tabindex="-1">
-                    <div class="modal-dialog modal-xl">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">${alt}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body text-center">
-                                <img src="${src}" class="img-fluid" alt="${alt}">
-                            </div>
+    // Modal image lightbox functionality
+    $('.img-fluid, .img-thumbnail').on('click', function() {
+        const src = $(this).attr('src');
+        const alt = $(this).attr('alt');
+        
+        const lightboxHtml = `
+            <div class="modal fade" id="imageLightbox" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">${alt}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img src="${src}" class="img-fluid" alt="${alt}">
                         </div>
                     </div>
                 </div>
-            `;
+            </div>
+        `;
+        
+        $('body').append(lightboxHtml);
+        $('#imageLightbox').modal('show');
+        
+        $('#imageLightbox').on('hidden.bs.modal', function () {
+            $(this).remove();
+        });
+    });
+}
+
+// Initialize DataTables when document is ready
+$(document).ready(function() {
+    initializeDataTables();
+});
+
+    // Handle form submission via AJAX
+    if (penilaianForm) {
+        penilaianForm.addEventListener('submit', function(e) {
+            e.preventDefault();
             
-            $('body').append(lightboxHtml);
-            $('#imageLightbox').modal('show');
+            // Check if in edit mode
+            const isEditMode = batalEditBtn.style.display !== 'none';
             
-            $('#imageLightbox').on('hidden.bs.modal', function () {
-                $(this).remove();
-            });
+            // If in edit mode, show SweetAlert confirmation
+            if (isEditMode) {
+                Swal.fire({
+                    title: 'Konfirmasi Edit',
+                    text: 'Apakah Anda yakin ingin mengedit data penilaian?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Ya, Edit',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        processPenilaian();
+                    }
+                });
+                return;
+            }
+            
+            // If not in edit mode, directly process
+            processPenilaian();
         });
     }
 
-    // Handle form submission via AJAX
-    penilaianForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // Check if in edit mode
-        const isEditMode = batalEditBtn.style.display !== 'none';
-        
-        // If in edit mode, show SweetAlert confirmation
-        if (isEditMode) {
-            Swal.fire({
-                title: 'Konfirmasi Edit',
-                text: 'Apakah Anda yakin ingin mengedit data penilaian?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Edit',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    processPenilaian();
-                }
-            });
-            return;
-        }
-        
-        // If not in edit mode, directly process
-        processPenilaian();
-    });
-
     // Edit Penilaian button event listener
-    editPenilaianBtn.addEventListener('click', function() {
-        penilaianForm.style.display = 'block';
-        hasilPenilaianSection.style.display = 'none';
-        
-        // KEEP CUSTOMER SEARCH SECTION HIDDEN
-        if (customerSearchSection) {
-            customerSearchSection.style.display = 'none';
-        }
-        
-        // Show Batal Edit and Proses Penilaian buttons, hide other buttons
-        batalEditBtn.style.display = 'inline-block';
-        submitBtn.style.display = 'inline-block';
-        editPenilaianBtn.style.display = 'none';
-        simpanPenilaianBtn.style.display = 'none';
-    });
+    if (editPenilaianBtn) {
+        editPenilaianBtn.addEventListener('click', function() {
+            showWizardStep(2);
+            hasilPenilaianSection.style.display = 'none';
+            penilaianForm.style.display = 'block';
+            
+            // Show Batal Edit and Proses Penilaian buttons, hide other buttons
+            batalEditBtn.style.display = 'inline-block';
+            submitBtn.style.display = 'inline-block';
+            editPenilaianBtn.style.display = 'none';
+            simpanPenilaianBtn.style.display = 'none';
+        });
+    }
 
     // Batal Edit button event listener
-    batalEditBtn.addEventListener('click', function() {
-        // Directly revert to results view without SweetAlert
-        penilaianForm.style.display = 'none';
-        hasilPenilaianSection.style.display = 'block';
-        
-        // Restore original buttons
-        batalEditBtn.style.display = 'none';
-        submitBtn.style.display = 'none';
-        editPenilaianBtn.style.display = 'inline-block';
-        simpanPenilaianBtn.style.display = 'inline-block';
-    });
-
-    // Simpan Penilaian button event listener
-    simpanPenilaianBtn.addEventListener('click', function() {
-        // Show loading spinner
-        showLoading();
-        
-        // Send request to save recommendation
-        fetch('/penilaian/store', {
-            method: 'POST',
-            body: new FormData(penilaianForm),
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Hide loading spinner
-            hideLoading();
+    if (batalEditBtn) {
+        batalEditBtn.addEventListener('click', function() {
+            // Directly revert to results view without SweetAlert
+            showWizardStep(3);
+            penilaianForm.style.display = 'none';
+            hasilPenilaianSection.style.display = 'block';
             
-            // Check if there's an error
-            if (data.error) {
-                throw new Error(data.error);
-            }
-
-            // Redirect to recommendation details
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil',
-                text: 'Rekomendasi berhasil disimpan',
-                showConfirmButton: false,
-                timer: 1500
-            }).then(() => {
-                // Use redirect_url if available, otherwise fallback
-                if (data.redirect_url) {
-                    window.location.href = data.redirect_url;
-                } else if (data.recommendation_history_id) {
-                    window.location.href = '/rekomendasi/' + data.recommendation_history_id;
-                } else {
-                    // Fallback redirect
-                    window.location.href = '/rekomendasi';
-                }
-            });
-        })
-        .catch(error => {
-            // Hide loading spinner
-            hideLoading();
-            
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Kesalahan',
-                text: error.message || 'Terjadi kesalahan saat menyimpan rekomendasi'
-            });
+            // Restore original buttons
+            batalEditBtn.style.display = 'none';
+            submitBtn.style.display = 'none';
+            editPenilaianBtn.style.display = 'inline-block';
+            simpanPenilaianBtn.style.display = 'inline-block';
         });
+    }
+
+    // MAIN FIX: Use a direct event handler for the Save Recommendation button
+    // This addresses both event listener reference issues and timing issues
+    document.addEventListener('click', function(event) {
+        // Check if the clicked element is the save recommendation button
+        if (event.target && (event.target.id === 'saveRecommendationBtn' || 
+                             (event.target.closest('#saveRecommendationBtn')))) {
+            console.log('Save recommendation button clicked!');
+            
+            // Show loading spinner
+            showLoading();
+            
+            // Update wizard to step 4 (recommendation)
+            updateWizardStep(4);
+            
+            // Get the form
+            const form = document.getElementById('penilaianForm');
+            if (!form) {
+                console.error('Form not found!');
+                hideLoading();
+                return;
+            }
+            
+            // Create form data directly
+            const formData = new FormData(form);
+            
+            // Log form data for debugging
+            console.log('Form elements:', form.elements);
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+            
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]');
+            if (!csrfToken) {
+                console.error('CSRF token not found!');
+                hideLoading();
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Kesalahan',
+                    text: 'CSRF token tidak ditemukan'
+                });
+                return;
+            }
+            
+            // Send request to save recommendation with improved error handling
+            fetch('/penilaian/store', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken.getAttribute('content')
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.error || `HTTP error: ${response.status}`);
+                    }).catch(err => {
+                        // If JSON parsing fails, throw with status code
+                        throw new Error(`HTTP error: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Hide loading spinner
+                hideLoading();
+                
+                // Check if there's an error
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Success message and redirect
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: 'Rekomendasi berhasil disimpan',
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(() => {
+                    // Use redirect_url if available, otherwise fallback
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    } else if (data.recommendation_history_id) {
+                        window.location.href = '/rekomendasi/' + data.recommendation_history_id;
+                    } else {
+                        window.location.href = '/rekomendasi';
+                    }
+                });
+            })
+            .catch(error => {
+                // Hide loading spinner
+                hideLoading();
+                
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Kesalahan',
+                    text: error.message || 'Terjadi kesalahan saat menyimpan rekomendasi'
+                });
+            });
+        }
     });
 
     // Handle search customer
@@ -352,10 +527,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Change selected customer
-    if (changeCustomerBtn) {
-        changeCustomerBtn.addEventListener('click', function() {
+
+    
+    // Back to Customer Selection from Form
+    if (prevToCustomerFromFormBtn) {
+        prevToCustomerFromFormBtn.addEventListener('click', function() {
+            showWizardStep(1);
             resetCustomerSelection();
+        });
+    }
+    
+    
+    // Edit from Result Button
+    if (editFromResultBtn) {
+        editFromResultBtn.addEventListener('click', function() {
+            showWizardStep(2);
+            penilaianForm.style.display = 'block';
+            hasilPenilaianSection.style.display = 'none';
+            
+            // Show Batal Edit and Proses Penilaian buttons, hide other buttons
+            if (batalEditBtn) batalEditBtn.style.display = 'inline-block';
+            if (submitBtn) submitBtn.style.display = 'inline-block';
+            if (editPenilaianBtn) editPenilaianBtn.style.display = 'none';
+            if (simpanPenilaianBtn) simpanPenilaianBtn.style.display = 'none';
         });
     }
     
@@ -391,6 +585,7 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             }
         })
         .then(response => {
@@ -427,101 +622,96 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Populate customer table with search results
-    // Populate customer table with search results
-function populateCustomerTable(customers) {
-    if (!customerTableBody) return;
+    function populateCustomerTable(customers) {
+        if (!customerTableBody) return;
 
-    customerTableBody.innerHTML = '';
-    
-    // Check if there are incomplete frames
-    // Periksa dari beberapa sumber yang mungkin
-    const hasIncompleteFrames = 
-        // Periksa dari data atribut container
-        (document.querySelector('.container[data-incomplete-frames="true"]') !== null) ||
-        // Periksa dari tombol submit (cara sebelumnya)
-        (document.getElementById('submit-btn') && document.getElementById('submit-btn').hasAttribute('data-incomplete')) ||
-        // Periksa dari keberadaan pesan alert
-        (document.querySelector('.alert-warning strong') && 
-         document.querySelector('.alert-warning strong').textContent.includes('Penilaian Belum Bisa Dilakukan'));
-    
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    
-    customers.forEach((customer, index) => {
-        const row = document.createElement('tr');
+        customerTableBody.innerHTML = '';
         
-        // Determine button class and disabled state based on incomplete frames
-        const buttonClass = hasIncompleteFrames ? 'btn-secondary' : 'btn-primary';
-        const buttonDisabled = hasIncompleteFrames ? 'disabled' : '';
-        const buttonTitle = hasIncompleteFrames ? 'title="Lengkapi data frame terlebih dahulu"' : '';
+        // Check if there are incomplete frames
+        const hasIncompleteFrames = 
+            (document.querySelector('.container[data-incomplete-frames="true"]') !== null) ||
+            (document.getElementById('submit-btn') && document.getElementById('submit-btn').hasAttribute('data-incomplete')) ||
+            (document.querySelector('.alert-warning strong') && 
+             document.querySelector('.alert-warning strong').textContent.includes('Penilaian Belum Bisa Dilakukan'));
         
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${customer.name}</td>
-            <td>${customer.phone}</td>
-            <td>${customer.address}</td>
-            <td>
-                <div class="btn-group">
-                    <button class="btn btn-sm ${buttonClass} select-customer" 
-                        data-id="${customer.customer_id}"
-                        data-name="${customer.name}"
-                        data-phone="${customer.phone}"
-                        data-address="${customer.address}"
-                        ${buttonDisabled}
-                        ${buttonTitle}>
-                        <i class="fas fa-clipboard-check"></i> Penilaian
-                    </button>
-                    <a href="/customers/${customer.customer_id}/edit" class="btn btn-sm btn-warning">
-                        <i class="fas fa-edit"></i>
-                    </a>
-                    <form action="/customers/${customer.customer_id}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
-                        <input type="hidden" name="_token" value="${csrfToken}">
-                        <input type="hidden" name="_method" value="DELETE">
-                        <button type="submit" class="btn btn-sm btn-danger">
-                            <i class="fas fa-trash"></i>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        customers.forEach((customer, index) => {
+            const row = document.createElement('tr');
+            
+            // Determine button class and disabled state based on incomplete frames
+            const buttonClass = hasIncompleteFrames ? 'btn-secondary' : 'btn-primary';
+            const buttonDisabled = hasIncompleteFrames ? 'disabled' : '';
+            const buttonTitle = hasIncompleteFrames ? 'title="Lengkapi data frame terlebih dahulu"' : '';
+            
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${customer.name}</td>
+                <td>${customer.phone}</td>
+                <td>${customer.address}</td>
+                <td>
+                    <div class="btn-group">
+                        <button class="btn btn-sm ${buttonClass} select-customer" 
+                            data-id="${customer.customer_id}"
+                            data-name="${customer.name}"
+                            data-phone="${customer.phone}"
+                            data-address="${customer.address}"
+                            ${buttonDisabled}
+                            ${buttonTitle}>
+                            <i class="fas fa-clipboard-check"></i> Pilih
                         </button>
-                    </form>
-                </div>
-            </td>
-        `;
-        customerTableBody.appendChild(row);
-        
-        // Add event listener to select button only if frames are complete
-        if (!hasIncompleteFrames) {
-            row.querySelector('.select-customer').addEventListener('click', function() {
-                selectCustomer(
-                    customer.customer_id,
-                    customer.name,
-                    customer.phone,
-                    customer.address
-                );
-            });
-        }
-    });
-}
+                        <a href="/customers/${customer.customer_id}/edit" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form action="/customers/${customer.customer_id}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
+                            <input type="hidden" name="_token" value="${csrfToken}">
+                            <input type="hidden" name="_method" value="DELETE">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            `;
+            customerTableBody.appendChild(row);
+            
+            // Add event listener to select button only if frames are complete
+            if (!hasIncompleteFrames) {
+                row.querySelector('.select-customer').addEventListener('click', function() {
+                    selectCustomer(
+                        customer.customer_id,
+                        customer.name,
+                        customer.phone,
+                        customer.address
+                    );
+                });
+            }
+        });
+    }
     
-    // Tambahkan fungsi untuk mengaktifkan/menonaktifkan form penilaian
+    // Function to enable/disable assessment form
     function togglePenilaianForm(enable) {
-        // Enable/disable semua input form
+        // Enable/disable all form inputs
         penilaianInputs.forEach(input => {
             input.disabled = !enable;
         });
         
-        // Enable/disable tombol submit
+        // Enable/disable submit button
         if (submitBtn) {
-            // Tetap perhatikan kondisi lain (validasi bobot dan frame lengkap)
+            // Consider other conditions (bobot validation and complete frames)
             const hasIncompleteFrames = submitBtn.hasAttribute('data-incomplete');
             const inputsAreValid = !bobotWarning.style.display || bobotWarning.style.display === 'none';
             
             submitBtn.disabled = !enable || hasIncompleteFrames || !inputsAreValid;
         }
         
-        // Tampilkan/sembunyikan pesan alert
+        // Show/hide alert message
         if (noPelangganAlert) {
             noPelangganAlert.style.display = enable ? 'none' : 'block';
         }
     }
     
-    // Inisialisasi form dalam keadaan nonaktif
+    // Initialize form in disabled state
     togglePenilaianForm(false);
 
     // Select a customer and show penilaian form
@@ -539,17 +729,10 @@ function populateCustomerTable(customers) {
         if (selectedCustomerPhone) selectedCustomerPhone.textContent = phone;
         if (selectedCustomerAddress) selectedCustomerAddress.textContent = address;
         
-        // Hide customer search card
-        if (customerSearchSection) {
-            customerSearchSection.style.display = 'none';
-        }
+        // Show wizard step 2 (selected customer and assessment form)
+        showWizardStep(2);
         
-        // Show selected customer card
-        if (selectedCustomerCard) {
-            selectedCustomerCard.style.display = 'block';
-        }
-        
-        // Aktifkan form penilaian
+        // Enable assessment form
         togglePenilaianForm(true);
         
         // Scroll to the selected customer card
@@ -558,19 +741,12 @@ function populateCustomerTable(customers) {
         }
     }
     
-    // Modifikasi resetCustomerSelection untuk menonaktifkan form kembali
+    // Reset customer selection
     function resetCustomerSelection() {
-        // Show customer search section again
-        if (customerSearchSection) {
-            customerSearchSection.style.display = 'block';
-        }
+        // Show wizard step 1 (customer selection)
+        showWizardStep(1);
         
-        // Hide customer card
-        if (selectedCustomerCard) {
-            selectedCustomerCard.style.display = 'none';
-        }
-        
-        // Nonaktifkan form penilaian
+        // Disable assessment form
         togglePenilaianForm(false);
         
         // Clear selected customer info
@@ -580,7 +756,7 @@ function populateCustomerTable(customers) {
         if (selectedCustomerId) selectedCustomerId.value = '';
         if (penilaianCustomerId) penilaianCustomerId.value = '';
         
-        // Reset form jika ada nilai yang sudah diisi
+        // Reset form if there are values already filled
         if (penilaianForm) {
             penilaianForm.reset();
         }
@@ -590,4 +766,10 @@ function populateCustomerTable(customers) {
             searchCustomerInput.focus();
         }
     }
+    
+    // Initialize wizard at step 1
+    updateWizardStep(1);
+    
+    // Add diagnostic console output when page loads
+    console.log('DOM fully loaded. Page initialization complete.');
 });

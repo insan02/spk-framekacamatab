@@ -3,14 +3,16 @@
 @section('content')
 <div class="container">
     <div class="container-fluid">
+        <div class="mb-3">
+            <a href="{{ route('penilaian.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </a>
+        </div>
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
                     <i class="fas fa-user-edit me-2"></i>Edit Pelanggan
                 </h4>
-                <a href="{{ route('penilaian.index') }}" class="btn btn-light">
-                    <i class="fas fa-arrow-left me-1"></i>Kembali
-                </a>
             </div>
             <div class="card-body">
 

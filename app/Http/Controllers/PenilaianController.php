@@ -7,6 +7,9 @@ use App\Models\DetailPenilaian;
 use App\Models\Frame;
 use App\Models\Kriteria;
 use App\Models\RecommendationHistory;
+use App\Models\RecommendationCriteria;
+use App\Models\RecommendationSubkriteria;
+use App\Models\RecommendationFrame;
 use App\Models\BobotKriteria;
 use App\Models\Rekomendasi;
 use App\Models\Subkriteria;
@@ -15,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Customer;
@@ -131,241 +135,504 @@ class PenilaianController extends Controller
     }
 
     public function store(Request $request)
-    {
-        // Validate the request 
-        $validator = Validator::make($request->all(), [
-            'customer_id' => 'required|exists:customers,customer_id',
-            'subkriteria' => 'required|array',
-            'bobot_kriteria' => 'required|array',
-        ]);
+{
+    // Validate the request 
+    $validator = Validator::make($request->all(), [
+        'customer_id' => 'required|exists:customers,customer_id',
+        'subkriteria' => 'required|array',
+        'bobot_kriteria' => 'required|array',
+    ]);
 
-        // Check if validation fails
-        if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Check for incomplete frames
-        $incompleteFrames = $this->checkIncompleteFrames();
-        if (count($incompleteFrames) > 0) {
-            return response()->json([
-                'error' => 'Terdapat frame yang belum lengkap',
-                'incomplete_frames' => $incompleteFrames
-            ], 400);
-        }
-
-        // Calculate total bobot
-        $totalBobot = array_sum($request->bobot_kriteria);
-        if ($totalBobot <= 0) {
-            return response()->json(['error' => 'Total bobot kriteria harus lebih dari 0'], 400);
-        }
-
-        try {
-            // Get customer data
-            $customer = Customer::findOrFail($request->customer_id);
-
-            // Perform profile matching calculation
-            $hasilPerhitungan = $this->hitungProfileMatching($request->subkriteria, $request->bobot_kriteria, $totalBobot);
-
-            // Prepare kriteria yang dipilih
-            $kriteria_dipilih = [];
-            foreach ($request->subkriteria as $kriteria_id => $subkriteria_id) {
-                $kriteria = Kriteria::findOrFail($kriteria_id);
-                $subkriteria = Subkriteria::findOrFail($subkriteria_id);
-                $kriteria_dipilih[$kriteria->kriteria_nama] = $subkriteria->subkriteria_nama;
-            }
-
-            // Salin gambar frame ke direktori history
-            foreach ($hasilPerhitungan['rekomendasi'] as &$item) {
-                $frameFoto = $item['frame']['frame_foto'] ?? null;
-                if ($frameFoto && Storage::disk('public')->exists($frameFoto)) {
-                    // Generate nama unik untuk file
-                    $newFilename = 'history_images/' . uniqid() . '_' . basename($frameFoto);
-                    
-                    // Salin file ke direktori history
-                    Storage::disk('public')->copy($frameFoto, $newFilename);
-                    
-                    // Update path foto di data rekomendasi
-                    $item['frame']['frame_foto'] = $newFilename;
-                } else {
-                    $item['frame']['frame_foto'] = null; // Jika foto tidak ada
-                }
-            }
-            unset($item); // Hapus reference terakhir
-
-            // Create Recommendation History
-            $recommendationHistory = RecommendationHistory::create([
-                'customer_id' => $customer->customer_id,
-                'customer_name' => $customer->name,      // Store customer name
-                'customer_phone' => $customer->phone,    // Store customer phone
-                'customer_address' => $customer->address, // Store customer address
-                'kriteria_dipilih' => $kriteria_dipilih,
-                'bobot_kriteria' => $request->bobot_kriteria,
-                'rekomendasi_data' => $hasilPerhitungan['rekomendasi'],
-                'perhitungan_detail' => $hasilPerhitungan
-            ]);
-
-            // Render the results view
-            $html = view('penilaian.result', [
-                'customer' => $customer,
-                'rekomendasi' => $hasilPerhitungan['rekomendasi'],
-                'kriteria_dipilih' => $kriteria_dipilih,
-                'perhitungan' => $hasilPerhitungan
-            ])->render();
-
-            return response()->json([
-                'html' => $html,
-                'rekomendasi' => $hasilPerhitungan['rekomendasi'],
-                'recommendation_history_id' => $recommendationHistory->recommendation_history_id,
-                'redirect_url' => route('rekomendasi.show', ['id' => $recommendationHistory->recommendation_history_id]),
-                'success' => 'Rekomendasi berhasil disimpan'
-            ]);
-        } catch (\Exception $e) {
-            // Log the error
-            Log::error('Error in penilaian store: ' . $e->getMessage());
-            Log::error($e->getTraceAsString());
-
-            return response()->json([
-                'error' => 'Terjadi kesalahan dalam memproses penilaian: ' . $e->getMessage()
-            ], 500);
-        }
+    // Check if validation fails
+    if ($validator->fails()) {
+        return response()->json([
+            'error' => 'Validation failed',
+            'errors' => $validator->errors()
+        ], 422);
     }
 
-    private function hitungProfileMatching($subkriteriaUser, $bobotKriteriaUser, $totalBobot)
-    {
-        // Log subkriteria pilihan pengguna
-        Log::info('User Subkriteria Selection:', $subkriteriaUser);
-        Log::info('User Bobot Kriteria (Raw):', $bobotKriteriaUser);
-        Log::info('Total Bobot:', ['value' => $totalBobot]);
+    // Check for incomplete frames
+    $incompleteFrames = $this->checkIncompleteFrames();
+    if (count($incompleteFrames) > 0) {
+        return response()->json([
+            'error' => 'Terdapat frame yang belum lengkap',
+            'incomplete_frames' => $incompleteFrames
+        ], 400);
+    }
+
+    // Calculate total bobot
+    $totalBobot = array_sum($request->bobot_kriteria);
+    if ($totalBobot <= 0) {
+        return response()->json(['error' => 'Total bobot kriteria harus lebih dari 0'], 400);
+    }
+
+    try {
+        // Get customer data
+        $customer = Customer::findOrFail($request->customer_id);
+        if ($customer instanceof \Illuminate\Database\Eloquent\Collection) {
+            $customer = $customer->first();
+            
+            // If still empty, throw an exception
+            if (!$customer) {
+                throw new \Exception("Customer with ID {$request->customer_id} not found");
+            }
+        }
+
+        // Perform profile matching calculation
+        $hasilPerhitungan = $this->hitungProfileMatching($request->subkriteria, $request->bobot_kriteria, $totalBobot);
+
+        // Begin database transaction
+        DB::beginTransaction();
+
+        // Create recommendation history record
+        $recommendationHistory = $this->createRecommendationHistory($customer, $request, $hasilPerhitungan, $totalBobot);
         
-        // 1. Ambil semua data kriteria dan frame
+        // Store all detailed recommendation data
+        $this->storeDetailedRecommendationData($recommendationHistory, $request, $hasilPerhitungan, $totalBobot);
+        
+        // Commit transaction
+        DB::commit();
+
+        // Prepare the response data
+        $kriteria_dipilih = $this->prepareKriteriaDipilih($request->subkriteria);
+        
+        // Render the results view
+        $html = view('penilaian.result', [
+            'customer' => $customer,
+            'rekomendasi' => $hasilPerhitungan['rekomendasi'],
+            'kriteria_dipilih' => $kriteria_dipilih,
+            'perhitungan' => $hasilPerhitungan
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'rekomendasi' => $hasilPerhitungan['rekomendasi'],
+            'recommendation_history_id' => $recommendationHistory->recommendation_history_id,
+            'redirect_url' => route('rekomendasi.show', ['id' => $recommendationHistory->recommendation_history_id]),
+            'success' => 'Rekomendasi berhasil disimpan'
+        ]);
+    } catch (\Exception $e) {
+        // Rollback transaction in case of error
+        DB::rollBack();
+        
+        // Log the error
+        Log::error('Error in penilaian store: ' . $e->getMessage());
+        Log::error($e->getTraceAsString());
+
+        return response()->json([
+            'error' => 'Terjadi kesalahan dalam memproses penilaian: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Create the main recommendation history record
+ * 
+ * @param Customer $customer
+ * @param Request $request
+ * @param array $hasilPerhitungan
+ * @param float $totalBobot
+ * @return RecommendationHistory
+ */
+private function createRecommendationHistory($customer, $request, $hasilPerhitungan, $totalBobot)
+{
+    // Handle if customer is a collection
+    if ($customer instanceof \Illuminate\Database\Eloquent\Collection) {
+        $customer = $customer->first();
+        
+        // If empty, throw exception
+        if (!$customer) {
+            throw new \Exception("Customer not found");
+        }
+    }
+    
+    // Rest of the method remains the same...
+    $kriteria_dipilih = $this->prepareKriteriaDipilih($request->subkriteria);
+    $rekomendasiData = $this->processImageFiles($hasilPerhitungan['rekomendasi']);
+    
+    return RecommendationHistory::create([
+        'customer_id' => $customer->customer_id,
+        'user_id' => Auth::id(),
+        'customer_name' => $customer->name,
+        'customer_phone' => $customer->phone,
+        'customer_address' => $customer->address,
+        'kriteria_dipilih' => $kriteria_dipilih,
+        'bobot_kriteria' => $request->bobot_kriteria,
+        'rekomendasi_data' => $rekomendasiData,
+        'perhitungan_detail' => $hasilPerhitungan
+    ]);
+}
+
+/**
+ * Store detailed recommendation data in related tables
+ * 
+ * @param RecommendationHistory $recommendationHistory
+ * @param Request $request
+ * @param array $hasilPerhitungan
+ * @param float $totalBobot
+ * @return void
+ */
+private function storeDetailedRecommendationData($recommendationHistory, $request, $hasilPerhitungan, $totalBobot)
+{
+    // Store criteria data
+    $this->storeRecommendationCriteria($recommendationHistory, $request->bobot_kriteria, $totalBobot);
+    
+    // Store subkriteria data
+    $this->storeRecommendationSubkriteria($recommendationHistory, $request->subkriteria);
+    
+    // Store frame data
+    $this->storeRecommendationFrames($recommendationHistory, $hasilPerhitungan['rekomendasi']);
+}
+
+/**
+ * Store recommendation criteria records
+ * 
+ * @param RecommendationHistory $recommendationHistory
+ * @param array $bobotKriteria
+ * @param float $totalBobot
+ * @return void
+ */
+private function storeRecommendationCriteria($recommendationHistory, $bobotKriteria, $totalBobot)
+{
+    foreach ($bobotKriteria as $kriteria_id => $bobot) {
+        $kriteria = Kriteria::find($kriteria_id);
+        if ($kriteria) {
+            RecommendationCriteria::create([
+                'recommendation_history_id' => $recommendationHistory->recommendation_history_id,
+                'kriteria_id' => $kriteria_id,
+                'kriteria_nama' => $kriteria->kriteria_nama,
+                'kriteria_bobot' => $bobot / $totalBobot, // Normalized weight
+            ]);
+        }
+    }
+}
+
+/**
+ * Store recommendation subkriteria records
+ * 
+ * @param RecommendationHistory $recommendationHistory
+ * @param array $subkriteriaData
+ * @return void
+ */
+private function storeRecommendationSubkriteria($recommendationHistory, $subkriteriaData)
+{
+    foreach ($subkriteriaData as $kriteria_id => $subkriteria_id) {
+        $subkriteria = Subkriteria::find($subkriteria_id);
+        if ($subkriteria) {
+            RecommendationSubkriteria::create([
+                'recommendation_history_id' => $recommendationHistory->recommendation_history_id,
+                'kriteria_id' => $kriteria_id,
+                'subkriteria_id' => $subkriteria_id,
+                'subkriteria_nama' => $subkriteria->subkriteria_nama,
+                'subkriteria_bobot' => $subkriteria->subkriteria_bobot,
+            ]);
+        }
+    }
+}
+
+/**
+ * Store recommendation frame records
+ * 
+ * @param RecommendationHistory $recommendationHistory
+ * @param array $rekomendasiFrames
+ * @return void
+ */
+private function storeRecommendationFrames($recommendationHistory, $rekomendasiFrames)
+{
+    $rank = 1;
+    foreach ($rekomendasiFrames as $item) {
+        RecommendationFrame::create([
+            'recommendation_history_id' => $recommendationHistory->recommendation_history_id,
+            'frame_id' => $item['frame']->frame_id,
+            'frame_nama' => $item['frame']->frame_merek . ' ' . $item['frame']->frame_model,
+            'frame_harga' => $item['frame']->frame_harga,
+            'skor_akhir' => $item['score'],
+            'peringkat' => $rank++,
+        ]);
+    }
+}
+
+/**
+ * Process image files for frames
+ * 
+ * @param array $rekomendasiData
+ * @return array
+ */
+private function processImageFiles($rekomendasiData)
+{
+    $rekomendasiCopy = $rekomendasiData;
+    
+    foreach ($rekomendasiCopy as &$item) {
+        $frameFoto = $item['frame']['frame_foto'] ?? null;
+        if ($frameFoto && Storage::disk('public')->exists($frameFoto)) {
+            // Generate nama unik untuk file
+            $newFilename = 'history_images/' . uniqid() . '_' . basename($frameFoto);
+            
+            // Salin file ke direktori history
+            Storage::disk('public')->copy($frameFoto, $newFilename);
+            
+            // Update path foto di data rekomendasi
+            $item['frame']['frame_foto'] = $newFilename;
+        } else {
+            $item['frame']['frame_foto'] = null; // Jika foto tidak ada
+        }
+    }
+    unset($item); // Hapus reference terakhir
+    
+    return $rekomendasiCopy;
+}
+
+/**
+ * Prepare the kriteria_dipilih array from subkriteria data
+ * 
+ * @param array $subkriteriaData
+ * @return array
+ */
+private function prepareKriteriaDipilih($subkriteriaData)
+{
+    $kriteria_dipilih = [];
+    
+    foreach ($subkriteriaData as $kriteria_id => $subkriteria_id) {
+        $kriteria = Kriteria::find($kriteria_id);
+        $subkriteria = Subkriteria::find($subkriteria_id);
+        
+        if ($kriteria && $subkriteria) {
+            $kriteria_dipilih[$kriteria->kriteria_nama] = $subkriteria->subkriteria_nama;
+        }
+    }
+    
+    return $kriteria_dipilih;
+}
+private function hitungProfileMatching($subkriteriaUser, $bobotKriteriaUser, $totalBobot)
+{
+    // Validate inputs
+    if (!$totalBobot || $totalBobot <= 0) {
+        throw new \Exception("Total bobot harus lebih dari nol");
+    }
+    
+    // Log input data
+    Log::info('User Subkriteria Selection:', $subkriteriaUser);
+    Log::info('User Bobot Kriteria (Raw):', $bobotKriteriaUser);
+    Log::info('Total Bobot:', ['value' => $totalBobot]);
+    
+    try {
+        // 1. Get all criteria and frames data
         $kriterias = Kriteria::with('subkriterias')->get();
         $frames = Frame::with(['frameSubkriterias' => function($query) use ($kriterias) {
             $query->whereIn('kriteria_id', $kriterias->pluck('kriteria_id'))
                   ->with('subkriteria');
-        }])->get();
-    
-        // Pastikan semua frame memiliki nilai untuk setiap kriteria
+        }])
+        ->orderBy('frame_id', 'asc') // Tambahkan pengurutan berdasarkan frame_id
+        ->get();
+
+        // Ensure all frames have values for each criteria
         foreach ($frames as $frame) {
             foreach ($kriterias as $kriteria) {
-                $frameSubkriteria = $frame->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id)->first();
-                if (!$frameSubkriteria) {
+                $frameSubkriterias = $frame->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id);
+                if ($frameSubkriterias->isEmpty()) {
                     throw new \Exception("Frame {$frame->frame_merek} tidak memiliki nilai untuk kriteria {$kriteria->kriteria_nama}");
                 }
             }
         }
-    
-        // 2. Normalisasi bobot kriteria (dibagi dengan total)
+
+        // 2. Normalize criteria weights
         $bobotKriteria = [];
         foreach ($kriterias as $kriteria) {
-            // Pastikan kriteria_id ada di bobotKriteriaUser
-            if (isset($bobotKriteriaUser[$kriteria->kriteria_id])) {
-                // Normalisasi: nilai bobot dibagi total bobot (tanpa dikali 100)
-                $bobotKriteria[$kriteria->kriteria_id] = $bobotKriteriaUser[$kriteria->kriteria_id] / $totalBobot;
+            $kriteriaId = $kriteria->kriteria_id;
+            
+            // Validate bobotKriteriaUser value
+            if (!isset($bobotKriteriaUser[$kriteriaId]) || !is_numeric($bobotKriteriaUser[$kriteriaId])) {
+                // Fallback to default weight if not set or invalid
+                $bobotKriteria[$kriteriaId] = $kriteria->bobot_kriteria / 100;
             } else {
-                // Fallback jika tidak ada, gunakan nilai default
-                $bobotKriteria[$kriteria->kriteria_id] = $kriteria->bobot_kriteria / 100;
+                // Normalize: weight value divided by total weight
+                $bobotKriteria[$kriteriaId] = $bobotKriteriaUser[$kriteriaId] / $totalBobot;
             }
         }
         
-        // Log normalized weights
         Log::info('Normalized Weights:', $bobotKriteria);
         
-        // 3. Hitung GAP untuk setiap frame
+        // 3. Calculate GAP for each frame
         $gapValues = [];
         $gapBobot = [];
+        $bestSubkriteria = [];
         
         foreach ($frames as $frame) {
-            $gapValues[$frame->frame_id] = [];
-            $gapBobot[$frame->frame_id] = [];
+            $frameId = $frame->frame_id;
+            $gapValues[$frameId] = [];
+            $gapBobot[$frameId] = [];
+            $bestSubkriteria[$frameId] = [];
             
             foreach ($kriterias as $kriteria) {
-                $frameSubkriteria = $frame->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id)->first();
-                $userSubkriteria = Subkriteria::findOrFail($subkriteriaUser[$kriteria->kriteria_id]);
+                $kriteriaId = $kriteria->kriteria_id;
+                $frameSubkriterias = $frame->frameSubkriterias->where('kriteria_id', $kriteriaId);
                 
-                // Hitung selisih (GAP)
-                $gap = $frameSubkriteria->subkriteria->subkriteria_bobot - $userSubkriteria->subkriteria_bobot;
-                $gapValues[$frame->frame_id][$kriteria->kriteria_id] = $gap;
+                // Validate user subcriteria
+                if (!isset($subkriteriaUser[$kriteriaId])) {
+                    throw new \Exception("Tidak ada pilihan subkriteria untuk kriteria {$kriteria->kriteria_nama}");
+                }
                 
-                // Konversi GAP ke nilai bobot sesuai tabel
-                $bobotGap = $this->convertGapToBobot($gap);
-                $gapBobot[$frame->frame_id][$kriteria->kriteria_id] = $bobotGap;
+                $userSubkriteria = Subkriteria::findOrFail($subkriteriaUser[$kriteriaId]);
+                
+                // Handle null user subkriteria bobot
+                $userBobot = $userSubkriteria->subkriteria_bobot;
+                if ($userBobot === null) {
+                    throw new \Exception("Bobot untuk subkriteria user '{$userSubkriteria->subkriteria_nama}' tidak valid");
+                }
+                
+                // Select the best subcriteria for this frame and criteria
+                $bestGapBobot = -1; // Initialize with lowest possible value
+                $bestGap = PHP_INT_MAX; // Initialize with a large number instead of null
+                $selected = null;
+                
+                foreach ($frameSubkriterias as $frameSubkriteria) {
+                    // Validate frame subkriteria bobot
+                    $frameBobot = $frameSubkriteria->subkriteria->subkriteria_bobot;
+                    if ($frameBobot === null) {
+                        Log::warning("Bobot null for subkriteria '{$frameSubkriteria->subkriteria->subkriteria_nama}' in frame {$frame->frame_merek}");
+                        continue; // Skip this subkriteria
+                    }
+                    
+                    // Calculate GAP
+                    $gap = $frameBobot - $userBobot;
+                    $bobotGap = $this->convertGapToBobot($gap);
+                    
+                    // Select subcriteria with highest GAP weight (or smallest GAP if equal)
+                    if ($bobotGap > $bestGapBobot || ($bobotGap == $bestGapBobot && abs($gap) < abs($bestGap))) {
+                        $bestGapBobot = $bobotGap;
+                        $bestGap = $gap;
+                        $selected = $frameSubkriteria;
+                    }
+                }
+                
+                // Ensure we found a valid subkriteria
+                if ($selected === null) {
+                    throw new \Exception("Tidak dapat menemukan subkriteria yang valid untuk frame {$frame->frame_merek} dan kriteria {$kriteria->kriteria_nama}");
+                }
+                
+                // Save best GAP values and weights
+                $gapValues[$frameId][$kriteriaId] = $bestGap;
+                $gapBobot[$frameId][$kriteriaId] = $bestGapBobot;
+                $bestSubkriteria[$frameId][$kriteriaId] = $selected;
             }
         }
         
         Log::info('GAP Values:', $gapValues);
         Log::info('GAP Weights:', $gapBobot);
         
-        // 4. Implementasi metode SMART untuk perangkingan
+        // 4. Implement SMART ranking method
         $finalScores = [];
         
         foreach ($frames as $frame) {
-            $finalScores[$frame->frame_id] = 0;
+            $frameId = $frame->frame_id;
+            $finalScores[$frameId] = 0;
             
             foreach ($kriterias as $kriteria) {
-                // Kalikan bobot kriteria dengan nilai bobot GAP
-                $finalScores[$frame->frame_id] += $bobotKriteria[$kriteria->kriteria_id] * $gapBobot[$frame->frame_id][$kriteria->kriteria_id];
+                $kriteriaId = $kriteria->kriteria_id;
+                
+                // Multiply criteria weight by GAP weight
+                if (isset($bobotKriteria[$kriteriaId]) && isset($gapBobot[$frameId][$kriteriaId])) {
+                    $finalScores[$frameId] += $bobotKriteria[$kriteriaId] * $gapBobot[$frameId][$kriteriaId];
+                }
             }
         }
         
         Log::info('Final Scores:', $finalScores);
         
-        // 5. Urutkan frame berdasarkan skor akhir (nilai lebih tinggi = peringkat lebih baik)
+        // 5. Create two collections of frames
+        // A. Sortir semua frames berdasarkan score (untuk hasil perangkingan)
         $sortedFrames = $frames->sortByDesc(function ($frame) use ($finalScores) {
-            return $finalScores[$frame->frame_id];
+            return $finalScores[$frame->frame_id] ?? 0;
         });
-    
-        // Kumpulkan semua data yang diperlukan
-        return [
-            'rekomendasi' => $sortedFrames->map(function ($frame) use ($finalScores, $gapValues, $gapBobot, $subkriteriaUser, $kriterias) {
-                // Kumpulkan detail per kriteria untuk tampilan
+        
+        // B. Koleksi kedua dengan urutan asli berdasarkan frame_id untuk tabel detail perhitungan
+        $orderedFrames = $frames->sortBy('frame_id');
+
+        // 6. Map data for the view
+        $mapFrameData = function ($collection) use ($finalScores, $gapValues, $gapBobot, $subkriteriaUser, $kriterias, $bestSubkriteria) {
+            return $collection->map(function ($frame) use ($finalScores, $gapValues, $gapBobot, $subkriteriaUser, $kriterias, $bestSubkriteria) {
+                $frameId = $frame->frame_id;
                 $details = [];
+                
                 foreach ($kriterias as $kriteria) {
-                    $frameSubkriteria = $frame->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id)->first();
-                    $userSubkriteria = Subkriteria::findOrFail($subkriteriaUser[$kriteria->kriteria_id]);
+                    $kriteriaId = $kriteria->kriteria_id;
+                    
+                    // Ensure bestSubkriteria exists
+                    if (!isset($bestSubkriteria[$frameId][$kriteriaId])) {
+                        continue;
+                    }
+                    
+                    $selectedSubkriteria = $bestSubkriteria[$frameId][$kriteriaId];
+                    $userSubkriteria = Subkriteria::findOrFail($subkriteriaUser[$kriteriaId]);
                     
                     $details[] = [
                         'kriteria' => $kriteria,
-                        'frame_subkriteria' => $frameSubkriteria->subkriteria,
+                        'frame_subkriteria' => $selectedSubkriteria->subkriteria,
                         'user_subkriteria' => $userSubkriteria,
                     ];
                 }
                 
                 return [
                     'frame' => $frame,
-                    'score' => round((float)$finalScores[$frame->frame_id], 2),
-                    'gap_values' => $gapValues[$frame->frame_id],
-                    'gap_bobot' => $gapBobot[$frame->frame_id],
+                    'score' => round((float)($finalScores[$frameId] ?? 0), 2),
+                    'gap_values' => $gapValues[$frameId] ?? [],
+                    'gap_bobot' => $gapBobot[$frameId] ?? [],
                     'details' => $details,
                 ];
-            })->values(),
+            })->values();
+        };
+
+        // Collect all required data
+        return [
+            'rekomendasi' => $mapFrameData($sortedFrames),  // Untuk hasil perangkingan
+            'orderedRekomendasi' => $mapFrameData($orderedFrames),  // Untuk tabel detail perhitungan (berdasarkan frame_id)
             'kriterias' => $kriterias,
             'bobotKriteria' => $bobotKriteria,
             'totalBobot' => $totalBobot,
             'bobotKriteriaUser' => $bobotKriteriaUser,
         ];
+    } catch (\Exception $e) {
+        Log::error('Error in hitungProfileMatching: ' . $e->getMessage());
+        throw $e;
     }
+}
 
-    private function convertGapToBobot($gap)
-    {
-        // Konversi GAP ke bobot berdasarkan tabel
-        switch ($gap) {
-            case 0: return 5.0;    // Tidak ada selisih
-            case 1: return 4.5;    // Kelebihan 1 tingkat
-            case -1: return 4.0;   // Kekurangan 1 tingkat
-            case 2: return 3.5;    // Kelebihan 2 tingkat
-            case -2: return 3.0;   // Kekurangan 2 tingkat
-            case 3: return 2.5;    // Kelebihan 3 tingkat
-            case -3: return 2.0;   // Kekurangan 3 tingkat
-            case 4: return 1.5;    // Kelebihan 4 tingkat
-            case -4: return 1.0;   // Kekurangan 4 tingkat
-            default:
-                // Untuk gap lebih dari 4 atau kurang dari -4
-                if ($gap > 4) return 1.5;
-                if ($gap < -4) return 1.0;
-                return 0.0; // Fallback jika ada kesalahan
-        }
+/**
+ * Convert GAP value to weight based on Profile Matching method
+ * 
+ * @param int|float $gap
+ * @return float
+ */
+private function convertGapToBobot($gap)
+{
+    // Ensure gap is numeric
+    if (!is_numeric($gap)) {
+        Log::warning('Non-numeric GAP value: ' . var_export($gap, true));
+        return 0;
     }
+    
+    // Convert GAP to weight according to Profile Matching rules
+    switch (true) {
+        case $gap == 0:
+            return 5.0; // No difference (perfect)
+        case $gap == 1:
+            return 4.5; // Excess 1 level
+        case $gap == -1:
+            return 4.0; // Shortage 1 level
+        case $gap == 2:
+            return 3.5; // Excess 2 levels
+        case $gap == -2:
+            return 3.0; // Shortage 2 levels
+        case $gap == 3:
+            return 2.5; // Excess 3 levels
+        case $gap == -3:
+            return 2.0; // Shortage 3 levels
+        case $gap == 4:
+            return 1.5; // Excess 4 levels
+        case $gap == -4:
+            return 1.0; // Shortage 4 levels
+        default:
+            return 0.0; // Gap too large
+    }
+}
 }

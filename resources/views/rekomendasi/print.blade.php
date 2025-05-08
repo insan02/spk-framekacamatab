@@ -261,9 +261,9 @@
 
     <!-- Detail Perhitungan Section -->
     <div class="page-break"></div>
-    <h2 class="section-title">Detail Perhitungan</h2>
+    {{-- <h2 class="section-title">Detail Perhitungan</h2> --}}
 
-    <!-- 1. Nilai Profile Frame -->
+    {{-- <!-- 1. Nilai Profile Frame -->
     <div class="section">
         <h3>1. Nilai Profile Frame</h3>
         <table>
@@ -373,11 +373,11 @@
                 @endforeach
             </tbody>
         </table>
-    </div>
+    </div> --}}
 
     <!-- 5. Hasil Perangkingan -->
     <div class="section">
-        <h2 class="section-title">Hasil Perangkingan</h2>
+        <h2 class="section-title">Hasil Perangkingan 10 Frame Teratas</h2>
         <table>
             <thead>
                 <tr>
@@ -391,6 +391,7 @@
             </thead>
             <tbody>
                 @foreach($rekomendasi as $index => $frame)
+                @if($index < 10)
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td>
@@ -411,6 +412,7 @@
                         </span>
                     </td>
                 </tr>
+                @endif
                 @endforeach
             </tbody>
         </table>

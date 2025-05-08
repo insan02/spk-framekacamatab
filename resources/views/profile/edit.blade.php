@@ -57,7 +57,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-success">Simpan Perubahan</button>
+                <button type="submit" class="btn btn-primary">Perbarui Password</button>
                 <a href="{{ route('profile') }}" class="btn btn-secondary">Batal</a>
             </form>
         </div>

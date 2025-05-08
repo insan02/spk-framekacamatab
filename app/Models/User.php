@@ -11,7 +11,7 @@ use Illuminate\Contracts\Auth\CanResetPassword;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     protected $primaryKey = 'user_id';
 
@@ -57,5 +57,13 @@ class User extends Authenticatable
         $this->notify(new ResetPasswordNotification($token));
     }
 
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class, 'user_id');
+    }
     
+    public function recommendationHistories()
+    {
+        return $this->hasMany(RecommendationHistory::class, 'user_id');
+    }
 }

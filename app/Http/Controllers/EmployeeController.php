@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Notifications\NewEmployeeCredentialsNotification;
+use App\Notifications\EmailChangeNotification;
 use Illuminate\Support\Facades\Log;
 
 
@@ -24,7 +25,7 @@ class EmployeeController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|regex:/^[A-Za-z\s]+$/',
             'email' => 'required|string|email|max:255|unique:users',
         ]);
         
@@ -64,7 +65,7 @@ class EmployeeController extends Controller
         $employee = User::where('role', 'karyawan')->where('user_id', $id)->firstOrFail();
         
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|regex:/^[A-Za-z\s]+$/',
             'email' => 'required|string|email|max:255|unique:users,email,' . $employee->user_id . ',user_id',
         ]);
         
@@ -73,14 +74,39 @@ class EmployeeController extends Controller
         // Check if email is being changed
         $emailChanged = $employee->email != $request->email;
         if ($emailChanged) {
-            $employee->email = $request->email;
-            // You could add email verification logic here if needed
+            $oldEmail = $employee->email;
+            $newEmail = $request->email;
+            
+            // Update email in database
+            $employee->email = $newEmail;
+            
+            // Send notification to both old and new email addresses
+            try {
+                // Send to old email
+                $employee->email = $oldEmail; // Temporarily set back to old email
+                $employee->notify(new EmailChangeNotification($oldEmail, $newEmail));
+                
+                // Send to new email
+                $employee->email = $newEmail; // Set to new email
+                $employee->notify(new EmailChangeNotification($oldEmail, $newEmail));
+                
+                // Log success
+                Log::info('Email change notification sent to both ' . $oldEmail . ' and ' . $newEmail);
+            } catch (\Exception $e) {
+                // Log error but continue
+                Log::error('Failed to send email change notification: ' . $e->getMessage());
+            }
         }
         
         $employee->save();
         
+        $successMessage = 'Data karyawan berhasil diupdate';
+        if ($emailChanged) {
+            $successMessage .= '. Notifikasi perubahan email telah dikirim.';
+        }
+        
         return redirect()->route('employees.index')
-            ->with('success', 'Data karyawan berhasil diupdate');
+            ->with('success', $successMessage);
     }
     
     public function destroy($id)

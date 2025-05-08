@@ -147,21 +147,44 @@
                             <thead class="table-primary">
                                 <tr>
                                     <th>Alternatif</th>
+                                    <th>Foto Frame</th>
                                     @foreach($perhitungan['kriterias'] as $kriteria)
                                     <th>{{ $kriteria->kriteria_nama }}</th>
                                     @endforeach
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($rekomendasi as $frame)
+                                @foreach($perhitungan['orderedRekomendasi'] as $frame)
                                 <tr>
                                     <td>{{ $frame['frame']->frame_merek }}</td>
+                                    <td>
+                                        @if($frame['frame']->frame_foto)
+                                            <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
+                                                 alt="{{ $frame['frame']->frame_merek }}" 
+                                                 class="img-thumbnail" 
+                                                 style="max-width: 100px; max-height: 60px;">
+                                        @else
+                                            <div class="text-muted text-center">No Image</div>
+                                        @endif
+                                    </td>
                                     @foreach($perhitungan['kriterias'] as $kriteria)
-                                    @php
-                                        $detail = collect($frame['details'])->firstWhere('kriteria.kriteria_id', $kriteria->kriteria_id);
-                                        $subkriteria = $detail['frame_subkriteria'];
-                                    @endphp
-                                    <td>{{ $subkriteria->subkriteria_nama }} ({{ $subkriteria->subkriteria_bobot }})</td>
+                                    <td>
+                                        @php
+                                            // Get all subkriteria for this frame and criteria
+                                            $frameSubkriterias = $frame['frame']->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id);
+                                        @endphp
+                                        
+                                        @if($frameSubkriterias->count() > 0)
+                                            @foreach($frameSubkriterias as $index => $frameSubkriteria)
+                                                {{ $frameSubkriteria->subkriteria->subkriteria_nama }} ({{ $frameSubkriteria->subkriteria->subkriteria_bobot }})
+                                                @if($index < $frameSubkriterias->count() - 1)
+                                                    <br>
+                                                @endif
+                                            @endforeach
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
                                     @endforeach
                                 </tr>
                                 @endforeach
@@ -172,22 +195,87 @@
 
                 {{-- 2. Perhitungan GAP Tab --}}
                 <div class="tab-pane fade" id="perhitunganGap" role="tabpanel">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Rumus Perhitungan GAP:</strong> Nilai Subkriteria Frame - Nilai Subkriteria Pelanggan
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong></strong> Untuk frame yang memiliki lebih dari 1 subkriteria, maka otomatis sistem akan mengambil gap/selisih terkecil untuk mendapatkan bobot gap terbesar
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="table-responsive">
                         <table id="perhitunganGapTable" class="table table-striped table-hover">
                             <thead class="table-danger">
                                 <tr>
                                     <th>Alternatif</th>
+                                    <th>Foto Frame</th>
                                     @foreach($perhitungan['kriterias'] as $kriteria)
                                     <th>{{ $kriteria->kriteria_nama }}</th>
                                     @endforeach
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($rekomendasi as $frame)
+                                @foreach($perhitungan['orderedRekomendasi'] as $frame)
                                 <tr>
                                     <td>{{ $frame['frame']->frame_merek }}</td>
+                                    <td>
+                                        @if($frame['frame']->frame_foto)
+                                            <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
+                                                 alt="{{ $frame['frame']->frame_merek }}" 
+                                                 class="img-thumbnail" 
+                                                 style="max-width: 100px; max-height: 60px;">
+                                        @else
+                                            <div class="text-muted text-center">No Image</div>
+                                        @endif
+                                    </td>
                                     @foreach($perhitungan['kriterias'] as $kriteria)
-                                    <td>{{ $frame['gap_values'][$kriteria->kriteria_id] }}</td>
+                                    <td>
+                                        @php
+                                            $kriteriaId = $kriteria->kriteria_id;
+                                            $frameSubkriterias = $frame['frame']->frameSubkriterias->where('kriteria_id', $kriteriaId);
+                                            $selectedFrameSubkriteria = null;
+                                            
+                                            // Find the subkriteria that was used in gap calculation
+                                            foreach($frameSubkriterias as $fsk) {
+                                                if(isset($frame['details'])) {
+                                                    foreach($frame['details'] as $detail) {
+                                                        if($detail['kriteria']->kriteria_id == $kriteriaId && 
+                                                           $detail['frame_subkriteria']->subkriteria_id == $fsk->subkriteria->subkriteria_id) {
+                                                            $selectedFrameSubkriteria = $fsk->subkriteria;
+                                                            break 2;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            
+                                            // If not found, try to get from first available
+                                            if(!$selectedFrameSubkriteria && $frameSubkriterias->count() > 0) {
+                                                $selectedFrameSubkriteria = $frameSubkriterias->first()->subkriteria;
+                                            }
+                                            
+                                            // Get user subkriteria
+                                            $userSubkriteria = null;
+                                            if(isset($frame['details'])) {
+                                                foreach($frame['details'] as $detail) {
+                                                    if($detail['kriteria']->kriteria_id == $kriteriaId) {
+                                                        $userSubkriteria = $detail['user_subkriteria'];
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        @endphp
+                                        
+                                        @if($selectedFrameSubkriteria && $userSubkriteria)
+                                            {{ $selectedFrameSubkriteria->subkriteria_bobot }} - {{ $userSubkriteria->subkriteria_bobot }} = {{ $frame['gap_values'][$kriteriaId] }}
+                                        @else
+                                            {{ $frame['gap_values'][$kriteriaId] }}
+                                        @endif
+                                    </td>
                                     @endforeach
                                 </tr>
                                 @endforeach
@@ -203,17 +291,32 @@
                             <thead class="table-success">
                                 <tr>
                                     <th>Alternatif</th>
+                                    <th>Foto Frame</th>
                                     @foreach($perhitungan['kriterias'] as $kriteria)
                                     <th>{{ $kriteria->kriteria_nama }}</th>
                                     @endforeach
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($rekomendasi as $frame)
+                                @foreach($perhitungan['orderedRekomendasi'] as $frame)
                                 <tr>
-                                    <td>{{ $frame['frame']->frame_merek }}</td>
+                                    <td>{{ $frame['frame']->frame_merek }}</td> 
+                                    <td>
+                                        @if($frame['frame']->frame_foto)
+                                            <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
+                                                 alt="{{ $frame['frame']->frame_merek }}" 
+                                                 class="img-thumbnail" 
+                                                 style="max-width: 100px; max-height: 60px;">
+                                        @else
+                                            <div class="text-muted text-center">No Image</div>
+                                        @endif
+                                    </td>
                                     @foreach($perhitungan['kriterias'] as $kriteria)
-                                    <td>{{ $frame['gap_bobot'][$kriteria->kriteria_id] }}</td>
+                                    <td>
+                                        <span class="fw-bold">{{ $frame['gap_bobot'][$kriteria->kriteria_id] }}</span>
+                                        <br>
+                                        <small class="text-muted">(GAP: {{ $frame['gap_values'][$kriteria->kriteria_id] }})</small>
+                                    </td>
                                     @endforeach
                                 </tr>
                                 @endforeach
@@ -224,11 +327,16 @@
 
                 {{-- 4. Nilai Akhir SMART Tab --}}
                 <div class="tab-pane fade" id="nilaiAkhir" role="tabpanel">
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Perangkingan dengan Rumus SMART:</strong>Nilai konversi GAP X Normalisasi Kriteria, kemudian dijumlahkan untuk mendapatkan skor akhir.
+                    </div>
                     <div class="table-responsive">
                         <table id="nilaiAkhirSMARTTable" class="table table-striped table-hover">
                             <thead class="table-primary">
                                 <tr>
                                     <th>Alternatif</th>
+                                    <th>Foto Frame</th>
                                     @foreach($perhitungan['kriterias'] as $kriteria)
                                     <th>{{ $kriteria->kriteria_nama }}</th>
                                     @endforeach
@@ -236,16 +344,29 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($rekomendasi as $frame)
+                                @foreach($perhitungan['orderedRekomendasi'] as $frame)
                                 <tr>
                                     <td>{{ $frame['frame']->frame_merek }}</td>
+                                    <td>
+                                        @if($frame['frame']->frame_foto)
+                                            <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
+                                                 alt="{{ $frame['frame']->frame_merek }}" 
+                                                 class="img-thumbnail" 
+                                                 style="max-width: 100px; max-height: 60px;">
+                                        @else
+                                            <div class="text-muted text-center">No Image</div>
+                                        @endif
+                                    </td>
                                     @foreach($perhitungan['kriterias'] as $kriteria)
                                     <td>
-                                        {{ number_format(
-                                            $perhitungan['bobotKriteria'][$kriteria->kriteria_id] * 
-                                            $frame['gap_bobot'][$kriteria->kriteria_id], 
-                                            4
-                                        ) }}
+                                        <div class="small">{{ $perhitungan['bobotKriteria'][$kriteria->kriteria_id] }} × {{ $frame['gap_bobot'][$kriteria->kriteria_id] }} =</div>
+                                        <div class="fw-bold">
+                                            {{ number_format(
+                                                $perhitungan['bobotKriteria'][$kriteria->kriteria_id] * 
+                                                $frame['gap_bobot'][$kriteria->kriteria_id], 
+                                                4
+                                            ) }}
+                                        </div>
                                     </td>
                                     @endforeach
                                     <td><strong>{{ $frame['score'] }}</strong></td>
@@ -256,7 +377,7 @@
                     </div>
                 </div>
 
-                {{-- 5. Hasil Perangkingan Tab --}}
+                {{-- 5. Hasil Perangkingan Tab (menggunakan rekomendasi yang sudah diurutkan berdasarkan skor) --}}
                 <div class="tab-pane fade show active" id="hasilPerangkingan" role="tabpanel">
                     <div class="table-responsive">
                         <table id="hasilPerangkinganTable" class="table table-hover table-striped">

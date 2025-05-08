@@ -25,16 +25,6 @@
                                 <p class="form-control-plaintext">{{ $frame->frame_merek }}</p>
                             </div>
                         </div>
-                        
-                        <!-- Harga Frame Card -->
-                        <div class="card mb-3">
-                            <div class="card-header">
-                                Harga Frame
-                            </div>
-                            <div class="card-body">
-                                <p class="form-control-plaintext">Rp {{ number_format($frame->frame_harga, 0, ',', '.') }}</p>
-                            </div>
-                        </div>
 
                         <!-- Foto Frame Card -->
                         <div class="card mb-3">
@@ -79,17 +69,44 @@
                                     <div class="mb-4">
                                         <h6 class="font-weight-bold">{{ $kriteria->kriteria_nama }}</h6>
                                         
-                                        @if(isset($groupedSubkriterias[$kriteria->kriteria_id]))
+                                        @if(isset($groupedSubkriterias[$kriteria->kriteria_id]) && $groupedSubkriterias[$kriteria->kriteria_id]->count() > 0)
+                                            @php
+                                                $frameSubkriterias = $groupedSubkriterias[$kriteria->kriteria_id];
+                                                $hasManualValue = false;
+                                                $manualValues = [];
+                                                $checkboxValues = [];
+                                                
+                                                foreach($frameSubkriterias as $fs) {
+                                                    if($fs->subkriteria) {
+                                                        if($fs->manual_value !== null) {
+                                                            // This is a manual value
+                                                            $hasManualValue = true;
+                                                            $manualValues[] = [
+                                                                'value' => $fs->manual_value,
+                                                                'name' => $fs->subkriteria->subkriteria_nama
+                                                            ];
+                                                        } else {
+                                                            // This is a checkbox value
+                                                            $checkboxValues[] = $fs->subkriteria->subkriteria_nama;
+                                                        }
+                                                    }
+                                                }
+                                            @endphp
+                                            
                                             <ul class="list-group">
-                                                @foreach($groupedSubkriterias[$kriteria->kriteria_id] as $frameSubkriteria)
+                                                @if(count($manualValues) > 0)
+                                                    @foreach($manualValues as $manualItem)
+                                                        <li class="list-group-item">
+                                                            {{ $manualItem['value'] }} ({{ $manualItem['name'] }})
+                                                        </li>
+                                                    @endforeach
+                                                @endif
+                                                
+                                                @if(count($checkboxValues) > 0)
                                                     <li class="list-group-item">
-                                                        @if($frameSubkriteria->subkriteria)
-                                                            {{ $frameSubkriteria->subkriteria->subkriteria_nama }}
-                                                        @else
-                                                            <span class="text-danger">Subkriteria tidak valid</span>
-                                                        @endif
+                                                        {{ implode(', ', $checkboxValues) }}
                                                     </li>
-                                                @endforeach
+                                                @endif
                                             </ul>
                                         @else
                                             <p class="text-muted">Tidak ada nilai untuk kriteria ini</p>
@@ -99,7 +116,6 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>

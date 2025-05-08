@@ -97,8 +97,10 @@ function initializeCalculationTables(baseConfig) {
             "scrollX": true, // Enable horizontal scrolling for tables with many criteria columns
             "scrollCollapse": true,
             "autoWidth": true, // Enable auto width
+            "ordering": false, // Disable ordering completely to maintain original order
             "columnDefs": [
-                { "width": "auto", "targets": "_all" } // Apply auto width to all columns
+                { "width": "auto", "targets": "_all" }, // Apply auto width to all columns
+                { "orderable": false, "targets": "_all" } // Disable sorting for all columns to maintain DB order
             ]
         });
     });

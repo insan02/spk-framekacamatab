@@ -11,20 +11,56 @@
             </div>
 
             @if(session('success'))
-                    <div data-success-message="{{ session('success') }}" style="display:none;"></div>
-                @endif
+                <div data-success-message="{{ session('success') }}" style="display:none;"></div>
+            @endif
 
-                @if(session('error'))
-                    <div class="alert alert-danger">
-                        {!! session('error') !!}
-                    </div>
-                @endif
-
-            @if(session('update_needed'))
-                <div class="alert alert-warning">
-                    {!! session('update_message') !!}
+            @if(session('error'))
+                <div class="alert alert-danger">
+                    {!! session('error') !!}
                 </div>
             @endif
+            
+            <!-- Tabel Informasi Bobot -->
+            <div class="card-body">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h4><strong>Informasi Bobot Subkriteria</strong></h4>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-hover table-striped text-center">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="align-middle">Nilai</th>
+                                    <th class="align-middle">Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="align-middle">5</td>
+                                    <td class="align-middle">Sangat Baik</td>
+                                </tr>
+                                <tr>
+                                    <td class="align-middle">4</td>
+                                    <td class="align-middle">Baik</td>
+                                </tr>
+                                <tr>
+                                    <td class="align-middle">3</td>
+                                    <td class="align-middle">Cukup</td>
+                                </tr>
+                                <tr>
+                                    <td class="align-middle">2</td>
+                                    <td class="align-middle">Kurang</td>
+                                </tr>
+                                <tr>
+                                    <td class="align-middle">1</td>
+                                    <td class="align-middle">Sangat Kurang</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
             
             <div class="card-body">
                 @foreach($kriterias as $kriteria)
@@ -51,13 +87,13 @@
                                 <table class="table table-hover table-striped">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>No</th>
-                                            <th>Nama Subkriteria</th>
-                                            <th>Tipe</th>
-                                            <th>Bobot</th>
-                                            <th>Keterangan Bobot</th>
+                                            <th width="5%">No</th>
+                                            <th width="20%">Nama Subkriteria</th>
+                                            <th width="10%">Tipe</th>
+                                            <th width="10%">Bobot</th>
+                                            <th width="35%">Keterangan Bobot</th>
                                             @if(auth()->user()->role !== 'owner')
-                                                <th>Aksi</th>
+                                                <th width="20%">Aksi</th>
                                             @endif
                                         </tr>
                                     </thead>
@@ -67,20 +103,28 @@
                                                 <td>{{ $loop->iteration }}</td>
                                                 <td>{{ $subkriteria->subkriteria_nama }}</td>
                                                 <td>
-                                                    <span class="badge {{ $subkriteria->tipe_subkriteria == 'rentang nilai' ? 'bg-info' : 'bg-secondary' }}">
-                                                        {{ $subkriteria->tipe_subkriteria == 'rentang nilai' ? 'Rentang nilai' : 'Teks' }}
-                                                    </span>
+                                                    @if($subkriteria->tipe_subkriteria == 'rentang nilai')
+                                                        <span class="badge bg-info">Rentang nilai</span>
+                                                    @elseif($subkriteria->tipe_subkriteria == 'angka')
+                                                        <span class="badge bg-success">Angka</span>
+                                                    @else
+                                                        <span class="badge bg-secondary">Teks</span>
+                                                    @endif
                                                 </td>
                                                 <td>{{ $subkriteria->subkriteria_bobot }}</td>
-                                                <td>{{ $subkriteria->subkriteria_keterangan }}</td>
+                                                <td class="text-wrap">
+                                                    {{ $subkriteria->subkriteria_keterangan }}
+                                                </td>
                                                 @if(auth()->user()->role !== 'owner')
                                                     <td>
-                                                        <a href="{{ route('subkriteria.edit', $subkriteria->subkriteria_id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                                        <form action="{{ route('subkriteria.destroy', $subkriteria->subkriteria_id) }}" method="POST" class="d-inline">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
-                                                        </form>
+                                                        <div class="d-flex">
+                                                            <a href="{{ route('subkriteria.edit', $subkriteria->subkriteria_id) }}" class="btn btn-warning btn-sm me-2">Edit</a>
+                                                            <form action="{{ route('subkriteria.destroy', $subkriteria->subkriteria_id) }}" method="POST">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                                                            </form>
+                                                        </div>
                                                     </td>
                                                 @endif
                                             </tr>

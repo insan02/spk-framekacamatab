@@ -14,36 +14,27 @@
                     <i class="fas fa-exclamation-circle"></i> <strong>Perhatian!</strong> Sistem mendeteksi frame yang akan ditambah memiliki kemiripan dengan frame yang sudah ada.
                 </div>
                 
-                <!-- Similarity Details Panel -->
                 <!-- In confirm-duplicate.blade.php -->
-<!-- In confirm-duplicate.blade.php -->
-<div class="card mb-4">
-    <div class="card-header bg-info text-white">
-        <h5 class="mb-0">Info Kemiripan</h5>
-    </div>
-    <div class="card-body">
-        <ul class="list-group">
-            @if(isset($similarityDetails['image']) && $similarityDetails['image']['similar'])
-                <li class="list-group-item list-group-item-warning">
-                    <strong>Foto Frame:</strong> {{ $similarityDetails['image']['message'] }}
-                    <!-- @if(isset($similarityDetails['image']['frame_id']))
-                        (ID Frame: {{ $similarityDetails['image']['frame_id'] }})
-                    @endif -->
-                </li>
-            @endif
-            
-            @if(isset($similarityDetails['data']) && $similarityDetails['data']['similar'])
-                <li class="list-group-item list-group-item-warning">
-                    <strong>Data Frame:</strong> {{ $similarityDetails['data']['message'] }}
-                    <!-- @if(isset($similarityDetails['data']['frames']) && count($similarityDetails['data']['frames']) > 0)
-                        (ID Frame: {{ implode(', ', array_slice($similarityDetails['data']['frames'], 0, 3)) }}
-                        {{ count($similarityDetails['data']['frames']) > 3 ? '...' : '' }})
-                    @endif -->
-                </li>
-            @endif
-        </ul>
-    </div>
-</div>
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Info Kemiripan</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            @if(isset($similarityDetails['image']) && $similarityDetails['image']['similar'])
+                                <li class="list-group-item list-group-item-warning">
+                                    <strong>Foto Frame:</strong> {{ $similarityDetails['image']['message'] }}
+                                </li>
+                            @endif
+                            
+                            @if(isset($similarityDetails['data']) && $similarityDetails['data']['similar'])
+                                <li class="list-group-item list-group-item-warning">
+                                    <strong>Data Frame:</strong> {{ $similarityDetails['data']['message'] }}
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </div>
                 
                 <!-- Frame Baru Section -->
                 <div class="card mb-4">
@@ -72,10 +63,7 @@
                                         <th width="120" class="bg-light">Merek</th>
                                         <td>{{ session('frame_form_data')['frame_merek'] ?? 'Tidak ada data' }}</td>
                                     </tr>
-                                    <tr>
-                                        <th class="bg-light">Harga</th>
-                                        <td>Rp {{ number_format(session('frame_form_data')['frame_harga'] ?? 0, 0, ',', '.') }}</td>
-                                    </tr>
+                                    
                                     <tr>
                                         <th class="bg-light">Lokasi</th>
                                         <td>{{ session('frame_form_data')['frame_lokasi'] ?? 'Tidak ada data' }}</td>
@@ -83,7 +71,8 @@
                                 </table>
                                 
                                 <!-- Show selected criteria information -->
-                                @if(isset(session('frame_form_data')['nilai']) && is_array(session('frame_form_data')['nilai']))
+                                @if(isset(session('frame_form_data')['nilai']) && is_array(session('frame_form_data')['nilai']) || 
+                                    isset(session('frame_form_data')['nilai_manual']) && is_array(session('frame_form_data')['nilai_manual']))
                                     <div class="mt-3">
                                         <h6 class="border-bottom pb-2">Kriteria yang Dipilih:</h6>
                                         <table class="table table-bordered table-sm">
@@ -91,75 +80,100 @@
                                                 <tr>
                                                     <th>Kriteria</th>
                                                     <th>Nilai/Subkriteria</th>
+                                                    <th>Tipe Input</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                @foreach(session('frame_form_data')['nilai'] as $kriteria_id => $subkriteria_ids)
-                                                    @php
-                                                        $kriteria = App\Models\Kriteria::find($kriteria_id);
-                                                        $subkriteriaNames = [];
-                                                        
-                                                        if(is_array($subkriteria_ids)) {
-                                                            foreach($subkriteria_ids as $subkriteria_id) {
-                                                                $subkriteria = App\Models\Subkriteria::find($subkriteria_id);
-                                                                if($subkriteria) {
-                                                                    $subkriteriaNames[] = $subkriteria->subkriteria_nama;
-                                                                }
-                                                            }
-                                                        }
-                                                    @endphp
-                                                    <tr>
-                                                        <td><strong>{{ $kriteria->kriteria_nama ?? 'Kriteria #'.$kriteria_id }}</strong></td>
-                                                        <td>{{ !empty($subkriteriaNames) ? implode(', ', $subkriteriaNames) : 'Tidak ada nilai' }}</td>
-                                                    </tr>
-                                                @endforeach
-                                                
-                                                <!-- Add Price Criteria -->
                                                 @php
-                                                    $priceKriteria = App\Models\Kriteria::where('kriteria_nama', 'like', '%harga%')->first();
-                                                    $priceSubkriteria = null;
+                                                    $input_types = session('frame_form_data')['input_type'] ?? [];
+                                                    $values = session('frame_form_data')['nilai'] ?? [];
+                                                    $manual_values = session('frame_form_data')['nilai_manual'] ?? [];
                                                     
-                                                    if($priceKriteria && isset(session('frame_form_data')['frame_harga'])) {
-                                                        $frame_harga = session('frame_form_data')['frame_harga'];
-                                                        $subkriterias = App\Models\Subkriteria::where('kriteria_id', $priceKriteria->kriteria_id)->get();
-                                                        
-                                                        foreach($subkriterias as $subkriteria) {
-                                                            $name = strtolower($subkriteria->subkriteria_nama);
-                                                            
-                                                            if (strpos($name, '<') !== false) {
-                                                                $max = (int) filter_var($name, FILTER_SANITIZE_NUMBER_INT);
-                                                                if ($frame_harga < $max) {
-                                                                    $priceSubkriteria = $subkriteria;
-                                                                    break;
-                                                                }
-                                                            } 
-                                                            elseif (strpos($name, '-') !== false) {
-                                                                $parts = explode('-', $name);
-                                                                $min = (int) filter_var(trim($parts[0]), FILTER_SANITIZE_NUMBER_INT);
-                                                                $max = (int) filter_var(trim($parts[1]), FILTER_SANITIZE_NUMBER_INT);
-                                                                
-                                                                if ($frame_harga >= $min && $frame_harga <= $max) {
-                                                                    $priceSubkriteria = $subkriteria;
-                                                                    break;
-                                                                }
-                                                            }
-                                                            elseif (strpos($name, '>') !== false) {
-                                                                $min = (int) filter_var($name, FILTER_SANITIZE_NUMBER_INT);
-                                                                if ($frame_harga > $min) {
-                                                                    $priceSubkriteria = $subkriteria;
-                                                                    break;
-                                                                }
-                                                            }
-                                                        }
-                                                    }
+                                                    // Combine all kriteria IDs from both input types
+                                                    $kriteria_ids = array_unique(
+                                                        array_merge(
+                                                            array_keys($values), 
+                                                            array_keys($manual_values)
+                                                        )
+                                                    );
                                                 @endphp
                                                 
-                                                @if($priceKriteria && $priceSubkriteria)
-                                                    <tr>
-                                                        <td><strong>{{ $priceKriteria->kriteria_nama }}</strong></td>
-                                                        <td>{{ $priceSubkriteria->subkriteria_nama }}</td>
-                                                    </tr>
-                                                @endif
+                                                @foreach($kriteria_ids as $kriteria_id)
+                                                    @php
+                                                        $kriteria = App\Models\Kriteria::find($kriteria_id);
+                                                        $input_type = $input_types[$kriteria_id] ?? 'checkbox';
+                                                        
+                                                        $display_value = '';
+                                                        $display_type = '';
+                                                        
+                                                        if ($input_type == 'checkbox' && isset($values[$kriteria_id])) {
+                                                            // For checkbox inputs
+                                                            $subkriteriaNames = [];
+                                                            if(is_array($values[$kriteria_id])) {
+                                                                foreach($values[$kriteria_id] as $subkriteria_id) {
+                                                                    $subkriteria = App\Models\Subkriteria::find($subkriteria_id);
+                                                                    if($subkriteria) {
+                                                                        $subkriteriaNames[] = $subkriteria->subkriteria_nama;
+                                                                    }
+                                                                }
+                                                            }
+                                                            $display_value = !empty($subkriteriaNames) ? implode(', ', $subkriteriaNames) : 'Tidak ada nilai';
+                                                            $display_type = '<span class="badge bg-primary">Checkbox</span>';
+                                                        } elseif ($input_type == 'manual' && isset($manual_values[$kriteria_id])) {
+                                                            // For manual inputs
+                                                            $manual_value = $manual_values[$kriteria_id];
+                                                            $display_value = $manual_value;
+                                                            
+                                                            // Find related subkriteria if available
+                                                            $subkriteria = App\Models\Subkriteria::where('kriteria_id', $kriteria_id)
+                                                                ->where(function($query) use ($manual_value) {
+                                                                    $value = (float) $manual_value;
+                                                                    $query->where(function($q) use ($value) {
+                                                                        $q->where('operator', 'between')
+                                                                          ->whereNotNull('nilai_minimum')
+                                                                          ->whereNotNull('nilai_maksimum')
+                                                                          ->where('nilai_minimum', '<=', $value)
+                                                                          ->where('nilai_maksimum', '>=', $value);
+                                                                    })
+                                                                    ->orWhere(function($q) use ($value) {
+                                                                        $q->where('operator', '<')
+                                                                          ->whereNotNull('nilai_maksimum')
+                                                                          ->where('nilai_maksimum', '>', $value);
+                                                                    })
+                                                                    ->orWhere(function($q) use ($value) {
+                                                                        $q->where('operator', '<=')
+                                                                          ->whereNotNull('nilai_maksimum')
+                                                                          ->where('nilai_maksimum', '>=', $value);
+                                                                    })
+                                                                    ->orWhere(function($q) use ($value) {
+                                                                        $q->where('operator', '>')
+                                                                          ->whereNotNull('nilai_minimum')
+                                                                          ->where('nilai_minimum', '<', $value);
+                                                                    })
+                                                                    ->orWhere(function($q) use ($value) {
+                                                                        $q->where('operator', '>=')
+                                                                          ->whereNotNull('nilai_minimum')
+                                                                          ->where('nilai_minimum', '<=', $value);
+                                                                    });
+                                                                })
+                                                                ->first();
+                                                                
+                                                            if ($subkriteria) {
+                                                                $display_value = $manual_value . ' (' . $subkriteria->subkriteria_nama . ')';
+                                                            }
+                                                            
+                                                            $display_type = '<span class="badge bg-success">Manual</span>';
+                                                        }
+                                                    @endphp
+                                                    
+                                                    @if(!empty($display_value))
+                                                        <tr>
+                                                            <td><strong>{{ $kriteria->kriteria_nama ?? 'Kriteria #'.$kriteria_id }}</strong></td>
+                                                            <td>{{ $display_value }}</td>
+                                                            <td>{!! $display_type !!}</td>
+                                                        </tr>
+                                                    @endif
+                                                @endforeach
                                             </tbody>
                                         </table>
                                     </div>
@@ -177,97 +191,121 @@
                     <div class="card-body">
                         <!-- Combine similarFrame and otherSimilarFrames into one collection -->
                         @php
-                            $allSimilarFrames = collect([$similarFrame]);
-                            if(isset($otherSimilarFrames) && count($otherSimilarFrames) > 0) {
-                                $allSimilarFrames = $allSimilarFrames->merge($otherSimilarFrames);
-                            }
-                            $allSimilarFrames = $allSimilarFrames->unique('frame_id');
-                        @endphp
+    $allSimilarFrames = collect([$similarFrame]);
+    if(isset($otherSimilarFrames) && count($otherSimilarFrames) > 0) {
+        $allSimilarFrames = $allSimilarFrames->merge($otherSimilarFrames);
+    }
+    
+    // Filter out frames with different brands (merek) - using case-insensitive comparison
+    $allSimilarFrames = $allSimilarFrames->filter(function($frame) {
+        $sessionMerek = strtolower(session('frame_form_data')['frame_merek'] ?? '');
+        $frameMerek = strtolower($frame->frame_merek ?? '');
+        return $frameMerek === $sessionMerek;
+    })->unique('frame_id');
+@endphp
                         
                         <div class="row">
-                            @foreach($allSimilarFrames as $frame)
-                                <div class="col-md-4 mb-4">
-                                    <div class="card h-100">
-                                        <div class="card-header bg-secondary text-white text-center">
-                                            <h6 class="mb-0">ID: {{ $frame->frame_id }}</h6>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="text-center">
-                                                @if($frame->frame_foto && Storage::disk('public')->exists($frame->frame_foto))
-                                                    <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
-                                                        <img src="{{ asset('storage/' . $frame->frame_foto) }}" 
-                                                             alt="{{ $frame->frame_merek }}" 
-                                                             class="img-thumbnail" 
-                                                             style="max-height: 130px; max-width: 100%; object-fit: contain;">
-                                                    </div>
-                                                @else
-                                                    <div class="text-muted d-flex justify-content-center align-items-center" style="height: 150px;">
-                                                        Gambar tidak tersedia
+                            @if($allSimilarFrames->count() > 0)
+                                @foreach($allSimilarFrames as $frame)
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-secondary text-white text-center">
+                                                <h6 class="mb-0">ID: {{ $frame->frame_id }}</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="text-center">
+                                                    @if($frame->frame_foto && Storage::disk('public')->exists($frame->frame_foto))
+                                                        <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
+                                                            <img src="{{ asset('storage/' . $frame->frame_foto) }}" 
+                                                                 alt="{{ $frame->frame_merek }}" 
+                                                                 class="img-thumbnail" 
+                                                                 style="max-height: 130px; max-width: 100%; object-fit: contain;">
+                                                        </div>
+                                                    @else
+                                                        <div class="text-muted d-flex justify-content-center align-items-center" style="height: 150px;">
+                                                            Gambar tidak tersedia
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                
+                                                <table class="table table-sm table-bordered">
+                                                    <tr>
+                                                        <th width="80" class="bg-light">Merek</th>
+                                                        <td>{{ $frame->frame_merek }}</td>
+                                                    </tr>
+                                                    
+                                                    <tr>
+                                                        <th class="bg-light">Lokasi</th>
+                                                        <td>{{ $frame->frame_lokasi }}</td>
+                                                    </tr>
+                                                </table>
+                                                
+                                                <!-- Show existing criteria information -->
+                                                @if($frame->frameSubkriterias->count() > 0)
+                                                    <div class="mt-2">
+                                                        <h6 class="border-bottom pb-2">Kriteria Frame:</h6>
+                                                        <table class="table table-sm table-bordered">
+                                                            <thead class="bg-light">
+                                                                <tr>
+                                                                    <th>Kriteria</th>
+                                                                    <th>Nilai</th>
+                                                                    <th>Tipe</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @php
+                                                                    $groupedCriteria = $frame->frameSubkriterias->groupBy('kriteria_id');
+                                                                @endphp
+                                                                
+                                                                @foreach($groupedCriteria as $kriteria_id => $frameSubkriterias)
+                                                                    @php
+                                                                        $kriteria = $frameSubkriterias->first()->kriteria;
+                                                                        $subkriteriaNames = [];
+                                                                        $hasManualValue = false;
+                                                                        $manualValue = null;
+                                                                        
+                                                                        foreach($frameSubkriterias as $fs) {
+                                                                            if($fs->subkriteria) {
+                                                                                $subkriteriaNames[] = $fs->subkriteria->subkriteria_nama;
+                                                                                
+                                                                                // Check if this has a manual value
+                                                                                if($fs->manual_value !== null) {
+                                                                                    $hasManualValue = true;
+                                                                                    $manualValue = $fs->manual_value;
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        
+                                                                        $displayValue = implode(', ', $subkriteriaNames);
+                                                                        if($hasManualValue) {
+                                                                            $displayValue = $manualValue . ' (' . $displayValue . ')';
+                                                                            $displayType = '<span class="badge bg-success">Manual</span>';
+                                                                        } else {
+                                                                            $displayType = '<span class="badge bg-primary">Checkbox</span>';
+                                                                        }
+                                                                    @endphp
+                                                                    <tr>
+                                                                        <td><strong>{{ $kriteria->kriteria_nama ?? 'Kriteria #'.$kriteria_id }}</strong></td>
+                                                                        <td>{{ $displayValue }}</td>
+                                                                        <td>{!! $displayType !!}</td>
+                                                                    </tr>
+                                                                @endforeach
+                                                            </tbody>
+                                                        </table>
                                                     </div>
                                                 @endif
-                                            </div>
-                                            
-                                            <table class="table table-sm table-bordered">
-                                                <tr>
-                                                    <th width="80" class="bg-light">Merek</th>
-                                                    <td>{{ $frame->frame_merek }}</td>
-                                                </tr>
-                                                <tr>
-                                                    <th width="80" class="bg-light">Harga</th>
-                                                    <td>Rp {{ number_format($frame->frame_harga, 0, ',', '.') }}</td>
-                                                </tr>
-                                                <tr>
-                                                    <th class="bg-light">Lokasi</th>
-                                                    <td>{{ $frame->frame_lokasi }}</td>
-                                                </tr>
-                                            </table>
-                                            
-                                            <!-- Show existing criteria information -->
-                                            @if($frame->frameSubkriterias->count() > 0)
-                                                <div class="mt-2">
-                                                    <h6 class="border-bottom pb-2">Kriteria Frame:</h6>
-                                                    <table class="table table-sm table-bordered">
-                                                        <thead class="bg-light">
-                                                            <tr>
-                                                                <th>Kriteria</th>
-                                                                <th>Nilai</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @php
-                                                                $groupedCriteria = $frame->frameSubkriterias->groupBy('kriteria_id');
-                                                            @endphp
-                                                            
-                                                            @foreach($groupedCriteria as $kriteria_id => $frameSubkriterias)
-                                                                @php
-                                                                    $kriteria = $frameSubkriterias->first()->kriteria;
-                                                                    $subkriteriaNames = [];
-                                                                    foreach($frameSubkriterias as $fs) {
-                                                                        if($fs->subkriteria) {
-                                                                            $subkriteriaNames[] = $fs->subkriteria->subkriteria_nama;
-                                                                        }
-                                                                    }
-                                                                @endphp
-                                                                <tr>
-                                                                    <td><strong>{{ $kriteria->kriteria_nama ?? 'Kriteria #'.$kriteria_id }}</strong></td>
-                                                                    <td>{{ implode(', ', $subkriteriaNames) }}</td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            @endif
-                                            
-                                            <div class="text-center mt-3">
-                                                <a href="{{ route('frame.show', $frame->frame_id) }}" 
-                                                   class="btn btn-sm btn-primary" target="_blank">
-                                                    <i class="fas fa-eye"></i> Lihat Detail
-                                                </a>
+                                                
                                             </div>
                                         </div>
                                     </div>
+                                @endforeach
+                            @else
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        Tidak ada frame dengan merek yang sama dan foto yang mirip ditemukan.
+                                    </div>
                                 </div>
-                            @endforeach
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -276,9 +314,9 @@
                     <h5>Apakah frame yang Anda tambahkan berbeda dengan frame yang sudah ada?</h5>
                     <p class="text-muted">Silakan pilih tindakan yang sesuai:</p>
                     
-                    <form action="{{ route('frame.process-duplicate') }}" method="POST">
+                    <form action="{{ route('frame.process-duplicate-confirmation') }}" method="POST">
                         @csrf
-                        <div class="btn-group" role="group">
+                        <div class="btn-group confirmation-buttons" role="group">
                             <button type="submit" name="action" value="continue" class="btn btn-success btn-lg">
                                 <i class="fas fa-check"></i> Ya, Lanjutkan Penyimpanan
                             </button>
