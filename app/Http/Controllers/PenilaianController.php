@@ -362,6 +362,7 @@ private function processImageFiles($rekomendasiData)
     $rekomendasiCopy = $rekomendasiData;
     
     foreach ($rekomendasiCopy as &$item) {
+        // Process image copy
         $frameFoto = $item['frame']['frame_foto'] ?? null;
         if ($frameFoto && Storage::disk('public')->exists($frameFoto)) {
             // Generate nama unik untuk file
@@ -374,6 +375,25 @@ private function processImageFiles($rekomendasiData)
             $item['frame']['frame_foto'] = $newFilename;
         } else {
             $item['frame']['frame_foto'] = null; // Jika foto tidak ada
+        }
+        
+        // Make sure frameSubkriterias are properly preserved
+        if (!isset($item['frame']['all_subkriteria']) && isset($item['frame']['frameSubkriterias'])) {
+            $allSubkriteria = [];
+            foreach ($item['frame']['frameSubkriterias'] as $fsk) {
+                if (isset($fsk['subkriteria'])) {
+                    $subk = $fsk['subkriteria'];
+                    // Create a flattened structure that's easier to work with in the view
+                    $allSubkriteria[] = [
+                        'kriteria_id' => $fsk['kriteria_id'],
+                        'subkriteria_id' => $subk['subkriteria_id'],
+                        'subkriteria_nama' => $subk['subkriteria_nama'],
+                        'subkriteria_bobot' => $subk['subkriteria_bobot']
+                    ];
+                }
+            }
+            // Add this flattened structure to the frame data
+            $item['frame']['all_subkriteria'] = $allSubkriteria;
         }
     }
     unset($item); // Hapus reference terakhir

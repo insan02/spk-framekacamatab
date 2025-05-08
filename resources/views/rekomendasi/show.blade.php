@@ -181,107 +181,74 @@
                                             @endif
                                         </td>  
                                         @foreach($kriterias as $kriteria)
-                                        @php
-                                            // Create array to store all subkriterias for this frame and kriteria
-                                            $frameSubkriterias = [];
-                                            $kriteriaId = $kriteria['kriteria_id'];
-                                            $kriteriaNama = $kriteria['kriteria_nama'];
-                                            
-                                            // APPROACH 1: Check in details array (where the calculation-used subkriterias are stored)
-                                            if (isset($frame['details'])) {
-                                                foreach ($frame['details'] as $detail) {
-                                                    if ($detail['kriteria']['kriteria_id'] == $kriteriaId) {
-                                                        // Add main subkriteria used in calculation
-                                                        $mainSubkriteria = $detail['frame_subkriteria'];
-                                                        // Generate unique key for deduplication
-                                                        $key = $mainSubkriteria['subkriteria_id'] ?? $mainSubkriteria['subkriteria_nama'];
-                                                        $frameSubkriterias[$key] = $mainSubkriteria;
-                                                    }
-                                                }
-                                            }
-                                            
-                                            // APPROACH 2: Check in frameSubkriterias array (common data structure)
-                                            if (isset($frame['frame']['frameSubkriterias']) && is_array($frame['frame']['frameSubkriterias'])) {
-                                                foreach ($frame['frame']['frameSubkriterias'] as $fsk) {
-                                                    if ($fsk['kriteria_id'] == $kriteriaId && isset($fsk['subkriteria'])) {
-                                                        $subk = $fsk['subkriteria'];
-                                                        // Generate unique key for deduplication
-                                                        $key = $subk['subkriteria_id'] ?? $subk['subkriteria_nama'];
-                                                        $frameSubkriterias[$key] = $subk;
-                                                    }
-                                                }
-                                            }
-                                            
-                                            // APPROACH 3: Check if frame has all_subkriteria array
-                                            if (isset($frame['frame']['all_subkriteria']) && is_array($frame['frame']['all_subkriteria'])) {
-                                                foreach ($frame['frame']['all_subkriteria'] as $subk) {
-                                                    if (isset($subk['kriteria_id']) && $subk['kriteria_id'] == $kriteriaId) {
-                                                        // Generate unique key for deduplication
-                                                        $key = $subk['subkriteria_id'] ?? $subk['subkriteria_nama'];
-                                                        $frameSubkriterias[$key] = $subk;
-                                                    }
-                                                }
-                                            }
-                                        
-                                            
-                                            // APPROACH 5: Try to extract from any data structure that might have been expanded to include multiple subkriteria values
-                                            $potentialArrayNames = [
-                                                "available_subkriterias", 
-                                                "expanded_data", 
-                                                "all_subkriterias",
-                                                "subkriterias_by_kriteria",
-                                                "{$kriteriaNama}_subkriterias"
-                                            ];
-                                            
-                                            foreach ($potentialArrayNames as $arrayName) {
-                                                if (isset($frame['frame'][$arrayName]) && is_array($frame['frame'][$arrayName])) {
-                                                    foreach ($frame['frame'][$arrayName] as $item) {
-                                                        if ((isset($item['kriteria_id']) && $item['kriteria_id'] == $kriteriaId) || 
-                                                            (isset($item['kriteria_nama']) && $item['kriteria_nama'] == $kriteriaNama)) {
-                                                            
-                                                            if (isset($item['subkriterias']) && is_array($item['subkriterias'])) {
-                                                                foreach ($item['subkriterias'] as $subk) {
-                                                                    $key = $subk['subkriteria_id'] ?? $subk['subkriteria_nama'];
-                                                                    $frameSubkriterias[$key] = $subk;
-                                                                }
-                                                            } elseif (isset($item['subkriteria_nama'])) {
-                                                                $key = $item['subkriteria_id'] ?? $item['subkriteria_nama'];
-                                                                $frameSubkriterias[$key] = $item;
-                                                            }
+                                        <td>
+                                            @php
+                                                $kriteriaId = $kriteria['kriteria_id'];
+                                                $subkriteriaList = [];
+                                                
+                                                // Check in all possible places where subkriteria might be stored
+                                                
+                                                // 1. Check in frameSubkriterias (direct property from original data)
+                                                if (isset($frame['frame']['frameSubkriterias']) && is_array($frame['frame']['frameSubkriterias'])) {
+                                                    foreach ($frame['frame']['frameSubkriterias'] as $fsk) {
+                                                        if ($fsk['kriteria_id'] == $kriteriaId && isset($fsk['subkriteria'])) {
+                                                            $subkriteriaList[] = [
+                                                                'nama' => $fsk['subkriteria']['subkriteria_nama'],
+                                                                'bobot' => $fsk['subkriteria']['subkriteria_bobot']
+                                                            ];
                                                         }
                                                     }
                                                 }
-                                            }
-                                            
-                                            // Convert the associative array back to a simple array
-                                            $frameSubkriterias = array_values($frameSubkriterias);
-                                            
-                                            // SPECIAL HANDLING for NIKE & AIRTECH WARNA (this is a temporary fix)
-                                            // This is hardcoded just to make sure we see the correct output for your specific example
-                                            if ($kriteriaNama == 'Warna Frame' || $kriteriaNama == 'Warna') {
-                                                $frameMerek = $frame['frame']['frame_merek'] ?? '';
                                                 
-                                                if ($frameMerek == 'Nike' && count($frameSubkriterias) < 3) {
-                                                    // Nike should have 3 colors: Gelap (5), Campuran (4), Terang (3)
-                                                    $frameSubkriterias = [
-                                                        ['subkriteria_nama' => 'Gelap', 'subkriteria_bobot' => 5],
-                                                        ['subkriteria_nama' => 'Campuran', 'subkriteria_bobot' => 4],
-                                                        ['subkriteria_nama' => 'Terang', 'subkriteria_bobot' => 3]
-                                                    ];
-                                                } elseif ($frameMerek == 'Airtech' && count($frameSubkriterias) < 2) {
-                                                    // Airtech should have 2 colors: Gelap (5), Campuran (4)
-                                                    $frameSubkriterias = [
-                                                        ['subkriteria_nama' => 'Gelap', 'subkriteria_bobot' => 5],
-                                                        ['subkriteria_nama' => 'Campuran', 'subkriteria_bobot' => 4]
-                                                    ];
+                                                // 2. Check in frame_subkriterias (alternate naming)
+                                                if (isset($frame['frame']['frame_subkriterias']) && is_array($frame['frame']['frame_subkriterias'])) {
+                                                    foreach ($frame['frame']['frame_subkriterias'] as $fsk) {
+                                                        if ($fsk['kriteria_id'] == $kriteriaId) {
+                                                            $subkriteriaList[] = [
+                                                                'nama' => $fsk['subkriteria']['subkriteria_nama'] ?? $fsk['subkriteria_nama'] ?? '',
+                                                                'bobot' => $fsk['subkriteria']['subkriteria_bobot'] ?? $fsk['subkriteria_bobot'] ?? ''
+                                                            ];
+                                                        }
+                                                    }
                                                 }
-                                            }
-                                        @endphp
-                                        <td>
-                                            @if(count($frameSubkriterias) > 0)
-                                                @foreach($frameSubkriterias as $index => $subkriteria)
-                                                    {{ $subkriteria['subkriteria_nama'] }} ({{ $subkriteria['subkriteria_bobot'] }})
-                                                    @if($index < count($frameSubkriterias) - 1)
+                                                
+                                                // 3. Check in all_subkriteria
+                                                if (isset($frame['frame']['all_subkriteria']) && is_array($frame['frame']['all_subkriteria'])) {
+                                                    foreach ($frame['frame']['all_subkriteria'] as $subk) {
+                                                        if ($subk['kriteria_id'] == $kriteriaId) {
+                                                            $subkriteriaList[] = [
+                                                                'nama' => $subk['subkriteria_nama'],
+                                                                'bobot' => $subk['subkriteria_bobot']
+                                                            ];
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                // 4. Check in details array as a fallback
+                                                if (isset($frame['details'])) {
+                                                    foreach ($frame['details'] as $detail) {
+                                                        if ($detail['kriteria']['kriteria_id'] == $kriteriaId) {
+                                                            $subk = $detail['frame_subkriteria'];
+                                                            $subkriteriaList[] = [
+                                                                'nama' => $subk['subkriteria_nama'],
+                                                                'bobot' => $subk['subkriteria_bobot']
+                                                            ];
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                // Remove duplicates by nama
+                                                $uniqueList = [];
+                                                foreach ($subkriteriaList as $item) {
+                                                    $uniqueList[$item['nama']] = $item;
+                                                }
+                                                $subkriteriaList = array_values($uniqueList);
+                                            @endphp
+                                            
+                                            @if(count($subkriteriaList) > 0)
+                                                @foreach($subkriteriaList as $index => $subk)
+                                                    {{ $subk['nama'] }} ({{ $subk['bobot'] }})
+                                                    @if($index < count($subkriteriaList) - 1)
                                                         <br>
                                                     @endif
                                                 @endforeach
@@ -495,9 +462,63 @@
                                         <td>{{ $frame['frame']['frame_lokasi'] }}</td>
                                         <td>
                                             <small>
-                                                @foreach($frame['details'] as $detail)
-                                                    {{ $detail['kriteria']['kriteria_nama'] }}: 
-                                                    {{ $detail['frame_subkriteria']['subkriteria_nama'] }}<br>
+                                                @foreach($kriterias as $kriteria)
+                                                    <strong>{{ $kriteria['kriteria_nama'] }}:</strong><br>
+                                                    @php
+                                                        $kriteriaId = $kriteria['kriteria_id'];
+                                                        $subkriteriaList = [];
+                                                        
+                                                        // Check all possible places where subkriteria might be stored
+                                                        // Same logic as above to find all subkriteria for this frame and kriteria
+                                                        
+                                                        // 1. Check in frameSubkriterias
+                                                        if (isset($frame['frame']['frameSubkriterias']) && is_array($frame['frame']['frameSubkriterias'])) {
+                                                            foreach ($frame['frame']['frameSubkriterias'] as $fsk) {
+                                                                if ($fsk['kriteria_id'] == $kriteriaId && isset($fsk['subkriteria'])) {
+                                                                    $subkriteriaList[] = $fsk['subkriteria']['subkriteria_nama'];
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        // 2. Check in frame_subkriterias
+                                                        if (isset($frame['frame']['frame_subkriterias']) && is_array($frame['frame']['frame_subkriterias'])) {
+                                                            foreach ($frame['frame']['frame_subkriterias'] as $fsk) {
+                                                                if ($fsk['kriteria_id'] == $kriteriaId) {
+                                                                    $subkriteriaList[] = $fsk['subkriteria']['subkriteria_nama'] ?? $fsk['subkriteria_nama'] ?? '';
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        // 3. Check in all_subkriteria
+                                                        if (isset($frame['frame']['all_subkriteria']) && is_array($frame['frame']['all_subkriteria'])) {
+                                                            foreach ($frame['frame']['all_subkriteria'] as $subk) {
+                                                                if ($subk['kriteria_id'] == $kriteriaId) {
+                                                                    $subkriteriaList[] = $subk['subkriteria_nama'];
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        // 4. Check in details array
+                                                        if (isset($frame['details'])) {
+                                                            foreach ($frame['details'] as $detail) {
+                                                                if ($detail['kriteria']['kriteria_id'] == $kriteriaId) {
+                                                                    $subkriteriaList[] = $detail['frame_subkriteria']['subkriteria_nama'];
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        // Remove duplicates
+                                                        $subkriteriaList = array_unique($subkriteriaList);
+                                                    @endphp
+                                                    
+                                                    @if(count($subkriteriaList) > 0)
+                                                        <span class="ps-2">
+                                                            {{ implode(', ', $subkriteriaList) }}
+                                                        </span>
+                                                    @else
+                                                        <span class="ps-2 text-muted">- Tidak ada data</span>
+                                                    @endif
+                                                    <br>
                                                 @endforeach
                                             </small>
                                         </td>

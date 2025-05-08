@@ -409,9 +409,20 @@
                                     <td>{{ $frame['frame']->frame_lokasi }}</td>
                                     <td>
                                         <small>
-                                            @foreach($frame['details'] as $detail)
-                                                {{ $detail['kriteria']->kriteria_nama }}: 
-                                                {{ $detail['frame_subkriteria']->subkriteria_nama }}<br>
+                                            @foreach($perhitungan['kriterias'] as $kriteria)
+                                                <strong>{{ $kriteria->kriteria_nama }}:</strong><br>
+                                                @php
+                                                    $frameSubkriterias = $frame['frame']->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id);
+                                                @endphp
+                                                
+                                                @if($frameSubkriterias->count() > 0)
+                                                <span class="ps-2">
+                                                    {{ $frameSubkriterias->pluck('subkriteria.subkriteria_nama')->implode(', ') }}
+                                                </span><br>
+                                                
+                                                @else
+                                                    <span class="ps-2 text-muted">- Tidak ada data</span><br>
+                                                @endif
                                             @endforeach
                                         </small>
                                     </td>

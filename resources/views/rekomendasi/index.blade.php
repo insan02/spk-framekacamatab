@@ -6,6 +6,11 @@
             <h4 class="mb-0">
                 <i class="fas fa-history me-2"></i>Riwayat Penilaian
             </h4>
+
+            @if(session('success'))
+                <div data-success-message="{{ session('success') }}" style="display:none;"></div>
+            @endif
+            
             @if(auth()->user()->role === 'owner')
             <div>
                 <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#printReportModal">
