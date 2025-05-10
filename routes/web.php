@@ -15,6 +15,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\CustomerController;
+use Illuminate\Support\Facades\Storage;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -118,6 +119,9 @@ Route::post('/frame/{frame}/process-update-duplicate', [FrameController::class, 
 
         Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('logs/delete-all', [ActivityLogController::class, 'deleteAll'])->name('logs.deleteAll');
+
+
     });
 
     Route::middleware('role:owner,karyawan')->group(function () {

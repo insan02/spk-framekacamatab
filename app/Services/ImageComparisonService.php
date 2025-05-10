@@ -35,104 +35,108 @@ class ImageComparisonService
      * @param int $limit Optional limit to return multiple matches
      * @return array|Frame|null Matching frame, array of frames if limit > 1, or null if no match
      */
-    public function findSimilarFrame(UploadedFile $uploadedImage, int $limit = 1)
-    {
-        try {
-            // Create enhanced edge map and histogram signatures
-            $uploadedSignatures = $this->createImageSignatures($uploadedImage);
+    public function findSimilarFrame(UploadedFile $uploadedImage, $returnAllSimilar = true)
+{
+    try {
+        // Create enhanced edge map and histogram signatures
+        $uploadedSignatures = $this->createImageSignatures($uploadedImage);
+        
+        // Get frame count
+        $totalFrames = Frame::count();
+        
+        $matches = [];
+        $matchScores = [];
+        
+        // Process frames in chunks to avoid memory issues
+        $processedFrames = 0;
+        
+        while ($processedFrames < $totalFrames) {
+            // Get frames in chunks
+            $frames = Frame::skip($processedFrames)
+                          ->take(self::CHUNK_SIZE)
+                          ->get();
             
-            // Get frame count
-            $totalFrames = Frame::count();
-            
-            $matches = [];
-            $matchScores = [];
-            
-            // Process frames in chunks to avoid memory issues
-            $processedFrames = 0;
-            
-            while ($processedFrames < $totalFrames) {
-                // Get frames in chunks
-                $frames = Frame::skip($processedFrames)
-                               ->take(self::CHUNK_SIZE)
-                               ->get();
+            foreach ($frames as $frame) {
+                // Skip if frame has no photo
+                if (!$frame->frame_foto || !Storage::disk('public')->exists($frame->frame_foto)) {
+                    continue;
+                }
                 
-                foreach ($frames as $frame) {
-                    // Skip if frame has no photo
-                    if (!$frame->frame_foto || !Storage::disk('public')->exists($frame->frame_foto)) {
-                        continue;
-                    }
+                // Get full path to image file
+                $framePath = storage_path('app/public/' . $frame->frame_foto);
+                
+                // Create signatures from frame image
+                $frameSignatures = $this->createImageSignaturesFromPath($framePath);
+                
+                // Find the best match across all rotation angles
+                $bestDifference = PHP_FLOAT_MAX;
+                
+                foreach (self::ROTATION_ANGLES as $angleIndex => $angle) {
+                    // Compare edge signatures for this angle
+                    $edgeDifference = $this->compareEdgeSignatures(
+                        $uploadedSignatures['edges'][3], // Use original angle (index 3 = 0 degrees) as reference
+                        $frameSignatures['edges'][$angleIndex]
+                    );
                     
-                    // Get full path to image file
-                    $framePath = storage_path('app/public/' . $frame->frame_foto);
+                    // Compare color signatures (with lower weight)
+                    $colorDifference = $this->compareColorHistograms(
+                        $uploadedSignatures['color'][3], // Use original angle (index 3 = 0 degrees) as reference
+                        $frameSignatures['color'][$angleIndex]
+                    );
                     
-                    // Create signatures from frame image
-                    $frameSignatures = $this->createImageSignaturesFromPath($framePath);
+                    // Combined difference score (weighted)
+                    $difference = ($edgeDifference * 0.7) + ($colorDifference * 0.3);
                     
-                    // Find the best match across all rotation angles
-                    $bestDifference = PHP_FLOAT_MAX;
-                    
-                    foreach (self::ROTATION_ANGLES as $angleIndex => $angle) {
-                        // Compare edge signatures for this angle
-                        $edgeDifference = $this->compareEdgeSignatures(
-                            $uploadedSignatures['edges'][3], // Use original angle (index 3 = 0 degrees) as reference
-                            $frameSignatures['edges'][$angleIndex]
-                        );
-                        
-                        // Compare color signatures (with lower weight)
-                        $colorDifference = $this->compareColorHistograms(
-                            $uploadedSignatures['color'][3], // Use original angle (index 3 = 0 degrees) as reference
-                            $frameSignatures['color'][$angleIndex]
-                        );
-                        
-                        // Combined difference score (weighted)
-                        $difference = ($edgeDifference * 0.7) + ($colorDifference * 0.3);
-                        
-                        if ($difference < $bestDifference) {
-                            $bestDifference = $difference;
-                        }
-                    }
-                    
-                    // Store best score for sorting
-                    $matchScores[$frame->frame_id] = $bestDifference;
-                    
-                    // If difference is below threshold, add to matches
-                    if ($bestDifference < self::SIMILARITY_THRESHOLD) {
-                        $matches[$frame->frame_id] = $frame;
+                    if ($difference < $bestDifference) {
+                        $bestDifference = $difference;
                     }
                 }
                 
-                $processedFrames += self::CHUNK_SIZE;
+                // Store best score for sorting
+                $matchScores[$frame->frame_id] = $bestDifference;
+                
+                // If difference is below threshold, add to matches
+                if ($bestDifference < self::SIMILARITY_THRESHOLD) {
+                    $matches[$frame->frame_id] = $frame;
+                }
             }
             
-            // No matches found
-            if (empty($matches)) {
-                return null;
-            }
-            
-            // Sort matches by similarity (lowest = most similar)
-            asort($matchScores);
-            
-            // Filter matches based on limit
+            $processedFrames += self::CHUNK_SIZE;
+        }
+        
+        // No matches found
+        if (empty($matches)) {
+            return $returnAllSimilar ? [] : null;
+        }
+        
+        // Sort matches by similarity (lowest = most similar)
+        asort($matchScores);
+        
+        // Jika returnAllSimilar true, kembalikan semua frame yang mirip
+        if ($returnAllSimilar) {
             $result = [];
-            $count = 0;
             foreach (array_keys($matchScores) as $frameId) {
                 if (isset($matches[$frameId])) {
                     $result[] = $matches[$frameId];
-                    $count++;
-                    
-                    if ($count >= $limit) {
-                        break;
-                    }
                 }
             }
-            
-            return $limit === 1 ? $result[0] : $result;
-            
-        } catch (\Exception $e) {
-            Log::error('Error in image comparison: ' . $e->getMessage());
-            return null;
+            return $result;
+        } else {
+            // Jika returnAllSimilar false, kembalikan hanya frame paling mirip
+            foreach (array_keys($matchScores) as $frameId) {
+                if (isset($matches[$frameId])) {
+                    return $matches[$frameId];
+                }
+            }
         }
+        
+        return $returnAllSimilar ? [] : null;
+        
+    } catch (\Exception $e) {
+        Log::error('Error in image comparison: ' . $e->getMessage());
+        return $returnAllSimilar ? [] : null;
     }
+}
     
     /**
      * Create signatures from uploaded image file

@@ -204,7 +204,34 @@ class FrameController extends Controller
                             ->with('error', 'Terjadi kesalahan saat memproses gambar.');
         }
     }
-
+private function backupImageForLogs($originalPath)
+{
+    // Skip if no image
+    if (!$originalPath) {
+        return null;
+    }
+    
+    // Make sure logs_archive directory exists
+    $logsArchiveDir = 'logs_archive';
+    if (!Storage::disk('public')->exists($logsArchiveDir)) {
+        Storage::disk('public')->makeDirectory($logsArchiveDir);
+    }
+    
+    // Generate a unique name for the archived file
+    $fileName = 'log_' . time() . '_' . basename($originalPath);
+    $archivePath = $logsArchiveDir . '/' . $fileName;
+    
+    // Only proceed if original file exists
+    if (Storage::disk('public')->exists($originalPath)) {
+        // Copy the file to the logs archive
+        Storage::disk('public')->copy($originalPath, $archivePath);
+        
+        // Return the archive path
+        return $archivePath;
+    }
+    
+    return null;
+}
 /**
  * Get all similar frame IDs from similarity details with improved filtering
  * Modified to properly handle multiple subkriteria selections
@@ -251,7 +278,6 @@ private function findFramesWithSimilarData(Request $request, $excludeFrameId = n
     $query = Frame::whereRaw('LOWER(frame_merek) = ?', [strtolower($request->frame_merek)])
                   ->whereRaw('LOWER(frame_lokasi) = ?', [strtolower($request->frame_lokasi)]);
     
-    // Exclude the current frame if we're updating
     if ($excludeFrameId) {
         $query->where('frame_id', '!=', $excludeFrameId);
     }
@@ -259,183 +285,92 @@ private function findFramesWithSimilarData(Request $request, $excludeFrameId = n
     $similarMerekAndLokasi = $query->get();
     
     if ($similarMerekAndLokasi->isEmpty()) {
-        return []; // No matches on basic data
+        return [];
     }
-    
-    // Step 2: Extract requested criteria
-    $requestedCriteria = [];
+
+    // Step 2: Extract requested criteria with validation
     $requestedCriteriaByType = [];
     $input_types = $request->input('input_type', []);
-    
-    // Process checkbox criteria values
-    if ($request->has('nilai')) {
-        foreach ($request->nilai as $kriteria_id => $subkriteria_ids) {
-            // Only process if input type is checkbox or not specified
-            if (!isset($input_types[$kriteria_id]) || $input_types[$kriteria_id] == 'checkbox') {
-                foreach ($subkriteria_ids as $subkriteria_id) {
-                    $requestedCriteria[] = [
-                        'kriteria_id' => $kriteria_id,
-                        'subkriteria_id' => $subkriteria_id,
-                        'input_type' => 'checkbox',
-                        'value' => null
-                    ];
-                    
-                    // Group by kriteria_id for easier comparison
-                    $key = $kriteria_id . '_checkbox';
-                    if (!isset($requestedCriteriaByType[$key])) {
-                        $requestedCriteriaByType[$key] = [];
-                    }
-                    $requestedCriteriaByType[$key][] = $subkriteria_id;
-                }
-            }
+
+    // Process checkbox criteria
+    foreach ($request->input('nilai', []) as $kriteria_id => $subkriteria_ids) {
+        // Default to checkbox if not specified
+        if (($input_types[$kriteria_id] ?? 'checkbox') == 'checkbox') {
+            $requestedCriteriaByType[$kriteria_id . '_checkbox'] = array_unique((array)$subkriteria_ids);
         }
     }
-    
-    // Process manual input values
-    if ($request->has('nilai_manual')) {
-        foreach ($request->nilai_manual as $kriteria_id => $value) {
-            if (isset($input_types[$kriteria_id]) && $input_types[$kriteria_id] == 'manual' && !empty($value)) {
-                // Find the corresponding subkriteria for this value
-                $subkriteria = $this->findSubkriteriaForValue($kriteria_id, $value);
-                if ($subkriteria) {
-                    $requestedCriteria[] = [
-                        'kriteria_id' => $kriteria_id,
-                        'subkriteria_id' => $subkriteria->subkriteria_id,
-                        'input_type' => 'manual',
-                        'value' => $value
-                    ];
-                    
-                    // Group by kriteria_id for easier comparison
-                    $key = $kriteria_id . '_manual';
-                    if (!isset($requestedCriteriaByType[$key])) {
-                        $requestedCriteriaByType[$key] = [];
-                    }
-                    $requestedCriteriaByType[$key][] = [
-                        'subkriteria_id' => $subkriteria->subkriteria_id,
-                        'value' => $value
-                    ];
-                }
-            }
-        }
-    }
-    
-    // If no criteria provided, just return frames with similar basic info
-    if (empty($requestedCriteria)) {
-        return $similarMerekAndLokasi->pluck('frame_id')->toArray();
-    }
-    
-    // Results array for frames with similar (not necessarily identical) criteria
-    $similarFrames = [];
-    $exactMatchFrames = []; // For exact matches
-    $partialMatchFrames = []; // For partial matches (overlapping subkriteria)
-    
-    foreach ($similarMerekAndLokasi as $frameItem) {
-        // Load frame subkriterias if not already loaded
-        if (!$frameItem->relationLoaded('frameSubkriterias')) {
-            $frameItem->load('frameSubkriterias.subkriteria');
-        }
-        
-        // Group the frame's criteria by input type and kriteria_id
-        $frameCriteriaByType = [];
-        foreach ($frameItem->frameSubkriterias as $fs) {
-            $input_type = $fs->manual_value !== null ? 'manual' : 'checkbox';
-            $key = $fs->kriteria_id . '_' . $input_type;
-            
-            if (!isset($frameCriteriaByType[$key])) {
-                $frameCriteriaByType[$key] = [];
-            }
-            
-            if ($input_type == 'manual') {
-                $frameCriteriaByType[$key][] = [
-                    'subkriteria_id' => $fs->subkriteria_id,
-                    'value' => $fs->manual_value
+
+    // Process manual criteria
+    foreach ($request->input('nilai_manual', []) as $kriteria_id => $value) {
+        if (($input_types[$kriteria_id] ?? 'manual') == 'manual' && !empty($value)) {
+            if ($subkriteria = $this->findSubkriteriaForValue($kriteria_id, $value)) {
+                $requestedCriteriaByType[$kriteria_id . '_manual'] = [
+                    ['subkriteria_id' => $subkriteria->subkriteria_id, 'value' => $value]
                 ];
-            } else {
-                $frameCriteriaByType[$key][] = $fs->subkriteria_id;
             }
-        }
-        
-        // Track similarity metrics
-        $exactMatchCount = 0;
-        $partialMatchCount = 0;
-        $totalCriteriaTypes = count($requestedCriteriaByType);
-        
-        // Compare criteria
-        foreach ($requestedCriteriaByType as $key => $requestedValues) {
-            list($kriteria_id, $input_type) = explode('_', $key);
-            
-            // If this frame doesn't have this criteria type at all, it's definitely not an exact match
-            if (!isset($frameCriteriaByType[$key])) {
-                continue;
-            }
-            
-            $frameValues = $frameCriteriaByType[$key];
-            
-            if ($input_type == 'checkbox') {
-                // For checkbox values, we need to check overlap in subkriteria_ids
-                $requestedSet = array_values((array)$requestedValues);
-                $frameSet = array_values((array)$frameValues);
-                
-                // Check for exact match (same size and all elements match)
-                if (count($requestedSet) == count($frameSet) && 
-                    empty(array_diff($requestedSet, $frameSet)) && 
-                    empty(array_diff($frameSet, $requestedSet))) {
-                    $exactMatchCount++;
-                }
-                // Check for partial match (at least one common subkriteria)
-                elseif (!empty(array_intersect($requestedSet, $frameSet))) {
-                    $partialMatchCount++;
-                }
-            } else if ($input_type == 'manual') {
-                // For manual inputs, we need to check exact matches including values
-                $matched = false;
-                
-                // There's usually only one manual value per criteria
-                if (isset($requestedValues[0]) && isset($frameValues[0])) {
-                    if ($requestedValues[0]['subkriteria_id'] == $frameValues[0]['subkriteria_id'] &&
-                        $requestedValues[0]['value'] == $frameValues[0]['value']) {
-                        $exactMatchCount++;
-                        $matched = true;
-                    }
-                }
-                
-                // If not an exact match, we don't count manual inputs as partial matches
-            }
-        }
-        
-        // Determine if this is an exact or partial match
-        if ($exactMatchCount == $totalCriteriaTypes && 
-            count($frameCriteriaByType) == $totalCriteriaTypes) {
-            // All criteria match exactly, and there are no extra criteria in the frame
-            $exactMatchFrames[] = $frameItem->frame_id;
-            
-            Log::info('Frame exact similarity match', [
-                'frame_id' => $frameItem->frame_id,
-                'similarity' => '100% (exact match)',
-                'matched_criteria' => $exactMatchCount,
-                'total_criteria' => $totalCriteriaTypes
-            ]);
-        } 
-        elseif ($exactMatchCount + $partialMatchCount > 0) {
-            // At least some criteria match partially
-            $partialMatchFrames[] = $frameItem->frame_id;
-            
-            $similarityPercentage = ($exactMatchCount / $totalCriteriaTypes) * 100;
-            
-            Log::info('Frame partial similarity match', [
-                'frame_id' => $frameItem->frame_id,
-                'similarity' => $similarityPercentage . '% (partial match)',
-                'exact_matches' => $exactMatchCount,
-                'partial_matches' => $partialMatchCount,
-                'total_criteria' => $totalCriteriaTypes
-            ]);
         }
     }
+
+    if (empty($requestedCriteriaByType)) {
+        return [];
+    }
+
+    // Step 3: Strict comparison
+    $similarFrames = [];
     
-    // Combine exact and partial matches, prioritizing exact matches
-    $similarFrames = array_merge($exactMatchFrames, $partialMatchFrames);
-    
-    return array_unique($similarFrames);
+    foreach ($similarMerekAndLokasi as $frame) {
+        $frame->load('frameSubkriterias.subkriteria');
+        
+        $frameCriteria = [
+            'checkbox' => [],
+            'manual' => []
+        ];
+        
+        foreach ($frame->frameSubkriterias as $fs) {
+            $type = $fs->manual_value !== null ? 'manual' : 'checkbox';
+            $frameCriteria[$type][$fs->kriteria_id][] = $fs->manual_value ?? $fs->subkriteria_id;
+        }
+
+        $allMatch = true;
+        
+        foreach ($requestedCriteriaByType as $key => $requested) {
+            list($kriteria_id, $type) = explode('_', $key);
+            
+            // Check if kriteria exists in frame
+            if (!isset($frameCriteria[$type][$kriteria_id])) {
+                $allMatch = false;
+                break;
+            }
+            
+            $frameValues = $frameCriteria[$type][$kriteria_id];
+            
+            // Check values
+            if ($type == 'checkbox') {
+                if (count(array_intersect($requested, $frameValues)) == 0) {
+                    $allMatch = false;
+                    break;
+                }
+            } else {
+                $found = false;
+                foreach ($frameValues as $fv) {
+                    if (in_array($fv, array_column($requested, 'value'))) {
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) {
+                    $allMatch = false;
+                    break;
+                }
+            }
+        }
+        
+        if ($allMatch) {
+            $similarFrames[] = $frame->frame_id;
+        }
+    }
+
+    return $similarFrames;
 }
 
 /**
@@ -450,6 +385,7 @@ private function checkForSimilarFrames(Request $request, $excludeFrameId = null)
     // Initialize result array
     $result = [
         'similarFrame' => null,
+        'allSimilarFrames' => [],
         'similarityDetails' => [
             'exactMatches' => [],
             'partialMatches' => []
@@ -458,23 +394,37 @@ private function checkForSimilarFrames(Request $request, $excludeFrameId = null)
     
     // 1. Check for similar images if a new image is uploaded
     if ($request->hasFile('frame_foto')) {
-        $similarFrame = $this->imageComparisonService->findSimilarFrame($request->file('frame_foto'));
+        // Gunakan parameter true untuk mendapatkan semua frame yang mirip
+        $similarFrames = $this->imageComparisonService->findSimilarFrame($request->file('frame_foto'), true);
         
-        // Only consider image similarity if the brand (merek) also matches (case-insensitive) and it's not the current frame
-        if ($similarFrame && 
-            strtolower($similarFrame->frame_merek) === strtolower($request->frame_merek) && 
-            (!$excludeFrameId || $similarFrame->frame_id != $excludeFrameId)) {
+        // Filter frames mirip berdasarkan merek dan exclude ID jika ada
+        $filteredSimilarFrames = collect($similarFrames)->filter(function($frame) use ($request, $excludeFrameId) {
+            return strtolower($frame->frame_merek) === strtolower($request->frame_merek) && 
+                   (!$excludeFrameId || $frame->frame_id != $excludeFrameId);
+        })->values()->all();
+        
+        // Jika ada frames yang mirip setelah filtering
+        if (!empty($filteredSimilarFrames)) {
+            // Simpan semua frame mirip
+            $result['allSimilarFrames'] = $filteredSimilarFrames;
             
-            $result['similarFrame'] = $similarFrame;
+            // Tetap simpan similarFrame (frame paling mirip) untuk kompatibilitas dengan kode lain
+            $result['similarFrame'] = $filteredSimilarFrames[0];
+            
+            $frameIds = array_map(function($frame) {
+                return $frame->frame_id;
+            }, $filteredSimilarFrames);
+            
             $result['similarityDetails']['image'] = [
                 'similar' => true,
-                'message' => 'Foto frame serupa dengan frame yang sudah ada dengan merek yang sama',
-                'frame_id' => $similarFrame->frame_id
+                'message' => 'Foto frame serupa dengan ' . count($filteredSimilarFrames) . 
+                             ' frame yang sudah ada dengan merek yang sama',
+                'frame_ids' => $frameIds
             ];
             
-            Log::info('Detected similar image', [
-                'frame_id' => $similarFrame->frame_id,
-                'frame_merek' => $similarFrame->frame_merek,
+            Log::info('Detected similar images', [
+                'count' => count($filteredSimilarFrames),
+                'frame_ids' => $frameIds,
                 'requested_merek' => $request->frame_merek
             ]);
         }
@@ -501,9 +451,14 @@ private function checkForSimilarFrames(Request $request, $excludeFrameId = null)
             'count' => count($framesWithSimilarData)
         ]);
         
-        // If no similar frame by image found yet, use the first one with similar data
+        // Jika belum ada frame mirip berdasarkan gambar, gunakan yang pertama dari data mirip
         if (!$result['similarFrame'] && !empty($framesWithSimilarData)) {
             $result['similarFrame'] = Frame::find($framesWithSimilarData[0]);
+            
+            // Ambil semua frame dengan data mirip untuk similarFrames jika belum ada
+            if (empty($result['allSimilarFrames'])) {
+                $result['allSimilarFrames'] = Frame::whereIn('frame_id', $framesWithSimilarData)->get()->all();
+            }
         }
     }
     
@@ -856,42 +811,43 @@ private function determineCriteriaStatus($existingValues, $newValues, $inputType
 
     // In FrameController.php
     public function store(Request $request)
-    {
-        $request->validate([
-            'frame_merek' => 'required|string|max:255',
-            'frame_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-            'frame_lokasi' => 'required|string|max:255',
-            'nilai.*' => 'nullable|array',
-            'nilai.*.*' => 'nullable|exists:subkriterias,subkriteria_id',
-            'nilai_manual.*' => 'nullable',
-            'input_type.*' => 'nullable|in:checkbox,manual'
+{
+    $request->validate([
+        'frame_merek' => 'required|string|max:255',
+        'frame_foto' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        'frame_lokasi' => 'required|string|max:255',
+        'nilai.*' => 'nullable|array',
+        'nilai.*.*' => 'nullable|exists:subkriterias,subkriteria_id',
+        'nilai_manual.*' => 'nullable',
+        'input_type.*' => 'nullable|in:checkbox,manual'
+    ]);
+    
+    // Check for similar frames based on both image and data
+    $similarityResults = $this->checkForSimilarFrames($request);
+    
+    // If similar frames found, redirect to confirmation page
+    if ($similarityResults['similarFrame']) {
+        // Store the uploaded image temporarily
+        $tempImageName = 'temp_' . time() . '.' . $request->frame_foto->extension();
+        $request->frame_foto->move(public_path('storage/temp'), $tempImageName);
+        
+        // Store all the form data (exclude the file)
+        $formData = $request->except(['frame_foto', '_token']);
+        
+        // Store in session
+        session([
+            'frame_form_data' => $formData,
+            'temp_image' => 'temp/' . $tempImageName,
+            'similarity_details' => $similarityResults['similarityDetails'],
+            'all_similar_frames' => $similarityResults['allSimilarFrames'] ?? []
         ]);
         
-        // Check for similar frames based on both image and data
-        $similarityResults = $this->checkForSimilarFrames($request);
-        
-        // If similar frames found, redirect to confirmation page
-        if ($similarityResults['similarFrame']) {
-            // Store the uploaded image temporarily
-            $tempImageName = 'temp_' . time() . '.' . $request->frame_foto->extension();
-            $request->frame_foto->move(public_path('storage/temp'), $tempImageName);
-            
-            // Store all the form data (exclude the file)
-            $formData = $request->except(['frame_foto', '_token']);
-            
-            // Store in session
-            session([
-                'frame_form_data' => $formData,
-                'temp_image' => 'temp/' . $tempImageName,
-                'similarity_details' => $similarityResults['similarityDetails']
-            ]);
-            
-            return redirect()->route('frame.confirm-duplicate', ['similar_frame_id' => $similarityResults['similarFrame']->frame_id]);
-        }
-
-        // No similar frame found, proceed with saving
-        return $this->saveNewFrame($request);
+        return redirect()->route('frame.confirm-duplicate', ['similar_frame_id' => $similarityResults['similarFrame']->frame_id]);
     }
+
+    // No similar frame found, proceed with saving
+    return $this->saveNewFrame($request);
+}
 
     private function saveNewFrame(Request $request, $tempImagePath = null)
 {
@@ -1005,13 +961,16 @@ private function determineCriteriaStatus($existingValues, $newValues, $inputType
         }
     }
 
-    // Log activity
+    $frameData = $frame->toArray();
+    $frameData['subkriterias'] = $this->getFrameSubkriteriaData($frame->frame_id);
+    
+    // Log activity with complete data
     ActivityLogService::log(
         'create',
         'frame',
         $frame->frame_id,
         null,
-        $frame->toArray(),
+        $frameData,
         'Membuat frame baru: ' . $frame->frame_merek
     );
 
@@ -1022,7 +981,7 @@ private function determineCriteriaStatus($existingValues, $newValues, $inputType
     public function confirmDuplicate(Request $request, $similar_frame_id) 
 {
     $similarFrame = Frame::with(['frameSubkriterias.kriteria', 'frameSubkriterias.subkriteria'])
-                         ->findOrFail($similar_frame_id);
+                       ->findOrFail($similar_frame_id);
     
     // Get temp image from session
     $tempImagePath = session('temp_image');
@@ -1030,35 +989,48 @@ private function determineCriteriaStatus($existingValues, $newValues, $inputType
     // Get similarity details
     $similarityDetails = session('similarity_details', []);
     
-    // Get other similar frames if available
-    $otherSimilarFrameIds = $this->getAllSimilarFrameIds($similarityDetails);
-    $otherSimilarFrames = [];
+    // Get all similar frames langsung dari session
+    $allSimilarFrames = session('all_similar_frames', []);
+    
+    // Jika tidak ada di session (compatibility), coba dapatkan dari similarity details
+    if (empty($allSimilarFrames)) {
+        $otherSimilarFrameIds = $this->getAllSimilarFrameIds($similarityDetails);
+        
+        // Get the frame_merek from the session data
+        $formData = session('frame_form_data', []);
+        $brand = $formData['frame_merek'] ?? null;
+        
+        if (!empty($otherSimilarFrameIds)) {
+            // Fetch frames with the same ID and filter by brand (case-insensitive)
+            $query = Frame::whereIn('frame_id', $otherSimilarFrameIds);
+                        
+            // Add brand filter if brand is provided (case-insensitive)   
+            if ($brand) {
+                $query->whereRaw('LOWER(frame_merek) = ?', [strtolower($brand)]);
+            }
+            
+            $allSimilarFrames = $query->get()->all();
+        }
+    }
+    
+    // Pastikan frame yang sedang ditampilkan selalu muncul pertama
+    usort($allSimilarFrames, function($a, $b) use ($similar_frame_id) {
+        if ($a->frame_id == $similar_frame_id) return -1;
+        if ($b->frame_id == $similar_frame_id) return 1;
+        return 0;
+    });
     
     // Get the frame_merek from the session data
     $formData = session('frame_form_data', []);
-    $brand = $formData['frame_merek'] ?? null;
     
     // Load the criteria data for comparison display in the view
     $criteriaComparison = $this->prepareComparisonData($similarFrame, $formData);
-    
-    if (!empty($otherSimilarFrameIds)) {
-        // Fetch frames with the same ID and filter by brand (case-insensitive)
-        $query = Frame::whereIn('frame_id', $otherSimilarFrameIds)
-                    ->where('frame_id', '!=', $similar_frame_id);
-                    
-        // Add brand filter if brand is provided (case-insensitive)   
-        if ($brand) {
-            $query->whereRaw('LOWER(frame_merek) = ?', [strtolower($brand)]);
-        }
-        
-        $otherSimilarFrames = $query->limit(5)->get();
-    }
     
     return view('frame.confirm-duplicate', compact(
         'similarFrame', 
         'tempImagePath', 
         'similarityDetails', 
-        'otherSimilarFrames',
+        'allSimilarFrames',
         'criteriaComparison'
     ));
 }
@@ -1132,7 +1104,6 @@ private function determineCriteriaStatus($existingValues, $newValues, $inputType
 }
 
 
-
 public function update(Request $request, Frame $frame)
 {
     $request->validate([
@@ -1147,6 +1118,11 @@ public function update(Request $request, Frame $frame)
 
     // Store old data for logging
     $oldData = $frame->toArray();
+    // If there's an image, backup it for logging
+    if ($frame->frame_foto && Storage::disk('public')->exists($frame->frame_foto)) {
+        $oldData['log_image_backup'] = $this->backupImageForLogs($frame->frame_foto);
+    }
+    $oldData['subkriterias'] = $this->getFrameSubkriteriaData($frame->frame_id);
     $oldFrameMerek = $frame->frame_merek;
 
     // Check if there's a confirmed similarity from session
@@ -1190,7 +1166,8 @@ public function update(Request $request, Frame $frame)
             Log::info('Redirecting to confirmation page due to similarity', [
                 'frame_id' => $frame->frame_id,
                 'similar_frame_id' => $similarityResults['similarFrame']->frame_id,
-                'similarity_details' => $similarityResults['similarityDetails']
+                'similarity_details' => $similarityResults['similarityDetails'],
+                'all_similar_frames_count' => count($similarityResults['allSimilarFrames'] ?? [])
             ]);
             
             // Redirect to confirmation page
@@ -1306,14 +1283,16 @@ public function update(Request $request, Frame $frame)
         }
     }
 
-    // Log activity
+    $newData = $frame->toArray();
+    $newData['subkriterias'] = $this->getFrameSubkriteriaData($frame->frame_id);
+
     ActivityLogService::log(
         'update',
         'frame',
         $frame->frame_id,
         $oldData,
-        $frame->toArray(),
-        'Memperbarui frame: ' . $oldFrameMerek . ' menjadi ' . $frame->frame_merek
+        $newData,
+        'Memperbarui frame: ' . $oldFrameMerek 
     );
 
     // Clear any temp session data
@@ -1334,21 +1313,28 @@ public function confirmUpdateDuplicate($frame_id)
     $similarFrameId = $similarityResults['similarFrame']->frame_id ?? null;
     $similarFrame = $similarFrameId ? Frame::with(['frameSubkriterias.kriteria', 'frameSubkriterias.subkriteria'])->find($similarFrameId) : null;
     
-    // Get other similar frames if available
-    $otherSimilarFrameIds = [];
+    // Get all similar frames
+    $allSimilarFrames = $similarityResults['allSimilarFrames'] ?? [];
     
-    if (isset($similarityResults['similarityDetails'])) {
+    // Jika tidak ada di similarityResults, coba dapatkan dari similarity details
+    if (empty($allSimilarFrames) && isset($similarityResults['similarityDetails'])) {
         $otherSimilarFrameIds = $this->getAllSimilarFrameIds($similarityResults['similarityDetails']);
+        
+        if (!empty($otherSimilarFrameIds)) {
+            $allSimilarFrames = Frame::whereIn('frame_id', $otherSimilarFrameIds)
+                                     ->where('frame_id', '!=', $frame_id)
+                                     ->get()
+                                     ->all();
+        }
     }
     
-    $otherSimilarFrames = [];
-    
-    if (!empty($otherSimilarFrameIds) && $similarFrameId) {
-        $otherSimilarFrames = Frame::whereIn('frame_id', $otherSimilarFrameIds)
-                                   ->where('frame_id', '!=', $similarFrameId)  
-                                   ->where('frame_id', '!=', $frame_id)
-                                   ->limit(5)
-                                   ->get();
+    // Pastikan frame yang paling mirip muncul pertama jika ada
+    if ($similarFrameId) {
+        usort($allSimilarFrames, function($a, $b) use ($similarFrameId) {
+            if ($a->frame_id == $similarFrameId) return -1;
+            if ($b->frame_id == $similarFrameId) return 1;
+            return 0;
+        });
     }
     
     // Get temp image from session
@@ -1367,13 +1353,14 @@ public function confirmUpdateDuplicate($frame_id)
         'frame_id' => $frame_id,
         'nilai' => $formData['nilai'] ?? [],
         'nilai_manual' => $formData['nilai_manual'] ?? [],
-        'input_type' => $formData['input_type'] ?? []
+        'input_type' => $formData['input_type'] ?? [],
+        'similar_frames_count' => count($allSimilarFrames)
     ]);
     
     return view('frame.confirm-update-duplicate', compact(
         'frame',
         'similarFrame',
-        'otherSimilarFrames',
+        'allSimilarFrames',
         'tempImagePath',
         'similarityResults',
         'criteriaComparison'
@@ -1521,36 +1508,82 @@ public function processUpdateDuplicate(Request $request, $frame_id)
     }
 }
 
+private function getFrameSubkriteriaData($frameId)
+{
+    $subkriterias = FrameSubkriteria::where('frame_id', $frameId)
+        ->with(['kriteria', 'subkriteria'])
+        ->get()
+        ->map(function($item) {
+            $kriteriaName = $item->kriteria ? $item->kriteria->kriteria_nama : 'Unknown';
+            $subkriteriaName = $item->subkriteria ? $item->subkriteria->subkriteria_nama : 'Unknown';
+            
+            return [
+                'kriteria_id' => $item->kriteria_id,
+                'kriteria_nama' => $kriteriaName,
+                'subkriteria_id' => $item->subkriteria_id,
+                'subkriteria_nama' => $subkriteriaName,
+                'manual_value' => $item->manual_value
+            ];
+        })
+        ->toArray();
+        
+    return $subkriterias;
+}
     public function destroy(Frame $frame)
-    {
-
-        $frameData = $frame->toArray();
-        $frameId = $frame->frame_id;
-        $frameMerek = $frame->frame_merek;
-        $frameHarga = $frame->frame_harga;
-
-        if($frame->frame_foto) {
-            $path = public_path('storage/' . $frame->frame_foto);
-            if(file_exists($path)) {
-                unlink($path);
-            }
+{
+    // Ambil data frame sebelum dihapus, termasuk informasi subkriteria
+    $frameData = $frame->toArray();
+    // Backup image for logging before deletion
+    if ($frame->frame_foto && Storage::disk('public')->exists($frame->frame_foto)) {
+        $frameData['log_image_backup'] = $this->backupImageForLogs($frame->frame_foto);
+    }
+    $frameData['subkriterias'] = $this->getFrameSubkriteriaData($frame->frame_id);
+    
+    $frameId = $frame->frame_id;
+    $frameMerek = $frame->frame_merek;
+    $frameImagePath = $frame->frame_foto; // Simpan path foto untuk logging
+    
+    // Log activity sebelum menghapus file fisik dan data
+    ActivityLogService::log(
+        'delete',
+        'frame',
+        $frameId,
+        $frameData,
+        null,
+        'Menghapus frame: ' . $frameMerek
+    );
+    
+    // Hapus file fisik jika ada
+    if($frameImagePath) {
+        // Pastikan path lengkap untuk penghapusan file
+        // Jika path tidak dimulai dengan storage/, tambahkan
+        if (strpos($frameImagePath, 'storage/') !== 0) {
+            $fullPath = public_path('storage/' . $frameImagePath);
+        } else {
+            $fullPath = public_path($frameImagePath);
         }
         
-        $frame->frameSubkriterias()->delete();
-        $frame->delete();
-
-         // Log activity
-         ActivityLogService::log(
-            'delete',
-            'frame',
-            $frameId,
-            $frameData,
-            null,
-            'Menghapus frame: ' . $frameMerek
-        );
-
-        return redirect()->route('frame.index')->with('success', 'Frame berhasil dihapus');
+        // Log info tentang penghapusan file
+        Log::info('Mencoba menghapus file frame', [
+            'frame_id' => $frameId,
+            'frame_foto' => $frameImagePath,
+            'full_path' => $fullPath,
+            'file_exists' => file_exists($fullPath)
+        ]);
+        
+        if(file_exists($fullPath)) {
+            unlink($fullPath);
+        }
     }
+    
+    // Hapus data subkriteria terkait
+    $frame->frameSubkriterias()->delete();
+    
+    // Hapus data frame
+    $frame->delete();
+
+    return redirect()->route('frame.index')->with('success', 'Frame berhasil dihapus');
+}
 
     public function resetFrameKriteria(Request $request)
 {

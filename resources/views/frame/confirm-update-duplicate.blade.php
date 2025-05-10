@@ -16,7 +16,7 @@
                 <!-- Similarity Details Panel -->
                 @if(isset($similarityResults['similarityDetails']))
                 <div class="card mb-4">
-                    <div class="card-header bg-info text-white">
+                    <div class="card-header bg-primary text-white">
                         <h5 class="mb-0">Info Kemiripan</h5>
                     </div>
                     <div class="card-body">
@@ -384,127 +384,93 @@
                 
                 <!-- Similar Frames Section -->
                 <div class="card mb-4 mt-4">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">Frame Serupa</h5>
-                    </div>
-                    <div class="card-body">
-                        @php
-                            $allSimilarFrames = collect([]);
-                            
-                            if (isset($similarFrame) && $similarFrame) {
-                                $allSimilarFrames = collect([$similarFrame]);
-                            }
-                            
-                            if (isset($otherSimilarFrames) && count($otherSimilarFrames) > 0) {
-                                $allSimilarFrames = $allSimilarFrames->merge($otherSimilarFrames);
-                            }
-                            
-                            // Remove the current frame from similar frames list
-                            $allSimilarFrames = $allSimilarFrames->filter(function($item) use ($frame) {
-                                return $item->frame_id != $frame->frame_id;
-                            })->unique('frame_id');
-                        @endphp
-                              
-                        <div class="row">
-                            @if($allSimilarFrames->count() > 0)
-                                @foreach($allSimilarFrames as $similarFrameItem)
-                                    <div class="col-md-4 mb-4">
-                                        <div class="card h-100">
-                                            <div class="card-header bg-secondary text-white text-center">
-                                                <h6 class="mb-0">{{ $similarFrameItem->frame_merek }}</h6>
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="text-center">
-                                                    @if($similarFrameItem->frame_foto && Storage::disk('public')->exists($similarFrameItem->frame_foto))
-                                                        <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
-                                                            <img src="{{ asset('storage/' . $similarFrameItem->frame_foto) }}" 
-                                                                 alt="{{ $similarFrameItem->frame_merek }}" 
-                                                                 class="img-thumbnail" 
-                                                                 style="max-height: 130px; max-width: 100%; object-fit: contain;">
-                                                        </div>
-                                                    @else
-                                                        <div class="text-muted d-flex justify-content-center align-items-center" style="height: 150px;">
-                                                            Gambar tidak tersedia
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                                
-                                                <table class="table table-sm table-bordered">
-                                                    <tr>
-                                                        <th width="80" class="bg-light">Merek</th>
-                                                        <td>{{ $similarFrameItem->frame_merek }}</td>
-                                                    </tr>
-                                                    
-                                                    <tr>
-                                                        <th class="bg-light">Lokasi</th>
-                                                        <td>{{ $similarFrameItem->frame_lokasi }}</td>
-                                                    </tr>
-                                                </table>
-                                                
-                                                <!-- Show existing criteria information -->
-                                                @if($similarFrameItem->frameSubkriterias->count() > 0)
-                                                    <div class="mt-2">
-                                                        <h6 class="border-bottom pb-2">Kriteria Frame:</h6>
-                                                        <table class="table table-sm table-bordered">
-                                                            <thead class="bg-light">
-                                                                <tr>
-                                                                    <th>Kriteria</th>
-                                                                    <th>Nilai</th>
-                                                                    
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                @php
-                                                                    $groupedCriteria = $similarFrameItem->frameSubkriterias->groupBy('kriteria_id');
-                                                                @endphp
-                                                                
-                                                                @foreach($groupedCriteria as $kriteria_id => $frameSubkriterias)
-                                                                    @php
-                                                                        $kriteria = $frameSubkriterias->first()->kriteria;
-                                                                        $subkriteriaNames = [];
-                                                                        $hasManualValue = false;
-                                                                        $manualValue = null;
-                                                                        
-                                                                        foreach($frameSubkriterias as $fs) {
-                                                                            if($fs->subkriteria) {
-                                                                                $subkriteriaNames[] = $fs->subkriteria->subkriteria_nama;
-                                                                                
-                                                                                // Check if this has a manual value
-                                                                                if($fs->manual_value !== null) {
-                                                                                    $hasManualValue = true;
-                                                                                    $manualValue = $fs->manual_value;
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                        
-                                                                        $displayValue = implode(', ', $subkriteriaNames);
-                                                                        
-                                                                    @endphp
-                                                                    <tr>
-                                                                        <td><strong>{{ $kriteria->kriteria_nama ?? 'Kriteria #'.$kriteria_id }}</strong></td>
-                                                                        <td>{{ $displayValue }}</td>
-
-                                                                    </tr>
-                                                                @endforeach
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                @endif
-                                                
-                                            </div>
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Frame Serupa</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            @if(count($allSimilarFrames) > 0)
+                @foreach($allSimilarFrames as $similarFrameItem)
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-secondary text-white text-center">
+                                <h6 class="mb-0">{{ $similarFrameItem->frame_merek }} (ID: {{ $similarFrameItem->frame_id }})</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center">
+                                    @if($similarFrameItem->frame_foto && Storage::disk('public')->exists($similarFrameItem->frame_foto))
+                                        <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
+                                            <img src="{{ asset('storage/' . $similarFrameItem->frame_foto) }}" 
+                                                 alt="{{ $similarFrameItem->frame_merek }}" 
+                                                 class="img-thumbnail" 
+                                                 style="max-height: 130px; max-width: 100%; object-fit: contain;">
                                         </div>
-                                    </div>
-                                @endforeach
-                            @else
-                                <div class="col-12">
-                                    <div class="alert alert-info">
-                                        Tidak ada frame serupa yang ditemukan.
-                                    </div>
+                                    @else
+                                        <div class="text-muted d-flex justify-content-center align-items-center" style="height: 150px;">
+                                            Gambar tidak tersedia
+                                        </div>
+                                    @endif
                                 </div>
-                            @endif
+                                
+                                <table class="table table-sm table-bordered">
+                                    <tr>
+                                        <th width="80" class="bg-light">Merek</th>
+                                        <td>{{ $similarFrameItem->frame_merek }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">Lokasi</th>
+                                        <td>{{ $similarFrameItem->frame_lokasi }}</td>
+                                    </tr>
+                                </table>
+                                
+                                @if($similarFrameItem->frameSubkriterias->count() > 0)
+                                    <div class="mt-2">
+                                        <h6 class="border-bottom pb-2">Kriteria Frame:</h6>
+                                        <table class="table table-sm table-bordered">
+                                            <thead class="bg-light">
+                                                <tr>
+                                                    <th>Kriteria</th>
+                                                    <th>Nilai</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($similarFrameItem->frameSubkriterias->groupBy('kriteria_id') as $kriteria_id => $subkriterias)
+                                                    @php
+                                                        $kriteria = $subkriterias->first()->kriteria;
+                                                        $displayValues = [];
+                                                        
+                                                        foreach($subkriterias as $sub) {
+                                                            if($sub->manual_value) {
+                                                                $displayValues[] = $sub->manual_value . 
+                                                                    ($sub->subkriteria ? ' ('.$sub->subkriteria->subkriteria_nama.')' : '');
+                                                            } else {
+                                                                $displayValues[] = $sub->subkriteria->subkriteria_nama ?? '';
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    <tr>
+                                                        <td><strong>{{ $kriteria->kriteria_nama }}</strong></td>
+                                                        <td>{{ implode(', ', $displayValues) }}</td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
+                @endforeach
+            @else
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        Tidak ditemukan frame dengan merek dan foto yang mirip.
+                    </div>
                 </div>
+            @endif
+        </div>
+    </div>
+</div>
                 
                 <div class="mt-4 text-center confirmation-area">
                     <h5 class="fw-bold">Apakah perubahan frame tetap akan dilanjutkan meskipun ada kesamaan?</h5>
