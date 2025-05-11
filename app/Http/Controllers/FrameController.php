@@ -382,7 +382,6 @@ private function findFramesWithSimilarData(Request $request, $excludeFrameId = n
  */
 private function checkForSimilarFrames(Request $request, $excludeFrameId = null)
 {
-    // Initialize result array
     $result = [
         'similarFrame' => null,
         'allSimilarFrames' => [],
@@ -391,24 +390,50 @@ private function checkForSimilarFrames(Request $request, $excludeFrameId = null)
             'partialMatches' => []
         ]
     ];
-    
-    // 1. Check for similar images if a new image is uploaded
+
+    // 1. Check for similar images (both new upload and existing)
+    $imageProcessed = false;
+
+    // Case 1: New image uploaded
     if ($request->hasFile('frame_foto')) {
-        // Gunakan parameter true untuk mendapatkan semua frame yang mirip
         $similarFrames = $this->imageComparisonService->findSimilarFrame($request->file('frame_foto'), true);
+        $imageProcessed = true;
+    }
+    // Case 2: Existing image provided
+    elseif ($request->has('existing_frame_foto')) {
+        $existingFotoPath = $request->input('existing_frame_foto');
         
-        // Filter frames mirip berdasarkan merek dan exclude ID jika ada
+        if (Storage::disk('public')->exists($existingFotoPath)) {
+            // Create UploadedFile instance from existing image
+            $filePath = Storage::disk('public')->path($existingFotoPath);
+            $uploadedFile = new \Illuminate\Http\UploadedFile(
+                $filePath,
+                basename($filePath),
+                mime_content_type($filePath),
+                null,
+                true // Test mode
+            );
+            
+            $similarFrames = $this->imageComparisonService->findSimilarFrame($uploadedFile, true);
+            $imageProcessed = true;
+            
+            Log::info('Performed image comparison using existing photo', [
+                'path' => $existingFotoPath
+            ]);
+        } else {
+            Log::warning('Existing frame photo not found', ['path' => $existingFotoPath]);
+        }
+    }
+
+    // Process filtered similar frames if image was processed
+    if ($imageProcessed && isset($similarFrames)) {
         $filteredSimilarFrames = collect($similarFrames)->filter(function($frame) use ($request, $excludeFrameId) {
             return strtolower($frame->frame_merek) === strtolower($request->frame_merek) && 
                    (!$excludeFrameId || $frame->frame_id != $excludeFrameId);
         })->values()->all();
-        
-        // Jika ada frames yang mirip setelah filtering
+
         if (!empty($filteredSimilarFrames)) {
-            // Simpan semua frame mirip
             $result['allSimilarFrames'] = $filteredSimilarFrames;
-            
-            // Tetap simpan similarFrame (frame paling mirip) untuk kompatibilitas dengan kode lain
             $result['similarFrame'] = $filteredSimilarFrames[0];
             
             $frameIds = array_map(function($frame) {
@@ -421,47 +446,25 @@ private function checkForSimilarFrames(Request $request, $excludeFrameId = null)
                              ' frame yang sudah ada dengan merek yang sama',
                 'frame_ids' => $frameIds
             ];
-            
-            Log::info('Detected similar images', [
-                'count' => count($filteredSimilarFrames),
-                'frame_ids' => $frameIds,
-                'requested_merek' => $request->frame_merek
-            ]);
         }
-    } elseif ($request->has('existing_frame_foto')) {
-        // Using existing frame photo, skip image comparison
-        Log::info('Using existing frame photo for comparison', [
-            'existing_frame_foto' => $request->existing_frame_foto
-        ]);
     }
-    
-    // 2. Find frames with similar data using the improved method
+
+    // 2. Find frames with similar data (existing logic)
     $framesWithSimilarData = $this->findFramesWithSimilarData($request, $excludeFrameId);
     
     if (!empty($framesWithSimilarData)) {
-        // Record data similarity info
         $result['similarityDetails']['data'] = [
             'similar' => true,
             'message' => 'Data frame (merek, lokasi, kriteria) serupa dengan ' . count($framesWithSimilarData) . ' frame lain',
             'frames' => $framesWithSimilarData
         ];
-        
-        Log::info('Detected similar data', [
-            'similar_frames' => $framesWithSimilarData,
-            'count' => count($framesWithSimilarData)
-        ]);
-        
-        // Jika belum ada frame mirip berdasarkan gambar, gunakan yang pertama dari data mirip
+
         if (!$result['similarFrame'] && !empty($framesWithSimilarData)) {
             $result['similarFrame'] = Frame::find($framesWithSimilarData[0]);
-            
-            // Ambil semua frame dengan data mirip untuk similarFrames jika belum ada
-            if (empty($result['allSimilarFrames'])) {
-                $result['allSimilarFrames'] = Frame::whereIn('frame_id', $framesWithSimilarData)->get()->all();
-            }
+            $result['allSimilarFrames'] = Frame::whereIn('frame_id', $framesWithSimilarData)->get()->all();
         }
     }
-    
+
     return $result;
 }
 
