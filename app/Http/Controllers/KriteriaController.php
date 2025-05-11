@@ -82,77 +82,77 @@ class KriteriaController extends Controller
 
     // Memperbarui data kriteria
     public function update(Request $request, Kriteria $kriteria)
-{
-    // Validasi input
-    $validator = Validator::make($request->all(), [
-        'kriteria_nama' => [
-            'required',
-            'string',
-            'max:255',
-            'regex:/^[a-zA-Z\s]+$/' // Memastikan hanya huruf dan spasi
-        ],
-    ], [
-        'kriteria_nama.regex' => 'Nama kriteria hanya boleh berisi huruf.'
-    ]);
-    
-    if ($validator->fails()) {
-        return redirect()->back()
-            ->withErrors($validator)
-            ->withInput();
-    }
-    
-    // Cek manual untuk nama duplikat (kecuali untuk record saat ini)
-    $existingKriteria = Kriteria::where('kriteria_nama', $request->kriteria_nama)
-                        ->where('kriteria_id', '!=', $kriteria->kriteria_id)
-                        ->first();
-    
-    if ($existingKriteria) {
-        return redirect()->back()
-            ->withInput()
-            ->withErrors(['kriteria_nama' => 'Kriteria dengan nama tersebut sudah ada.']);
-    }
-
-    $oldName = $kriteria->kriteria_nama;
-    $oldData = $kriteria->toArray();
-    
-    // Periksa apakah ada perubahan data
-    if ($oldName === $request->kriteria_nama) {
-        // Tidak ada perubahan data, langsung redirect tanpa update dan log
-        return redirect()->route('kriteria.index')
-            ->with('info', 'Tidak ada perubahan data pada kriteria');
-    }
-    
-    try {
-        $kriteria->update([
-            'kriteria_nama' => $request->kriteria_nama
+    {
+        // Validasi input
+        $validator = Validator::make($request->all(), [
+            'kriteria_nama' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[a-zA-Z\s]+$/' // Memastikan hanya huruf dan spasi
+            ],
+        ], [
+            'kriteria_nama.regex' => 'Nama kriteria hanya boleh berisi huruf.'
         ]);
         
-        // Catat aktivitas ke log hanya jika ada perubahan
-        ActivityLogService::log(
-            'update',
-            'kriteria',
-            $kriteria->kriteria_id,
-            $oldData,
-            $kriteria->toArray(),
-            'Mengubah kriteria dari "' . $oldName . '" menjadi "' . $kriteria->kriteria_nama . '"'
-        );
-        
-        // Tambahkan pesan flash karena nama sudah pasti berubah (sudah dicek sebelumnya)
-        $frameCount = $kriteria->frameSubkriterias()->distinct('frame_id')->count('frame_id');
-        
-        if ($frameCount > 0) {
-            Session::flash('update_needed', true);
-            Session::flash('update_message', "Kriteria '{$oldName}' telah diubah menjadi '{$kriteria->kriteria_nama}'. Perubahan ini otomatis diterapkan ke semua frame.");
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
         }
         
-        return redirect()->route('kriteria.index')
-            ->with('success', 'Kriteria berhasil diperbarui');
-    } catch (\Exception $e) {
-        return redirect()->back()
-            ->with('error', 'Gagal memperbarui kriteria: ' . $e->getMessage())
-            ->withInput();
+        // Cek manual untuk nama duplikat (kecuali untuk record saat ini)
+        $existingKriteria = Kriteria::where('kriteria_nama', $request->kriteria_nama)
+                            ->where('kriteria_id', '!=', $kriteria->kriteria_id)
+                            ->first();
+        
+        if ($existingKriteria) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['kriteria_nama' => 'Kriteria dengan nama tersebut sudah ada.']);
+        }
+
+        $oldName = $kriteria->kriteria_nama;
+        $oldData = $kriteria->toArray();
+        
+        // Periksa apakah ada perubahan data
+        if ($oldName === $request->kriteria_nama) {
+            // Tidak ada perubahan data, langsung redirect tanpa update dan log
+            return redirect()->route('kriteria.index')
+                ->with('info', 'Tidak ada perubahan data pada kriteria');
+        }
+        
+        try {
+            $kriteria->update([
+                'kriteria_nama' => $request->kriteria_nama
+            ]);
+            
+            // Catat aktivitas ke log hanya jika ada perubahan
+            ActivityLogService::log(
+                'update',
+                'kriteria',
+                $kriteria->kriteria_id,
+                $oldData,
+                $kriteria->toArray(),
+                'Mengubah kriteria dari "' . $oldName . '" menjadi "' . $kriteria->kriteria_nama . '"'
+            );
+            
+            // Tambahkan pesan flash karena nama sudah pasti berubah (sudah dicek sebelumnya)
+            $frameCount = $kriteria->frameSubkriterias()->distinct('frame_id')->count('frame_id');
+            
+            if ($frameCount > 0) {
+                Session::flash('update_needed', true);
+                Session::flash('update_message', "Kriteria '{$oldName}' telah diubah menjadi '{$kriteria->kriteria_nama}'. Perubahan ini otomatis diterapkan ke semua frame.");
+            }
+            
+            return redirect()->route('kriteria.index')
+                ->with('success', 'Kriteria berhasil diperbarui');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal memperbarui kriteria: ' . $e->getMessage())
+                ->withInput();
+        }
     }
-}
 
     // Menghapus kriteria
     public function destroy(Kriteria $kriteria)

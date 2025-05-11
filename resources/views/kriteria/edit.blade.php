@@ -3,13 +3,7 @@
 @section('content')
 <div class="container">
     <div class="container-fluid">
-        {{-- Tombol Kembali --}}
-        <div class="mb-3">
-            <a href="{{ route('kriteria.index') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Kembali
-            </a>
-        </div>
-
+        
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
@@ -43,10 +37,14 @@
                         @enderror
                     </div>
                 
-                    <div class="mt-3">
+                    <div class="d-flex justify-content-between mt-3">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Perbarui Kriteria
                         </button>
+                        
+                        <a href="{{ route('kriteria.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Kembali
+                        </a>
                     </div>
                 </form>
             </div>

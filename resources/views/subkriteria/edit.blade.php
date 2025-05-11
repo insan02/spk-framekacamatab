@@ -3,11 +3,7 @@
 @section('content')
 <div class="container">
     <div class="container-fluid">
-        <div class="mb-3">
-            <a href="{{ route('subkriteria.index') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Kembali
-            </a>
-        </div>
+
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
@@ -189,7 +185,15 @@
                         @endif
                     </div>
 
-                    <button type="submit" class="btn btn-primary">Perbarui Subkriteria</button>
+                    <div class="d-flex justify-content-between mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Perbarui
+                        </button>
+                        
+                        <a href="{{ route('subkriteria.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Kembali
+                        </a>
+                    </div>
                 </form>
             </div>
         </div>

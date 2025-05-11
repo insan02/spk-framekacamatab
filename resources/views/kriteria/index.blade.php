@@ -12,15 +12,17 @@
                 @if(session('success'))
                     <div data-success-message="{{ session('success') }}" style="display:none;"></div>
                 @endif
+
                 @if(session('info'))
-    <div data-info-message="{{ session('info') }}" style="display:none;"></div>
-@endif
+                    <div data-info-message="{{ session('info') }}" style="display:none;"></div>
+                @endif
 
                 @if(session('error'))
                     <div class="alert alert-danger">
                         {!! session('error') !!}
                     </div>
                 @endif
+                
             <div class="card-body">
                 @if(Auth::user()->role === 'karyawan')
                 <a href="{{ route('kriteria.create') }}" class="btn btn-primary mb-3">Tambah Kriteria</a>

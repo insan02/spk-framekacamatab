@@ -3,17 +3,14 @@
 @section('content')
 <div class="container">
     <div class="container-fluid">
-        <div class="mb-3">
-            <a href="{{ route('subkriteria.index') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Kembali
-            </a>
-        </div>
+
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
                     <i class="fas fa-tasks me-2"></i>Tambah Subkriteria untuk {{ $selectedKriteria->kriteria_nama }}
                 </h4>
             </div>
+            
             <div class="card-body">
                 <form action="{{ route('subkriteria.store') }}" method="POST">
                     @csrf
@@ -147,7 +144,15 @@
                         @endif
                     </div>
 
-                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <div class="d-flex justify-content-between mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
+                        
+                        <a href="{{ route('subkriteria.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Kembali
+                        </a>
+                    </div>
                 </form>
             </div>
         </div>
