@@ -16,6 +16,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    const infoMessageEl = document.querySelector('[data-info-message]');
+    if (infoMessageEl) {
+        const infoMessage = infoMessageEl.getAttribute('data-info-message');
+        if (infoMessage) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Tidak ada pembaruan data',
+                text: infoMessage,
+                showConfirmButton: false,
+                timer: 2000
+            });
+        }
+    }
+
     // Menampilkan notifikasi error dari session Laravel
     const errorMessageElement = document.querySelector('[data-error-message]');
     if (errorMessageElement) {

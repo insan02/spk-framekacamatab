@@ -97,14 +97,7 @@
                                                         @endphp
                                                         <div class="text-center">
                                                             <img src="{{ asset($imagePath) }}" alt="Foto" class="img-thumbnail" style="max-height: 150px;">
-                                                            <div class="mt-1">
-                                                                <small class="text-muted">Path asli: {{ $value }}</small>
-                                                                <br>
-                                                                <small class="text-muted">Path yang digunakan: {{ $imagePath }}</small>
-                                                                @if($useBackupImage)
-                                                                <br><small class="text-info">(Menggunakan backup image untuk log)</small>
-                                                                @endif
-                                                            </div>
+                                                            
                                                         </div>
                                                     @else
                                                         <span class="text-muted"><i>Tidak ada foto</i></span>
@@ -197,14 +190,7 @@
                                                         @endphp
                                                         <div class="text-center">
                                                             <img src="{{ asset($imagePath) }}" alt="Foto" class="img-thumbnail" style="max-height: 150px;">
-                                                            <div class="mt-1">
-                                                                <small class="text-muted">Path asli: {{ $value }}</small>
-                                                                <br>
-                                                                <small class="text-muted">Path yang digunakan: {{ $imagePath }}</small>
-                                                                @if($useBackupImage)
-                                                                <br><small class="text-info">(Menggunakan backup image untuk log)</small>
-                                                                @endif
-                                                            </div>
+                                                            
                                                         </div>
                                                     @else
                                                         <span class="text-muted"><i>Tidak ada foto</i></span>

@@ -3,8 +3,6 @@
 @section('content')
 <div class="container">
     <div class="container-fluid">
-        
-
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
@@ -124,6 +122,15 @@
                                             <a href="{{ route('logs.show', $log->id) }}" class="btn btn-sm btn-info">
                                                 <i class="fas fa-eye me-1"></i>Detail
                                             </a>
+                                            @if(auth()->user()->role === 'owner')
+                                            <button type="button" class="btn btn-sm btn-danger delete-log-btn" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteLogModal" 
+                                                data-log-id="{{ $log->id }}"
+                                                data-description="{{ $log->description }}">
+                                                <i class="fas fa-trash me-1"></i>Hapus
+                                            </button>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -145,7 +152,6 @@
         </div>
     </div>
 </div>
-
 
 <!-- Reset Logs By Date Range Modal -->
 <div class="modal fade" id="resetLogsModal" tabindex="-1" aria-labelledby="resetLogsModalLabel" aria-hidden="true">
@@ -185,7 +191,36 @@
             </div>
         </div>
     </div>
-</div>  
+</div>
+
+<!-- Delete Individual Log Modal -->
+<div class="modal fade" id="deleteLogModal" tabindex="-1" aria-labelledby="deleteLogModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteLogModalLabel">Hapus Log Aktivitas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="deleteLogForm" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <div class="alert alert-danger">
+                        <p class="fw-bold mb-2">PERHATIAN!</p>
+                        <p>Anda akan menghapus log aktivitas ini beserta file-file terkaitnya.</p>
+                        <p>Data yang sudah dihapus tidak dapat dikembalikan!</p>
+                    </div>
+                    <p>Apakah Anda yakin ingin menghapus log aktivitas: <strong id="log-description"></strong>?</p>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteLog">Hapus</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="{{ asset('js/logs.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -248,6 +283,29 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isValid) {
             resetLogForm.submit();
         }
+    });
+    
+    // Individual log deletion
+    const deleteLogBtns = document.querySelectorAll('.delete-log-btn');
+    const deleteLogModal = new bootstrap.Modal(document.getElementById('deleteLogModal'));
+    const deleteLogForm = document.getElementById('deleteLogForm');
+    const confirmDeleteLogBtn = document.getElementById('confirmDeleteLog');
+    const logDescriptionEl = document.getElementById('log-description');
+    
+    deleteLogBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const logId = this.getAttribute('data-log-id');
+            const description = this.getAttribute('data-description');
+            
+            deleteLogForm.action = `{{ url('logs') }}/${logId}`;
+            logDescriptionEl.textContent = description;
+            
+            deleteLogModal.show();
+        });
+    });
+    
+    confirmDeleteLogBtn.addEventListener('click', function() {
+        deleteLogForm.submit();
     });
     
     // Display success/error messages if present

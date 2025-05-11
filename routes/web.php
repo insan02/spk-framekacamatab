@@ -120,7 +120,7 @@ Route::post('/frame/{frame}/process-update-duplicate', [FrameController::class, 
         Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('logs/delete-all', [ActivityLogController::class, 'deleteAll'])->name('logs.deleteAll');
-
+Route::delete('/logs/{id}', [ActivityLogController::class, 'destroy'])->name('logs.destroy');
 
     });
 

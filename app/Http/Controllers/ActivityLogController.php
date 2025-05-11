@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ActivityLogController extends Controller
 {
@@ -86,30 +87,7 @@ class ActivityLogController extends Controller
         return null; 
     }
 
-    private function deleteLogArchivedImages($logData)
-    {
-        // Check if log data contains image backup information
-        if (is_string($logData)) {
-            $decodedData = json_decode($logData, true);
-        } else {
-            $decodedData = $logData;
-        }
-        
-        // Process old data (before change)
-        if (isset($decodedData['old_data'])) {
-            $this->deleteArchivedImageFromData($decodedData['old_data']);
-        }
-        
-        // Process new data (after change) if it exists
-        if (isset($decodedData['new_data'])) {
-            $this->deleteArchivedImageFromData($decodedData['new_data']);
-        }
-        
-        // Direct log_image_backup in the main data
-        $this->deleteArchivedImageFromData($decodedData);
-    }
-
-    // Helper method to extract archived image paths from data
+    // Extract archived image paths from JSON log data
     private function extractLogArchivedImagePaths($logData)
     {
         $imagePaths = [];
@@ -120,15 +98,31 @@ class ActivityLogController extends Controller
             $decodedData = $logData;
         }
         
+        if (!is_array($decodedData)) {
+            return $imagePaths;
+        }
+        
         // Process old data (before change)
-        if (isset($decodedData['old_data'])) {
-            $paths = $this->extractArchivedImagePathsFromData($decodedData['old_data']);
+        if (isset($decodedData['old_values']) && is_string($decodedData['old_values'])) {
+            $oldValues = json_decode($decodedData['old_values'], true);
+            if (is_array($oldValues)) {
+                $paths = $this->extractArchivedImagePathsFromData($oldValues);
+                $imagePaths = array_merge($imagePaths, $paths);
+            }
+        } elseif (isset($decodedData['old_values']) && is_array($decodedData['old_values'])) {
+            $paths = $this->extractArchivedImagePathsFromData($decodedData['old_values']);
             $imagePaths = array_merge($imagePaths, $paths);
         }
         
         // Process new data (after change) if it exists
-        if (isset($decodedData['new_data'])) {
-            $paths = $this->extractArchivedImagePathsFromData($decodedData['new_data']);
+        if (isset($decodedData['new_values']) && is_string($decodedData['new_values'])) {
+            $newValues = json_decode($decodedData['new_values'], true);
+            if (is_array($newValues)) {
+                $paths = $this->extractArchivedImagePathsFromData($newValues);
+                $imagePaths = array_merge($imagePaths, $paths);
+            }
+        } elseif (isset($decodedData['new_values']) && is_array($decodedData['new_values'])) {
+            $paths = $this->extractArchivedImagePathsFromData($decodedData['new_values']);
             $imagePaths = array_merge($imagePaths, $paths);
         }
         
@@ -136,7 +130,7 @@ class ActivityLogController extends Controller
         $paths = $this->extractArchivedImagePathsFromData($decodedData);
         $imagePaths = array_merge($imagePaths, $paths);
         
-        return $imagePaths;
+        return array_unique(array_filter($imagePaths));
     }
     
     // Helper method to extract archived image paths recursively
@@ -164,52 +158,68 @@ class ActivityLogController extends Controller
         return $paths;
     }
     
-    // Helper method to extract and delete archived image paths (for backward compatibility)
-    private function deleteArchivedImageFromData($data)
-    {
-        if (!is_array($data)) {
-            return;
-        }
-        
-        // Check for log_image_backup field
-        if (isset($data['log_image_backup']) && $data['log_image_backup']) {
-            $this->deleteArchiveImage($data['log_image_backup']);
-        }
-        
-        // Check if there might be nested data with images
-        foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                $this->deleteArchivedImageFromData($value);
-            }
-        }
-    }
-
     // Delete a single archived image
     private function deleteArchiveImage($path)
     {
         if (Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
+            try {
+                Storage::disk('public')->delete($path);
+                Log::info('Deleted archive image: ' . $path);
+                return true;
+            } catch (\Exception $e) {
+                Log::error('Failed to delete archive image: ' . $path . ', Error: ' . $e->getMessage());
+                return false;
+            }
+        }
+        return false;
+    }
+
+    // Delete a specific log entry and its archived images
+    public function destroy($id)
+    {
+        try {
+            // Find the log entry
+            $log = ActivityLog::findOrFail($id);
+            
+            // Extract image paths to delete
+            $imagesToDelete = [];
+            
+            // Check old_values field
+            if ($log->old_values) {
+                $oldValues = json_decode($log->old_values, true);
+                if (is_array($oldValues)) {
+                    $imagePaths = $this->extractArchivedImagePathsFromData($oldValues);
+                    $imagesToDelete = array_merge($imagesToDelete, $imagePaths);
+                }
+            }
+            
+            // Check new_values field
+            if ($log->new_values) {
+                $newValues = json_decode($log->new_values, true);
+                if (is_array($newValues)) {
+                    $imagePaths = $this->extractArchivedImagePathsFromData($newValues);
+                    $imagesToDelete = array_merge($imagesToDelete, $imagePaths);
+                }
+            }
+            
+            // Delete log entry
+            $log->delete();
+            
+            // Delete the associated images
+            foreach ($imagesToDelete as $path) {
+                $this->deleteArchiveImage($path);
+            }
+            
+            return redirect()->route('logs.index')
+                ->with('success', 'Log aktivitas berhasil dihapus.');
+                
+        } catch (\Exception $e) {
+            return redirect()->route('logs.index')
+                ->with('error', 'Gagal menghapus log: ' . $e->getMessage());
         }
     }
 
-    // Method to clean up any orphaned files in the logs_archive directory
-    private function cleanOrphanedArchiveFiles()
-    {
-        $archiveDir = 'logs_archive';
-        
-        // Check if directory exists
-        if (!Storage::disk('public')->exists($archiveDir)) {
-            return;
-        }
-        
-        // Get all files in the logs_archive directory and delete them
-        $files = Storage::disk('public')->files($archiveDir);
-        foreach ($files as $file) {
-            Storage::disk('public')->delete($file);
-        }
-    }
-    
-    // Method to clean up orphaned files by date pattern
+    // Clean up archived files based on timestamp pattern
     private function cleanOrphanedArchiveFilesByDatePattern($dateFrom, $dateTo)
     {
         $archiveDir = 'logs_archive';
@@ -225,6 +235,7 @@ class ActivityLogController extends Controller
         
         // Get all files in the logs_archive directory
         $files = Storage::disk('public')->files($archiveDir);
+        $deletedFiles = 0;
         
         foreach ($files as $file) {
             // Extract timestamp from filename (assuming format: log_TIMESTAMP_filename)
@@ -234,10 +245,16 @@ class ActivityLogController extends Controller
                 
                 // If file timestamp is within our range, delete it
                 if ($fileTimestamp >= $fromTimestamp && $fileTimestamp <= $toTimestamp) {
-                    Storage::disk('public')->delete($file);
+                    if (Storage::disk('public')->delete($file)) {
+                        $deletedFiles++;
+                        Log::info("Deleted archive file in date range: {$file}");
+                    }
                 }
             }
         }
+        
+        Log::info("Cleaned up {$deletedFiles} archived files between {$dateFrom} and {$dateTo}");
+        return $deletedFiles;
     }
 
     // Modified deleteAll method to use date range from request
@@ -267,9 +284,22 @@ class ActivityLogController extends Controller
             
             // Extract image paths from each log's data
             foreach ($logs as $log) {
-                if ($log->data) {
-                    $imagePaths = $this->extractLogArchivedImagePaths($log->data);
-                    $imagesToDelete = array_merge($imagesToDelete, $imagePaths);
+                // Extract from old_values field
+                if ($log->old_values) {
+                    $oldData = json_decode($log->old_values, true);
+                    if (is_array($oldData)) {
+                        $paths = $this->extractArchivedImagePathsFromData($oldData);
+                        $imagesToDelete = array_merge($imagesToDelete, $paths);
+                    }
+                }
+                
+                // Extract from new_values field
+                if ($log->new_values) {
+                    $newData = json_decode($log->new_values, true);
+                    if (is_array($newData)) {
+                        $paths = $this->extractArchivedImagePathsFromData($newData);
+                        $imagesToDelete = array_merge($imagesToDelete, $paths);
+                    }
                 }
             }
             
@@ -279,15 +309,18 @@ class ActivityLogController extends Controller
                                      ->delete();
             
             // Delete the collected image files
-            foreach ($imagesToDelete as $path) {
-                $this->deleteArchiveImage($path);
+            $deletedImages = 0;
+            foreach (array_unique($imagesToDelete) as $path) {
+                if ($this->deleteArchiveImage($path)) {
+                    $deletedImages++;
+                }
             }
             
-            // Check for and remove orphaned files if needed
-            $this->cleanOrphanedArchiveFilesByDatePattern($dateFrom, $dateTo);
+            // Check for and remove orphaned files by date pattern
+            $deletedOrphans = $this->cleanOrphanedArchiveFilesByDatePattern($dateFrom, $dateTo);
             
             return redirect()->route('logs.index')
-                ->with('success', "Berhasil menghapus {$deletedCount} data log dari tanggal {$dateFrom} sampai {$dateTo}!");
+                ->with('success', "Berhasil menghapus {$deletedCount} data log dengan {$deletedImages} file gambar dari tanggal {$dateFrom} sampai {$dateTo}!");
         } catch (\Exception $e) {
             return redirect()->route('logs.index')
                 ->with('error', 'Gagal menghapus data log: ' . $e->getMessage());

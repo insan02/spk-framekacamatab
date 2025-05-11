@@ -849,7 +849,7 @@ private function determineCriteriaStatus($existingValues, $newValues, $inputType
     return $this->saveNewFrame($request);
 }
 
-    private function saveNewFrame(Request $request, $tempImagePath = null)
+private function saveNewFrame(Request $request, $tempImagePath = null)
 {
     // If we have a temp image path from the confirmation flow
     if ($tempImagePath) {
@@ -963,6 +963,11 @@ private function determineCriteriaStatus($existingValues, $newValues, $inputType
 
     $frameData = $frame->toArray();
     $frameData['subkriterias'] = $this->getFrameSubkriteriaData($frame->frame_id);
+    
+    // Add image backup for logging
+    if ($frame->frame_foto && Storage::disk('public')->exists($frame->frame_foto)) {
+        $frameData['log_image_backup'] = $this->backupImageForLogs($frame->frame_foto);
+    }
     
     // Log activity with complete data
     ActivityLogService::log(
