@@ -44,19 +44,22 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>Informasi Akun </h2>
+            <h2>Pemberitahuan Perubahan Email</h2>
         </div>
         
         <div class="content">
-            <p>Halo {{ $user->name }},</p>
-        
-            <p>Selamat bergabung! Akun karyawan Anda telah dibuat. Berikut adalah informasi login Anda:</p>
+            <p>Yth. <strong>{{ $user->name }}</strong>,</p>
             
-            <div class="credential-box">
-                <p><strong>Email:</strong> {{ $user->email }}</p>
-                <p><strong>Password:</strong> {{ $password }}</p>
-            </div>        
-                
+            <p>Kami ingin memberitahukan bahwa alamat email untuk akun Anda telah diubah.</p>
+            
+            <div class="alert">
+                <p><strong>Detail perubahan:</strong></p>
+                <p>Email lama: <strong>{{ $oldEmail }}</strong></p>
+                <p>Email baru: <strong>{{ $newEmail }}</strong></p>
+            </div>
+            
+            <p>Jika Anda tidak melakukan perubahan ini, silakan abaikan saja.</p>
+            
             <p>Terima kasih,<br>
             Toko Kacamata Sidi Pingai Bukittinggi</p>
         </div>

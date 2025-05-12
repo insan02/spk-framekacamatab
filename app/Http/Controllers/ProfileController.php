@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Notifications\OwnerEmailChangeNotification;
+use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
@@ -28,13 +30,49 @@ class ProfileController extends Controller
         
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->user_id.',user_id'],
+            'email' => [
+                'required', 
+                'string', 
+                'email', 
+                'max:255',
+                'unique:users,email,'.$user->user_id.',user_id',
+                'regex:/^[\w.]+@gmail\.com$/' // Memastikan format email adalah @gmail.com
+            ],
+        ], [
+            'email.regex' => 'Format email harus menggunakan domain @gmail.com'
         ]);
+        
+        // Cek apakah email berubah
+        $emailChanged = $user->email != $request->email;
+        $oldEmail = $user->email;
         
         // Update profile
         $user->name = $request->name;
         $user->email = $request->email;
         $user->save();
+        
+        // Jika email berubah dan user adalah owner, kirim notifikasi
+        if ($emailChanged && $user->role === 'owner') {
+            try {
+                // Kirim notifikasi ke email lama
+                $user->email = $oldEmail; // Temporarily set back to old email
+                $user->notify(new OwnerEmailChangeNotification($oldEmail, $request->email));
+                
+                // Kirim notifikasi ke email baru
+                $user->email = $request->email; // Set back to new email
+                $user->notify(new OwnerEmailChangeNotification($oldEmail, $request->email));
+                
+                // Log notifikasi yang berhasil
+                Log::info('Owner email change notification sent to both ' . $oldEmail . ' and ' . $request->email);
+                
+                return redirect()->route('profile')->with('success', 'Profil berhasil diperbarui dan notifikasi perubahan email telah dikirim.');
+            } catch (\Exception $e) {
+                // Log error tapi tetap lanjutkan
+                Log::error('Failed to send owner email change notification: ' . $e->getMessage());
+                
+                return redirect()->route('profile')->with('success', 'Profil berhasil diperbarui tetapi gagal mengirim notifikasi perubahan email.');
+            }
+        }
         
         return redirect()->route('profile')->with('success', 'Profil berhasil diperbarui');
     }

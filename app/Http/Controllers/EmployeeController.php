@@ -51,7 +51,7 @@ class EmployeeController extends Controller
         }
         
         return redirect()->route('employees.index')
-            ->with('success', 'Karyawan berhasil ditambahkan. Kredensial login telah dikirim ke email karyawan.');
+            ->with('success', 'Karyawan berhasil ditambahkan. Info login telah dikirim ke email karyawan.');
     }
     
     public function edit($id)
