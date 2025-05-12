@@ -25,6 +25,10 @@
             <div data-success-message="{{ session('success') }}" style="display:none;"></div>
         @endif
 
+        @if(session('info'))
+            <div data-info-message="{{ session('info') }}" style="display:none;"></div>
+        @endif 
+
         @if(session('error'))
             <div class="alert alert-danger">
                 {!! session('error') !!}

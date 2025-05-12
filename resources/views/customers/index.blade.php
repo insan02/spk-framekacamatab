@@ -4,13 +4,13 @@
 <div class="container">
     {{-- Menampilkan pesan sukses dari session --}}
     @if(session('success'))
-    <div data-success-message="{{ session('success') }}" style="display:none;"></div>
-@endif
+        <div data-success-message="{{ session('success') }}" style="display:none;"></div>
+    @endif               
 
-{{-- Menampilkan pesan error dari session --}}
-@if(session('error'))
-    <div data-error-message="{{ session('error') }}" style="display:none;"></div>
-@endif
+    {{-- Menampilkan pesan error dari session --}}
+    @if(session('error'))
+        <div data-error-message="{{ session('error') }}" style="display:none;"></div>
+    @endif
 
     <div class="container-fluid">
         <div class="card shadow-sm">

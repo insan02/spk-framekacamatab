@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 "info": "Total Data: _TOTAL_",
                 "infoEmpty": "Total Data: 0",
-                "zeroRecords": "Tidak ditemukan data yang cocok"
+                "zeroRecords": "Tidak ada data pelanggan"
             }
         });
     }

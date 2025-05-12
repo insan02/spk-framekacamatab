@@ -3,11 +3,6 @@
 @section('content')
 <div class="container">
     <div class="container-fluid">
-        <div class="mb-3">
-            <a href="{{ route('penilaian.index') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Kembali
-            </a>
-        </div>
 
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -28,7 +23,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="phone" class="form-label">No. HP</label>
-                        <input type="tel" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone') }}" pattern="[0-9]{9,13}" maxlength="13" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+                        <input type="tel" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone') }}" pattern="[0-9]{11,15}" minlength="11" maxlength="15" title="Kisaran No.HP 11-15 digit" oninput="this.value = this.value.replace(/[^0-9]/g, '')" placeholder="08XXXXXXXXXX" required>
                         @error('phone')
                         <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -40,9 +35,16 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
-                    <div>
-                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    <div class="d-flex justify-content-between mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
+                        
+                        <a href="{{ route('penilaian.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Kembali
+                        </a>
                     </div>
+                    
                 </form>
             </div>
         </div>

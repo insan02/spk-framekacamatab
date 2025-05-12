@@ -12,7 +12,7 @@ $(document).ready(function() {
             },
             "info": "Total Data: _TOTAL_",
             "infoEmpty": "Total Data: 0",
-            "zeroRecords": "Tidak ditemukan data yang cocok"
+            "zeroRecords": "Tidak ada data riwayat penilaian"
         }
     });
 

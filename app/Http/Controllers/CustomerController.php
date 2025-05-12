@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Services\ActivityLogService; // Added ActivityLogService
 
 class CustomerController extends Controller
 {
@@ -37,7 +38,13 @@ class CustomerController extends Controller
                 'max:255',
                 'regex:/^[a-zA-Z\s]+$/'
             ],
-            'phone' => 'required|string|max:20',
+            'phone' => [
+                'required',
+                'string',
+                'min:11',
+                'max:15',
+                'regex:/^[0-9]+$/'
+            ],
             'address' => 'required|string|max:255',
         ]);
 
@@ -54,11 +61,21 @@ class CustomerController extends Controller
                 ->withErrors(['phone' => 'No Hp tersebut sudah ada.']);
         }
 
-        Customer::create([
+        $customer = Customer::create([
             'name' => $request->name,
             'phone' => $request->phone,
             'address' => $request->address,
         ]);
+
+        // Log activity for customer creation
+        ActivityLogService::log(
+            'create',
+            'customer',
+            $customer->customer_id,
+            null,
+            $customer->toArray(),
+            'Membuat pelanggan baru: ' . $customer->name
+        );
 
         return redirect()->route('penilaian.index')
             ->with('success', 'Pelanggan berhasil ditambahkan.');
@@ -92,7 +109,13 @@ class CustomerController extends Controller
                 'max:255',
                 'regex:/^[a-zA-Z\s]+$/'
             ],
-            'phone' => 'required|string|max:20',
+            'phone' => [
+                'required',
+                'string',
+                'min:11',
+                'max:15',
+                'regex:/^[0-9]+$/'
+            ],
             'address' => 'required|string|max:255',
         ]);
 
@@ -113,14 +136,46 @@ class CustomerController extends Controller
                 ->withErrors(['phone' => 'No HP tersebut sudah ada.']);
         }
 
-        $customer->update([
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'address' => $request->address,
-        ]);
+        // Store old data for comparison and logging
+        $oldData = $customer->toArray();
+        $oldName = $customer->name;
+        
+        // Check if there are any changes
+        if ($oldName === $request->name && 
+            $customer->phone === $request->phone && 
+            $customer->address === $request->address) {
+            // No changes, redirect without update and log
+            return redirect()->route('penilaian.index')
+                ->with('info', 'Tidak ada perubahan data pada pelanggan');
+        }
 
-        return redirect()->route('penilaian.index')
-            ->with('success', 'Pelanggan berhasil diperbarui.');
+        try {
+            $customer->update([
+                'name' => $request->name,
+                'phone' => $request->phone,
+                'address' => $request->address,
+            ]);
+            
+            // Simplified description for the activity log
+            $description = "Mengubah data pelanggan: {$customer->name}";
+
+            // Log activity for customer update
+            ActivityLogService::log(
+                'update',
+                'customer',
+                $customer->customer_id,
+                $oldData,
+                $customer->toArray(),
+                $description
+            );
+
+            return redirect()->route('penilaian.index')
+                ->with('success', 'Pelanggan berhasil diperbarui.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal memperbarui pelanggan: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**
@@ -128,10 +183,31 @@ class CustomerController extends Controller
      */
     public function destroy(Customer $customer)
     {
-        $customer->delete();
+        try {
+            $customerName = $customer->name;
+            $customerData = $customer->toArray();
+            
+            // Check if customer has related records
+            // Add any relation checks here if needed, similar to KriteriaController
+            
+            $customer->delete();
+            
+            // Log activity for customer deletion
+            ActivityLogService::log(
+                'delete',
+                'customer',
+                $customer->customer_id,
+                $customerData,
+                null,
+                'Menghapus pelanggan: ' . $customerName
+            );
 
-        return redirect()->route('penilaian.index')
-            ->with('success', 'Pelanggan berhasil dihapus.');
+            return redirect()->route('penilaian.index')
+                ->with('success', 'Pelanggan berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->route('penilaian.index')
+                ->with('error', "Gagal menghapus pelanggan '{$customer->name}': " . $e->getMessage());
+        }
     }
 
     /**
@@ -148,21 +224,20 @@ class CustomerController extends Controller
      * Search for customers by name or phone.
      */
     public function search(Request $request)
-{
-    $query = $request->input('q');
-    
-    if (empty($query)) {
-        return response()->json(['customers' => []]);
-    }
-    
-    $customers = Customer::where('name', 'like', "%{$query}%")
-        ->orWhere('phone', 'like', "%{$query}%")
-        ->orWhere('address', 'like', "%{$query}%")
-        ->get();
+    {
+        $query = $request->input('q');
         
-    return response()->json(['customers' => $customers]);
-}
-
+        if (empty($query)) {
+            return response()->json(['customers' => []]);
+        }
+        
+        $customers = Customer::where('name', 'like', "%{$query}%")
+            ->orWhere('phone', 'like', "%{$query}%")
+            ->orWhere('address', 'like', "%{$query}%")
+            ->get();
+            
+        return response()->json(['customers' => $customers]);
+    }
 
     /**
      * Get customer details by ID.
