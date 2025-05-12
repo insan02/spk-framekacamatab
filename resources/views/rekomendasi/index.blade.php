@@ -13,7 +13,7 @@
             
             @if(auth()->user()->role === 'owner')
             <div>
-                <button type="button" class="btn btn-sm btn-light me-2" data-bs-toggle="modal" data-bs-target="#printReportModal">
+                <button type="button" class="btn btn-sm btn-warning me-2" data-bs-toggle="modal" data-bs-target="#printReportModal">
                     <i class="fas fa-print me-1"></i>Cetak Laporan
                 </button>
                 <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#resetDataModal">
@@ -83,7 +83,7 @@
                                     </a>
                                     @if(auth()->user()->role === 'karyawan')
                                     <a href="{{ route('rekomendasi.print', $history->recommendation_history_id) }}" 
-                                        class="btn btn-sm btn-secondary print-btn"
+                                        class="btn btn-sm btn-warning print-btn"
                                         target="_blank">
                                         <i class="fas fa-print"></i> Cetak
                                      </a>
@@ -114,8 +114,8 @@
 <div class="modal fade" id="printReportModal" tabindex="-1" aria-labelledby="printReportModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="printReportModalLabel">Cetak Laporan Rekomendasi</h5>
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title" id="printReportModalLabel">Cetak Laporan Penilaian</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -132,7 +132,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                <button type="button" class="btn btn-primary" id="submitPrintReport">Cetak</button>
+                <button type="button" class="btn btn-warning" id="submitPrintReport">Cetak</button>
             </div>
         </div>
     </div>
@@ -166,7 +166,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-danger" id="submitResetData">Reset Data</button>
+                <button type="button" class="btn btn-danger" id="submitResetData">Reset</button>
             </div>
         </div>
     </div>
@@ -184,36 +184,99 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // Adding error message divs to print form
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    
+    // Insert error message elements after inputs
+    startDateInput.insertAdjacentHTML('afterend', '<div class="invalid-feedback" id="start_date_error"></div>');
+    endDateInput.insertAdjacentHTML('afterend', '<div class="invalid-feedback" id="end_date_error"></div>');
+    
+    // Same for reset form
+    const resetStartDateInput = document.getElementById('reset_start_date');
+    const resetEndDateInput = document.getElementById('reset_end_date');
+    
+    resetStartDateInput.insertAdjacentHTML('afterend', '<div class="invalid-feedback" id="reset_start_date_error"></div>');
+    resetEndDateInput.insertAdjacentHTML('afterend', '<div class="invalid-feedback" id="reset_end_date_error"></div>');
+    
+    // Reset validation state
+    function resetValidation(form) {
+        form.querySelectorAll('.is-invalid').forEach(el => {
+            el.classList.remove('is-invalid');
+        });
+    }
+    
     // Handle print report form submission
     document.getElementById('submitPrintReport').addEventListener('click', function() {
-        // Validate dates
-        const startDate = document.getElementById('start_date').value;
-        const endDate = document.getElementById('end_date').value;
+        const form = document.getElementById('printReportForm');
+        const startDate = document.getElementById('start_date');
+        const endDate = document.getElementById('end_date');
+        let isValid = true;
         
-        if (endDate && startDate && new Date(endDate) < new Date(startDate)) {
-            alert('Tanggal akhir tidak boleh sebelum tanggal mulai');
-            return false;
+        // Reset previous validation
+        resetValidation(form);
+        
+        // Validate start date
+        if (!startDate.value) {
+            startDate.classList.add('is-invalid');
+            document.getElementById('start_date_error').textContent = 'Tanggal awal harus diisi';
+            isValid = false;
         }
         
-        // Submit the form
-        document.getElementById('printReportForm').submit();
+        // Validate end date
+        if (!endDate.value) {
+            endDate.classList.add('is-invalid');
+            document.getElementById('end_date_error').textContent = 'Tanggal akhir harus diisi';
+            isValid = false;
+        }
+        
+        // Validate date range
+        if (startDate.value && endDate.value && new Date(startDate.value) > new Date(endDate.value)) {
+            endDate.classList.add('is-invalid');
+            document.getElementById('end_date_error').textContent = 'Tanggal akhir harus sama dengan atau setelah tanggal awal';
+            isValid = false;
+        }
+        
+        // Submit the form if valid
+        if (isValid) {
+            form.submit();
+        }
     });
     
     // Handle reset data form submission
     document.getElementById('submitResetData').addEventListener('click', function() {
-        // Validate dates
-        const startDate = document.getElementById('reset_start_date').value;
-        const endDate = document.getElementById('reset_end_date').value;
+        const form = document.getElementById('resetDataForm');
+        const startDate = document.getElementById('reset_start_date');
+        const endDate = document.getElementById('reset_end_date');
+        let isValid = true;
         
-        if (endDate && startDate && new Date(endDate) < new Date(startDate)) {
-            alert('Tanggal akhir tidak boleh sebelum tanggal mulai');
-            return false;
+        // Reset previous validation
+        resetValidation(form);
+        
+        // Validate start date
+        if (!startDate.value) {
+            startDate.classList.add('is-invalid');
+            document.getElementById('reset_start_date_error').textContent = 'Tanggal awal harus diisi';
+            isValid = false;
         }
         
-        // Confirm one more time
-        if (confirm('Anda yakin ingin mereset data? Tindakan ini tidak dapat dibatalkan.')) {
-            // Submit the form
-            document.getElementById('resetDataForm').submit();
+        // Validate end date
+        if (!endDate.value) {
+            endDate.classList.add('is-invalid');
+            document.getElementById('reset_end_date_error').textContent = 'Tanggal akhir harus diisi';
+            isValid = false;
+        }
+        
+        // Validate date range
+        if (startDate.value && endDate.value && new Date(startDate.value) > new Date(endDate.value)) {
+            endDate.classList.add('is-invalid');
+            document.getElementById('reset_end_date_error').textContent = 'Tanggal akhir harus sama dengan atau setelah tanggal awal';
+            isValid = false;
+        }
+        
+        // Confirm and submit if valid
+        if (isValid) {
+            form.submit();
         }
     });
     

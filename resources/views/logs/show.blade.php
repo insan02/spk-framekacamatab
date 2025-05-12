@@ -59,6 +59,20 @@
                     <div class="col-md-9">{{ $log->description }}</div>
                 </div>
                 
+                @php 
+                    $oldValues = json_decode($log->old_values, true); 
+                    $newValues = json_decode($log->new_values, true);
+                    
+                    // Store the old image path for potential reuse
+                    $oldImagePath = null;
+                    if(isset($oldValues['frame_foto']) && $oldValues['frame_foto']) {
+                        // Always prioritize the backed up image if available
+                        $oldImagePath = isset($oldValues['log_image_backup']) && $oldValues['log_image_backup'] 
+                            ? $oldValues['log_image_backup'] 
+                            : $oldValues['frame_foto'];
+                    }
+                @endphp
+                
                 @if($log->old_values)
                 <div class="row mb-3">
                     <div class="col-md-3 fw-bold">Nilai Lama</div>
@@ -72,7 +86,6 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @php $oldValues = json_decode($log->old_values, true); @endphp
                                     @foreach($oldValues as $key => $value)
                                         @if($key != 'subkriterias' && $key != 'log_image_backup' && !is_null($value) && $key != 'created_at' && $key != 'updated_at' && !is_array($value) && $key != 'json')
                                         <tr>
@@ -97,7 +110,6 @@
                                                         @endphp
                                                         <div class="text-center">
                                                             <img src="{{ asset($imagePath) }}" alt="Foto" class="img-thumbnail" style="max-height: 150px;">
-                                                            
                                                         </div>
                                                     @else
                                                         <span class="text-muted"><i>Tidak ada foto</i></span>
@@ -159,7 +171,6 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @php $newValues = json_decode($log->new_values, true); @endphp
                                     @foreach($newValues as $key => $value)
                                         @if($key != 'subkriterias' && $key != 'log_image_backup' && !is_null($value) && $key != 'created_at' && $key != 'updated_at' && !is_array($value) && $key != 'json')
                                         <tr>
@@ -168,9 +179,20 @@
                                                 @if($key == 'frame_foto' || $key == 'foto' || $key == 'gambar' || $key == 'image' || $key == 'photo')
                                                     @if($value)
                                                         @php
-                                                            // Check if we have a backup image
+                                                            // Check if new image path is identical to the old one
+                                                            $sameAsOld = $value == ($oldValues[$key] ?? null);
+                                                            
+                                                            // If this is an update and the image path is the same, use the old image path
+                                                            // since it might have been properly backed up
+                                                            $imagePath = ($log->action == 'update' && $sameAsOld && $oldImagePath) 
+                                                                ? $oldImagePath 
+                                                                : $value;
+                                                                
+                                                            // Also check if we have a backup image for the new value
                                                             $useBackupImage = isset($newValues['log_image_backup']) && $newValues['log_image_backup'];
-                                                            $imagePath = $useBackupImage ? $newValues['log_image_backup'] : $value;
+                                                            if ($useBackupImage) {
+                                                                $imagePath = $newValues['log_image_backup'];
+                                                            }
                                                             
                                                             // Fix untuk path gambar
                                                             if (strpos($imagePath, 'storage/') === 0) {
@@ -184,7 +206,6 @@
                                                         @endphp
                                                         <div class="text-center">
                                                             <img src="{{ asset($imagePath) }}" alt="Foto" class="img-thumbnail" style="max-height: 150px;">
-                                                            
                                                         </div>
                                                     @else
                                                         <span class="text-muted"><i>Tidak ada foto</i></span>
