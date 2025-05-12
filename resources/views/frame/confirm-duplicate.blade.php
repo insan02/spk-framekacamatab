@@ -16,25 +16,25 @@
                 
                 <!-- In confirm-duplicate.blade.php -->
                 <div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">Info Kemiripan</h5>
-    </div>
-    <div class="card-body">
-        <ul class="list-group">
-            @if(isset($similarityDetails['image']) && $similarityDetails['image']['similar'])
-                <li class="list-group-item list-group-item-warning">
-                    <strong>Foto Frame:</strong> {{ $similarityDetails['image']['message'] }}
-                </li>
-            @endif
-            
-            @if(isset($similarityDetails['data']) && $similarityDetails['data']['similar'])
-                <li class="list-group-item list-group-item-warning">
-                    <strong>Data Frame:</strong> {{ $similarityDetails['data']['message'] }}
-                </li>
-            @endif
-        </ul>
-    </div>
-</div>
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Info Kemiripan</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            @if(isset($similarityDetails['image']) && $similarityDetails['image']['similar'])
+                                <li class="list-group-item list-group-item-warning">
+                                    <strong>Foto Frame:</strong> {{ $similarityDetails['image']['message'] }}
+                                </li>
+                            @endif
+                            
+                            @if(isset($similarityDetails['data']) && $similarityDetails['data']['similar'])
+                                <li class="list-group-item list-group-item-warning">
+                                    <strong>Data Frame:</strong> {{ $similarityDetails['data']['message'] }}
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </div>
                 
                 <!-- Frame Baru Section -->
                 <div class="card mb-4">
@@ -159,7 +159,10 @@
                                                                 ->first();
                                                                 
                                                             if ($subkriteria) {
-                                                                $display_value = $manual_value . ' (' . $subkriteria->subkriteria_nama . ')';
+                                                                $formatted_value = number_format((float)$manual_value, 2, ',', '.');
+                                                                $display_value = $formatted_value . ' (' . $subkriteria->subkriteria_nama . ')';
+                                                            } else {
+                                                                $display_value = number_format((float)$manual_value, 2, ',', '.');
                                                             }
                                                             
                                                             
@@ -185,9 +188,9 @@
                 
                 <!-- Similar Frames Section -->
                 <div class="card mb-4 mt-4">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">Frame Serupa</h5>
-    </div>
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Frame Serupa</h5>
+                    </div>
                     <div class="card-body">
                         <div class="row">
                             @if(count($allSimilarFrames) > 0)
@@ -242,9 +245,12 @@
                                                                     @php
                                                                         $kriteria = $subkriterias->first()->kriteria;
                                                                         $displayValues = [];
+                                                                        
                                                                         foreach($subkriterias as $sub) {
                                                                             if($sub->manual_value) {
-                                                                                $displayValues[] = $sub->manual_value . ($sub->subkriteria ? ' ('.$sub->subkriteria->subkriteria_nama.')' : '');
+                                                                                // Format manual values with number_format for consistent display
+                                                                                $formatted_value = number_format((float)$sub->manual_value, 2, ',', '.');
+                                                                                $displayValues[] = $formatted_value . ($sub->subkriteria ? ' ('.$sub->subkriteria->subkriteria_nama.')' : '');
                                                                             } else {
                                                                                 $displayValues[] = $sub->subkriteria->subkriteria_nama ?? '';
                                                                             }

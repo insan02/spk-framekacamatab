@@ -121,7 +121,7 @@
                                         <a href="{{ route('customers.edit', $customer) }}" class="btn btn-sm btn-warning">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form action="{{ route('customers.destroy', $customer) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
+                                        <form action="{{ route('customers.destroy', $customer) }}" method="POST">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-danger">
@@ -146,10 +146,7 @@
                     {{ $customers->links() }}
                 @endif
 
-                <!-- No Results Message -->
-                <div id="noResults" class="alert alert-info" style="display: none;">
-                    Pelanggan tidak ditemukan.
-                </div>
+                
             </div>
         </div>
 

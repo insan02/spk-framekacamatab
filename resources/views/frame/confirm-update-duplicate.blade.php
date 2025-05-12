@@ -99,22 +99,23 @@
                                                         foreach($frameSubkriterias as $fs) {
                                                             if($fs->subkriteria) {
                                                                 $subkriteriaNames[] = $fs->subkriteria->subkriteria_nama;
-                                                                
-                                                                // Check if this has a manual value
-                                                                if($fs->manual_value !== null) {
-                                                                    $hasManualValue = true;
-                                                                    $manualValue = $fs->manual_value;
-                                                                }
+                                                            }
+                                                            
+                                                            // Check if this has a manual value
+                                                            if($fs->manual_value !== null) {
+                                                                $hasManualValue = true;
+                                                                $manualValue = number_format((float)$fs->manual_value, 2, ',', '.');
                                                             }
                                                         }
                                                         
                                                         $displayValue = implode(', ', $subkriteriaNames);
-                                                        
+                                                        if($hasManualValue) {
+                                                            $displayValue = $manualValue . ($displayValue ? ' (' . $displayValue . ')' : '');
+                                                        }
                                                     @endphp
                                                     <tr>
                                                         <td><strong>{{ $kriteria->kriteria_nama ?? 'Kriteria #'.$kriteria_id }}</strong></td>
                                                         <td>{{ $displayValue }}</td>
-
                                                     </tr>
                                                 @endforeach
                                             </tbody>
@@ -232,12 +233,12 @@
                                                                              count(array_diff($values[$kriteria_id], $oldValues)) > 0;
                                                             } elseif ($input_type == 'manual' && isset($manual_values[$kriteria_id])) {
                                                                 // For manual inputs
-                                                                $manual_value = $manual_values[$kriteria_id];
+                                                                $manual_value = number_format((float)$manual_values[$kriteria_id], 2, ',', '.');
                                                                 
                                                                 // Find related subkriteria if available
                                                                 $subkriteria = App\Models\Subkriteria::where('kriteria_id', $kriteria_id)
-                                                                    ->where(function($query) use ($manual_value) {
-                                                                        $value = (float) $manual_value;
+                                                                    ->where(function($query) use ($manual_values, $kriteria_id) {
+                                                                        $value = (float) $manual_values[$kriteria_id];
                                                                         $query->where(function($q) use ($value) {
                                                                             $q->where('operator', 'between')
                                                                               ->whereNotNull('nilai_minimum')
@@ -287,7 +288,7 @@
                                                                     }
                                                                 }
                                                                 
-                                                                $hasChanged = $oldManualValue !== $manual_value;
+                                                                $hasChanged = $oldManualValue !== $manual_values[$kriteria_id];
                                                             }
                                                             
                                                             // If kriteria didn't exist before, mark it as changed
@@ -327,18 +328,18 @@
                                                 foreach($frameSubkriterias as $fs) {
                                                     if($fs->subkriteria) {
                                                         $subkriteriaNames[] = $fs->subkriteria->subkriteria_nama;
-                                                        
-                                                        // Check if this has a manual value
-                                                        if($fs->manual_value !== null) {
-                                                            $hasManualValue = true;
-                                                            $manualValue = $fs->manual_value;
-                                                        }
+                                                    }
+                                                    
+                                                    // Check if this has a manual value
+                                                    if($fs->manual_value !== null) {
+                                                        $hasManualValue = true;
+                                                        $manualValue = number_format((float)$fs->manual_value, 2, ',', '.');
                                                     }
                                                 }
                                                 
                                                 $displayValue = implode(', ', $subkriteriaNames);
                                                 if($hasManualValue) {
-                                                    $displayValue = $manualValue . ' (' . $displayValue . ')';
+                                                    $displayValue = $manualValue . ($displayValue ? ' (' . $displayValue . ')' : '');
                                                     $displayType = '<span class="badge bg-success">Manual</span>';
                                                 } else {
                                                     $displayType = '<span class="badge bg-primary">Checkbox</span>';
@@ -361,7 +362,7 @@
                                                     <tr>
                                                         <th>Kriteria</th>
                                                         <th>Nilai/Subkriteria</th>
-                                                     
+                                                        <th>Tipe</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -440,10 +441,11 @@
                                                         $displayValues = [];
                                                         
                                                         foreach($subkriterias as $sub) {
-                                                            if($sub->manual_value) {
-                                                                $displayValues[] = $sub->manual_value . 
+                                                            if($sub->manual_value !== null) {
+                                                                $formattedValue = number_format((float)$sub->manual_value, 2, ',', '.');
+                                                                $displayValues[] = $formattedValue . 
                                                                     ($sub->subkriteria ? ' ('.$sub->subkriteria->subkriteria_nama.')' : '');
-                                                            } else {
+                                                            } elseif($sub->subkriteria) {
                                                                 $displayValues[] = $sub->subkriteria->subkriteria_nama ?? '';
                                                             }
                                                         }
@@ -472,22 +474,35 @@
     </div>
 </div>
                 
-                <div class="mt-4 text-center confirmation-area">
-                    <h5 class="fw-bold">Apakah perubahan frame tetap akan dilanjutkan meskipun ada kesamaan?</h5>
-                    <p class="text-muted mb-4">Silakan pilih tindakan yang sesuai:</p>
-                    
-                    <form action="{{ route('frame.process-update-duplicate', $frame->frame_id) }}" method="POST">
-                        @csrf
-                        <div class="confirmation-buttons">
-                            <button type="submit" name="action" value="continue" class="btn btn-success btn-lg mx-2">
-                                <i class="fas fa-check"></i> Ya, Lanjutkan Perubahan
-                            </button>
-                            <button type="submit" name="action" value="cancel" class="btn btn-danger btn-lg mx-2">
-                                <i class="fas fa-times"></i> Tidak, Batalkan Perubahan
-                            </button>
+                <div class="card confirmation-area border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-4">
+                                <i class="fas fa-question-circle fa-3x text-primary mb-3"></i>
+                                <h4 class="fw-bold">Apakah frame yang Anda tambahkan berbeda dengan frame yang sudah ada?</h4>
+                                <p class="text-muted">Silakan pilih tindakan yang sesuai di bawah ini:</p>
+                            </div>
+                            
+                            <form action="{{ route('frame.process-update-duplicate', $frame->frame_id) }}" method="POST">
+                                @csrf
+                                
+                                <div class="row justify-content-center">
+                                    <div class="col-md-10 col-lg-8">
+                                        <div class="d-grid gap-3">
+                                            <button type="submit" name="action" value="continue" class="btn btn-primary btn-lg shadow-sm p-0">
+                                                <i class="fas fa-check-circle me-2"></i> Ya, Lanjutkan Penyimpanan
+                                                <div class="small text-white-50 mt-1">Frame ini berbeda dengan yang sudah ada</div>
+                                            </button>
+                                            <button type="submit" name="action" value="cancel" class="btn btn-danger btn-lg shadow-sm p-0">
+                                                <i class="fas fa-times-circle me-2"></i> Tidak, Batalkan Penyimpanan
+                                                <div class="small text-white-50 mt-1">Frame ini sudah ada</div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                    </form>
-                </div>
+                    </div>
+            </div>
             </div>
         </div>
     </div>
@@ -504,7 +519,8 @@
         
         // Disable all other clickable elements
         document.querySelectorAll('a, button, input, select').forEach(element => {
-            if (!element.closest('.confirmation-buttons') && !element.closest('.navbar-nav')) {
+            if (!element.closest('.confirmation-area') && !element.closest('.navbar-nav') && 
+                !element.closest('.carousel-control-prev') && !element.closest('.carousel-control-next')) {
                 element.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();

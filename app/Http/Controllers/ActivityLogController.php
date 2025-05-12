@@ -326,4 +326,5 @@ class ActivityLogController extends Controller
                 ->with('error', 'Gagal menghapus data log: ' . $e->getMessage());
         }
     }
+
 }

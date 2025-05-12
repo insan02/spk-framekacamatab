@@ -207,8 +207,7 @@ class PenilaianController extends Controller
         return response()->json([
             'html' => $html,
             'rekomendasi' => $hasilPerhitungan['rekomendasi'],
-            'recommendation_history_id' => $recommendationHistory->recommendation_history_id,
-            'redirect_url' => route('rekomendasi.show', ['id' => $recommendationHistory->recommendation_history_id]),
+            'recommendation_history_id' => $recommendationHistory->id,
             'success' => 'Rekomendasi berhasil disimpan'
         ]);
     } catch (\Exception $e) {

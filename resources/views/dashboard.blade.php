@@ -7,8 +7,9 @@
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">
-                        <i class="fas fa-home me-2"></i>Selamat Datang,
-                        {{ Auth::user()->role === 'owner' ? 'Owner' : 'Karyawan' }}
+                        <i class="fas fa-home me-2"></i>Selamat Datang
+                        {{ Auth::user()->role === 'owner' ? ', Owner' : '' }}
+
                     </h4>
                     <div class="text-end">
                         <small>{{ now()->format('d M Y') }}</small>

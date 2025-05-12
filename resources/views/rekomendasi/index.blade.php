@@ -13,8 +13,11 @@
             
             @if(auth()->user()->role === 'owner')
             <div>
-                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#printReportModal">
+                <button type="button" class="btn btn-sm btn-light me-2" data-bs-toggle="modal" data-bs-target="#printReportModal">
                     <i class="fas fa-print me-1"></i>Cetak Laporan
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#resetDataModal">
+                    <i class="fas fa-trash-alt me-1"></i>Reset Data
                 </button>
             </div>
             @endif
@@ -135,6 +138,40 @@
     </div>
 </div>
 
+<!-- Reset Data Modal -->
+<div class="modal fade" id="resetDataModal" tabindex="-1" aria-labelledby="resetDataModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="resetDataModalLabel">Reset Data Rekomendasi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="resetDataForm" action="{{ route('rekomendasi.reset') }}" method="POST">
+                    @csrf
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Perhatian!</strong> Tindakan ini akan menghapus semua data riwayat rekomendasi sesuai dengan rentang tanggal yang dipilih dan tidak dapat dikembalikan.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="reset_start_date" class="form-label">Tanggal Mulai</label>
+                        <input type="date" class="form-control" id="reset_start_date" name="start_date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="reset_end_date" class="form-label">Tanggal Akhir</label>
+                        <input type="date" class="form-control" id="reset_end_date" name="end_date">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger" id="submitResetData">Reset Data</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="{{ asset('js/rekomendasi.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -161,6 +198,44 @@ document.addEventListener('DOMContentLoaded', function() {
         // Submit the form
         document.getElementById('printReportForm').submit();
     });
+    
+    // Handle reset data form submission
+    document.getElementById('submitResetData').addEventListener('click', function() {
+        // Validate dates
+        const startDate = document.getElementById('reset_start_date').value;
+        const endDate = document.getElementById('reset_end_date').value;
+        
+        if (endDate && startDate && new Date(endDate) < new Date(startDate)) {
+            alert('Tanggal akhir tidak boleh sebelum tanggal mulai');
+            return false;
+        }
+        
+        // Confirm one more time
+        if (confirm('Anda yakin ingin mereset data? Tindakan ini tidak dapat dibatalkan.')) {
+            // Submit the form
+            document.getElementById('resetDataForm').submit();
+        }
+    });
+    
+    // Show success message if any
+    const successMessageElement = document.querySelector('[data-success-message]');
+    if (successMessageElement) {
+        const message = successMessageElement.getAttribute('data-success-message');
+        if (message) {
+            // Use sweet alert if available, otherwise use regular alert
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Berhasil!',
+                    text: message,
+                    icon: 'success',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } else {
+                alert(message);
+            }
+        }
+    }
 });
 </script>
 @endsection

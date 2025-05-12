@@ -30,26 +30,38 @@
                     </div>
 
                     <div class="card mb-3">
-                        <div class="card-header">
-                            Foto Frame
-                        </div>
-                        <div class="card-body">
-                            <div class="form-group">
-                                @if($frame->frame_foto)
-                                    <div class="mb-3">
-                                        <img src="{{ asset('storage/'.$frame->frame_foto) }}" alt="{{ $frame->frame_merek }}" class="img-thumbnail" style="max-height: 200px;">
-                                    </div>
-                                @endif
-                                <input type="file" name="frame_foto" id="frame_foto" 
-                                       class="form-control @error('frame_foto') is-invalid @enderror" 
-                                       accept=".jpg,.jpeg,.png">
-                                <small class="form-text text-muted">Hanya menerima file gambar dengan format JPG, JPEG, atau PNG. Biarkan kosong jika tidak ingin mengubah foto.</small>
-                                @error('frame_foto')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
+    <div class="card-header">
+        Foto Frame
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            @if($frame->frame_foto)
+                <div class="mb-3">
+                    <img src="{{ asset('storage/'.$frame->frame_foto) }}" alt="{{ $frame->frame_merek }}" class="img-thumbnail" style="max-height: 200px;">
+                </div>
+            @endif
+            <input type="file" name="frame_foto" id="frame_foto" 
+                   class="form-control @error('frame_foto') is-invalid @enderror" 
+                   accept=".jpg,.jpeg,.png">
+            <small class="form-text text-muted">Hanya menerima file gambar dengan format JPG, JPEG, atau PNG. Biarkan kosong jika tidak ingin mengubah foto.</small>
+            @error('frame_foto')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
+</div>
+
+<!-- Bagian untuk preview foto baru (akan muncul saat pengguna memilih foto) -->
+<div id="preview-container" style="display: none;">
+    <div class="card mb-3">
+        <div class="card-header bg-info text-white">
+            <i class="fas fa-eye"></i> Preview Foto Baru
+        </div>
+        <div class="card-body text-center">
+            <img id="preview-image" src="#" alt="Preview Foto Frame" class="img-thumbnail" style="max-height: 200px;">
+        </div>
+    </div>
+</div>
 
                     <div class="card mb-3">
                         <div class="card-header">
@@ -191,34 +203,26 @@
 @push('scripts')
 <script>
     // Preview gambar saat memilih file baru
-    document.getElementById('frame_foto').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Hapus preview sebelumnya jika ada
-                const existingPreview = document.querySelector('.image-preview');
-                if (existingPreview) {
-                    existingPreview.remove();
-                }
-                
-                // Buat elemen preview baru
-                const previewDiv = document.createElement('div');
-                previewDiv.className = 'mt-3 image-preview';
-                previewDiv.innerHTML = `
-                    <p>Preview Foto Baru:</p>
-                    <img src="${e.target.result}" 
-                         alt="Preview Foto Frame" 
-                         class="img-thumbnail" 
-                         style="max-height: 200px;">
-                `;
-                
-                // Sisipkan setelah input file
-                e.target.parentNode.appendChild(previewDiv);
-            }
-            reader.readAsDataURL(file);
+document.getElementById('frame_foto').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const previewContainer = document.getElementById('preview-container');
+    const previewImage = document.getElementById('preview-image');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Tampilkan container preview
+            previewContainer.style.display = 'block';
+            
+            // Atur sumber gambar preview
+            previewImage.src = e.target.result;
         }
-    });
+        reader.readAsDataURL(file);
+    } else {
+        // Sembunyikan preview jika tidak ada file yang dipilih
+        previewContainer.style.display = 'none';
+    }
+});
 
     // Input type selector (checkbox vs manual input)
     document.querySelectorAll('.input-type-btn').forEach(button => {

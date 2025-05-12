@@ -11,6 +11,8 @@ use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Collection;
+
 
 
 class FrameController extends Controller
@@ -616,12 +618,22 @@ private function findSubkriteriaForValue($kriteria_id, $value)
  * Helper method to prepare comparison data between the frame and form data
  * This helps visualize the differences in the confirmation view
  * 
- * @param Frame $similarFrame
+ * @param Frame|Collection $similarFrame - Single Frame model or Collection of Frame models
  * @param array $formData
  * @return array
  */
 private function prepareComparisonData($similarFrame, $formData)
 {
+    // Handle case when a Collection is passed instead of a single Frame
+    if ($similarFrame instanceof Collection) {
+        // Use the first frame from the collection
+        if ($similarFrame->isEmpty()) {
+            return []; // Return empty comparison if collection is empty
+        }
+        $similarFrame = $similarFrame->first();
+    }
+    
+    // Now continue with the original code
     $comparison = [];
     
     // Extract existing frame's criteria
@@ -1045,64 +1057,39 @@ private function saveNewFrame(Request $request, $tempImagePath = null)
 
     // Update the processDuplicateConfirmation method
     public function processDuplicateConfirmation(Request $request)
-    {
-        if ($request->input('action') === 'continue') {
-            // User wants to continue with saving despite similarity
-            $tempImagePath = session('temp_image');
-            $formData = session('frame_form_data', []);
-            
-            if (empty($formData)) {
-                return redirect()->route('frame.create')
-                    ->with('error', 'Data frame tidak ditemukan. Silakan coba lagi.');
-            }
-            
-            // Create a new request with the stored data
-            $reconstructedRequest = new Request($formData);
-            
-            // Process the save with the temp image path to handle the file properly
-            return $this->saveNewFrame($reconstructedRequest, $tempImagePath);
-        } else {
-            // User chose to cancel - redirect back to create page with old input
-            $formData = session('frame_form_data', []);
-            $tempImagePath = session('temp_image');
-            
-            // Prepare old input for form repopulation
-            $oldInput = [
-                'frame_merek' => $formData['frame_merek'] ?? null,
-                'frame_lokasi' => $formData['frame_lokasi'] ?? null,
-                'temp_image_path' => $tempImagePath // Tambahkan path gambar ke old input
-            ];
-            
-            // Prepare nilai (criteria) data
-            if (isset($formData['nilai']) && is_array($formData['nilai'])) {
-                foreach ($formData['nilai'] as $kriteriaId => $subkriteriaIds) {
-                    $oldInput["nilai.{$kriteriaId}"] = $subkriteriaIds;
-                }
-            }
-            
-            // Prepare manual input values
-            if (isset($formData['nilai_manual']) && is_array($formData['nilai_manual'])) {
-                foreach ($formData['nilai_manual'] as $kriteriaId => $value) {
-                    $oldInput["nilai_manual.{$kriteriaId}"] = $value;
-                }
-            }
-            
-            // Prepare input type selection
-            if (isset($formData['input_type']) && is_array($formData['input_type'])) {
-                foreach ($formData['input_type'] as $kriteriaId => $type) {
-                    $oldInput["input_type.{$kriteriaId}"] = $type;
-                }
-            }
-            
-            // Clear session
-            session()->forget(['temp_image', 'frame_form_data', 'similarity_details']);
-            
+{
+    if ($request->input('action') === 'continue') {
+        // User wants to continue with saving despite similarity
+        $tempImagePath = session('temp_image');
+        $formData = session('frame_form_data', []);
+        
+        if (empty($formData)) {
             return redirect()->route('frame.create')
-                ->withInput($oldInput)
-                ->with('info', 'Penambahan frame dibatalkan karena kesamaan dengan frame yang sudah ada.')
-                ->with('temp_image', $tempImagePath); // Kirim path gambar ke view
+                ->with('error', 'Data frame tidak ditemukan. Silakan coba lagi.');
         }
+        
+        // Create a new request with the stored data
+        $reconstructedRequest = new Request($formData);
+        
+        // Process the save with the temp image path to handle the file properly
+        return $this->saveNewFrame($reconstructedRequest, $tempImagePath);
+    } else {
+        // User chose to cancel - redirect back to create page WITHOUT old input
+        
+        // Hapus file gambar temporary jika ada
+        $tempImagePath = session('temp_image');
+        if ($tempImagePath && Storage::disk('public')->exists($tempImagePath)) {
+            Storage::disk('public')->delete($tempImagePath);
+        }
+        
+        // Clear session completely
+        session()->forget(['temp_image', 'frame_form_data', 'similarity_details', 'all_similar_frames']);
+        
+        // Redirect ke halaman create tanpa membawa data input lama
+        return redirect()->route('frame.create')
+            ->with('info', 'Penambahan frame dibatalkan karena kesamaan dengan frame yang sudah ada.');
     }
+}
 
     public function edit(Frame $frame)
 {
@@ -1124,13 +1111,10 @@ public function update(Request $request, Frame $frame)
         'input_type.*' => 'nullable|in:checkbox,manual'
     ]);
 
-    // Store old data for logging
-    $oldData = $frame->toArray();
-    // If there's an image, backup it for logging
-    if ($frame->frame_foto && Storage::disk('public')->exists($frame->frame_foto)) {
-        $oldData['log_image_backup'] = $this->backupImageForLogs($frame->frame_foto);
-    }
-    $oldData['subkriterias'] = $this->getFrameSubkriteriaData($frame->frame_id);
+    // Store original frame data for comparison
+    $originalFrame = Frame::with('frameSubkriterias')->find($frame->frame_id);
+    $originalData = $originalFrame->toArray();
+    $originalSubkriterias = $this->getFrameSubkriteriaData($frame->frame_id);
     $oldFrameMerek = $frame->frame_merek;
 
     // Check if there's a confirmed similarity from session
@@ -1143,8 +1127,6 @@ public function update(Request $request, Frame $frame)
         
         // If no new image uploaded, we need to pass the existing image path
         if (!$request->hasFile('frame_foto') && $frame->frame_foto) {
-            // Instead of trying to create an UploadedFile object, which can cause issues,
-            // we'll just pass the existing image path to the similarity checker
             $similarityRequest->merge(['existing_frame_foto' => $frame->frame_foto]);
         }
         
@@ -1186,48 +1168,191 @@ public function update(Request $request, Frame $frame)
         session(['confirmed_similarity' => false]);
     }
 
-    // Update frame basic data
-    $frame->frame_merek = $request->frame_merek;
-    $frame->frame_lokasi = $request->frame_lokasi;
+    // Flag to track if any data has changed
+    $dataChanged = false;
+    
+    // Check if basic frame data has changed
+    if ($frame->frame_merek !== $request->frame_merek || 
+        $frame->frame_lokasi !== $request->frame_lokasi) {
+        $dataChanged = true;
+    }
+    
+    // Variable to track new image path if uploaded
+    $newImagePath = null;
+    $newImageName = null;
 
     // Handle image upload if a new image is provided
     if ($request->hasFile('frame_foto')) {
-        // Delete old image if it exists
-        if ($frame->frame_foto && Storage::disk('public')->exists($frame->frame_foto)) {
-            Storage::disk('public')->delete($frame->frame_foto);
-        }
+        $dataChanged = true;
         
         // Check if we have a temp image from the confirmation flow
         $tempEditImage = session('temp_edit_image');
         if ($tempEditImage && Storage::disk('public')->exists($tempEditImage)) {
             // Use temp image from session
-            $imageName = time() . '.jpg';
-            Storage::disk('public')->move($tempEditImage, 'frames/' . $imageName);
-            $frame->frame_foto = 'frames/' . $imageName;
+            $newImageName = time() . '.jpg';
+            $newImagePath = 'frames/' . $newImageName;
         } else {
-            // Upload new image directly
-            $imageName = time() . '.' . $request->frame_foto->extension();
-            $request->frame_foto->move(public_path('storage/frames'), $imageName);
-            $frame->frame_foto = 'frames/' . $imageName;
+            // Prepare new image path
+            $newImageName = time() . '.' . $request->frame_foto->extension();
+            $newImagePath = 'frames/' . $newImageName;
         }
     }
-
-    $frame->save();
-
-    // Delete all existing frameSubkriterias for this frame
-    FrameSubkriteria::where('frame_id', $frame->frame_id)->delete();
-
-    // Process regular checkbox subkriteria
+    
+    // Extract new subkriterias data from request
+    $newSubkriterias = [];
     $nilai = $request->input('nilai', []);
+    $nilai_manual = $request->input('nilai_manual', []);
     $input_types = $request->input('input_type', []);
     
-    // Debugging
-    Log::info('Processing checkbox criteria', [
-        'frame_id' => $frame->frame_id,
-        'nilai' => $nilai,
-        'input_types' => $input_types
-    ]);
+    // Process checkbox type
+    if (is_array($nilai)) {
+        foreach ($nilai as $kriteria_id => $subkriteria_ids) {
+            if (!isset($input_types[$kriteria_id]) || $input_types[$kriteria_id] == 'checkbox') {
+                foreach ($subkriteria_ids as $subkriteria_id) {
+                    $newSubkriterias[] = [
+                        'kriteria_id' => (int)$kriteria_id,
+                        'subkriteria_id' => (int)$subkriteria_id,
+                        'manual_value' => null
+                    ];
+                }
+            }
+        }
+    }
     
+    // Process manual input values
+    if (is_array($nilai_manual)) {
+        foreach ($nilai_manual as $kriteria_id => $value) {
+            if (isset($input_types[$kriteria_id]) && $input_types[$kriteria_id] == 'manual' && !empty($value)) {
+                $decimalValue = (float) str_replace(',', '.', $value);
+                $subkriteria = $this->findSubkriteriaForValue($kriteria_id, $decimalValue);
+                
+                if ($subkriteria) {
+                    $newSubkriterias[] = [
+                        'kriteria_id' => (int)$kriteria_id,
+                        'subkriteria_id' => (int)$subkriteria->subkriteria_id,
+                        'manual_value' => $decimalValue
+                    ];
+                }
+            }
+        }
+    }
+    
+    // Convert original subkriterias for comparison
+    $normalizedOriginalSubkriterias = [];
+    foreach ($originalSubkriterias as $sub) {
+        $normalizedOriginalSubkriterias[] = [
+            'kriteria_id' => (int)$sub['kriteria_id'],
+            'subkriteria_id' => (int)$sub['subkriteria_id'],
+            'manual_value' => $sub['manual_value'] !== null ? (float)$sub['manual_value'] : null
+        ];
+    }
+    
+    // Compare subkriterias to detect changes
+    if (count($normalizedOriginalSubkriterias) != count($newSubkriterias)) {
+        $dataChanged = true;
+        Log::debug('Subkriteria count changed', [
+            'original' => count($normalizedOriginalSubkriterias),
+            'new' => count($newSubkriterias)
+        ]);
+    } else {
+        // Sort arrays for proper comparison
+        $sortFunc = function($a, $b) {
+            if ($a['kriteria_id'] == $b['kriteria_id']) {
+                return $a['subkriteria_id'] <=> $b['subkriteria_id'];
+            }
+            return $a['kriteria_id'] <=> $b['kriteria_id'];
+        };
+        
+        usort($normalizedOriginalSubkriterias, $sortFunc);
+        usort($newSubkriterias, $sortFunc);
+        
+        // Deep comparison for subkriterias
+        for ($i = 0; $i < count($normalizedOriginalSubkriterias); $i++) {
+            $orig = $normalizedOriginalSubkriterias[$i];
+            $new = $newSubkriterias[$i];
+            
+            if ($orig['kriteria_id'] != $new['kriteria_id'] ||
+                $orig['subkriteria_id'] != $new['subkriteria_id'] ||
+                $orig['manual_value'] != $new['manual_value']) {
+                
+                Log::debug('Subkriteria difference detected', [
+                    'index' => $i,
+                    'original' => $orig,
+                    'new' => $new
+                ]);
+                
+                $dataChanged = true;
+                break;
+            }
+        }
+    }
+    
+    // If no data has changed, clean up and return early
+    if (!$dataChanged) {
+        Log::info('No frame data changed, skipping update', ['frame_id' => $frame->frame_id]);
+        
+        // Clean up any temporary images that might have been stored
+        $tempEditImage = session('temp_edit_image');
+        if ($tempEditImage && Storage::disk('public')->exists($tempEditImage)) {
+            Storage::disk('public')->delete($tempEditImage);
+            Log::info('Deleted unused temp image', ['path' => $tempEditImage]);
+        }
+        
+        // Clear any temp session data
+        session()->forget(['temp_edit_image', 'frame_edit_data', 'similarity_results', 'confirmed_similarity']);
+        
+        return redirect()->route('frame.index')->with('info', 'Tidak ada data yang diperbarui');
+    }
+    
+    // At this point, we know changes are needed
+    // Create a backup of old data for logging
+    $oldData = $originalFrame->toArray();
+    if ($frame->frame_foto && Storage::disk('public')->exists($frame->frame_foto)) {
+        $oldData['log_image_backup'] = $this->backupImageForLogs($frame->frame_foto);
+    }
+    $oldData['subkriterias'] = $originalSubkriterias;
+    
+    // Begin actual updates
+    Log::info('Updating frame data', ['frame_id' => $frame->frame_id]);
+    
+    // Update basic frame data
+    $frame->frame_merek = $request->frame_merek;
+    $frame->frame_lokasi = $request->frame_lokasi;
+
+    // Update image if needed
+    if ($newImagePath) {
+        // Delete old image if it exists
+        if ($frame->frame_foto && Storage::disk('public')->exists($frame->frame_foto)) {
+            Storage::disk('public')->delete($frame->frame_foto);
+            Log::info('Deleted old frame image', ['path' => $frame->frame_foto]);
+        }
+        
+        if (session('temp_edit_image') && Storage::disk('public')->exists(session('temp_edit_image'))) {
+            // Move temp image
+            Storage::disk('public')->move(session('temp_edit_image'), $newImagePath);
+            Log::info('Moved temp image to permanent location', [
+                'from' => session('temp_edit_image'),
+                'to' => $newImagePath
+            ]);
+        } else {
+            // Upload new image
+            $request->frame_foto->move(public_path('storage/frames'), $newImageName);
+            Log::info('Uploaded new image', ['path' => 'frames/' . $newImageName]);
+        }
+        
+        $frame->frame_foto = $newImagePath;
+    }
+
+    // Save basic frame data changes
+    $frame->save();
+
+    // Update subkriterias
+    
+    // First, delete all existing frameSubkriterias for this frame
+    FrameSubkriteria::where('frame_id', $frame->frame_id)->delete();
+    Log::info('Deleted existing subkriterias', ['frame_id' => $frame->frame_id]);
+
+    // Process regular checkbox subkriteria
     if (is_array($nilai)) {
         foreach ($nilai as $kriteria_id => $subkriteria_ids) {
             // Check if input type is checkbox or not specified
@@ -1239,7 +1364,7 @@ public function update(Request $request, Frame $frame)
                         'subkriteria_id' => $subkriteria_id,
                     ]);
                     
-                    Log::info('Created checkbox subkriteria', [
+                    Log::debug('Created checkbox subkriteria', [
                         'frame_id' => $frame->frame_id,
                         'kriteria_id' => $kriteria_id,
                         'subkriteria_id' => $subkriteria_id
@@ -1250,14 +1375,6 @@ public function update(Request $request, Frame $frame)
     }
 
     // Process manual input values for range-type subkriteria
-    $nilai_manual = $request->input('nilai_manual', []);
-    
-    // Debugging
-    Log::info('Processing manual criteria', [
-        'frame_id' => $frame->frame_id,
-        'nilai_manual' => $nilai_manual
-    ]);
-    
     if (is_array($nilai_manual)) {
         foreach ($nilai_manual as $kriteria_id => $value) {
             // Only process if input type is manual and value is not empty
@@ -1275,7 +1392,7 @@ public function update(Request $request, Frame $frame)
                         'manual_value' => $decimalValue // Simpan nilai decimal yang sudah dikonversi
                     ]);
                     
-                    Log::info('Created manual subkriteria', [
+                    Log::debug('Created manual subkriteria', [
                         'frame_id' => $frame->frame_id,
                         'kriteria_id' => $kriteria_id,
                         'subkriteria_id' => $subkriteria->subkriteria_id,
@@ -1291,9 +1408,12 @@ public function update(Request $request, Frame $frame)
         }
     }
 
-    $newData = $frame->toArray();
+    // Prepare new data for logging after all changes
+    $updatedFrame = Frame::find($frame->frame_id);
+    $newData = $updatedFrame->toArray();
     $newData['subkriterias'] = $this->getFrameSubkriteriaData($frame->frame_id);
 
+    // Log the activity (only happens if we got to this point, which means data changed)
     ActivityLogService::log(
         'update',
         'frame',

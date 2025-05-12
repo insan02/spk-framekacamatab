@@ -119,8 +119,10 @@ Route::post('/frame/{frame}/process-update-duplicate', [FrameController::class, 
 
         Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+        // Add this to your routes file (web.php)
+        Route::post('/rekomendasi/reset', [RecommendationHistoryController::class, 'resetData'])->name('rekomendasi.reset');
         Route::delete('logs/delete-all', [ActivityLogController::class, 'deleteAll'])->name('logs.deleteAll');
-Route::delete('/logs/{id}', [ActivityLogController::class, 'destroy'])->name('logs.destroy');
+        Route::delete('/logs/{id}', [ActivityLogController::class, 'destroy'])->name('logs.destroy');
 
     });
 
@@ -135,7 +137,7 @@ Route::delete('/logs/{id}', [ActivityLogController::class, 'destroy'])->name('lo
             Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
             Route::get('penilaian', [PenilaianController::class, 'index'])->name('penilaian.index');
             Route::get('rekomendasi', [RecommendationHistoryController::class, 'index'])->name('rekomendasi.index');
-            Route::get('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
+            
             Route::get('/rekomendasi/{id}', [RecommendationHistoryController::class, 'show'])->name('rekomendasi.show');
             Route::get('/rekomendasi/print/all', [RecommendationHistoryController::class, 'printAll'])->name('rekomendasi.print-all');
             Route::get('rekomendasi/print/{id}', [RecommendationHistoryController::class, 'print'])->name('rekomendasi.print');

@@ -74,7 +74,7 @@
                                 <tbody>
                                     @php $oldValues = json_decode($log->old_values, true); @endphp
                                     @foreach($oldValues as $key => $value)
-                                        @if($key != 'subkriterias' && $key != 'log_image_backup' && !is_null($value))
+                                        @if($key != 'subkriterias' && $key != 'log_image_backup' && !is_null($value) && $key != 'created_at' && $key != 'updated_at' && !is_array($value) && $key != 'json')
                                         <tr>
                                             <td class="fw-bold">{{ ucfirst(str_replace('_', ' ', $key)) }}</td>
                                             <td>
@@ -102,10 +102,6 @@
                                                     @else
                                                         <span class="text-muted"><i>Tidak ada foto</i></span>
                                                     @endif
-                                                @elseif($key == 'created_at' || $key == 'updated_at')
-                                                    {{ $value ? \Carbon\Carbon::parse($value)->format('d-m-Y H:i') : '' }}
-                                                @elseif(is_array($value))
-                                                    <pre class="mb-0">{{ json_encode($value, JSON_PRETTY_PRINT) }}</pre>
                                                 @else
                                                     {{ $value }}
                                                 @endif
@@ -126,19 +122,17 @@
                                         <tr>
                                             <th>Kriteria</th>
                                             <th>Subkriteria</th>
-                                            <th>Nilai Manual</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($oldValues['subkriterias'] as $subkriteria)
                                         <tr>
                                             <td>{{ $subkriteria['kriteria_nama'] }}</td>
-                                            <td>{{ $subkriteria['subkriteria_nama'] }}</td>
                                             <td>
                                                 @if(isset($subkriteria['manual_value']) && $subkriteria['manual_value'])
-                                                    {{ $subkriteria['manual_value'] }}
+                                                    {{ number_format($subkriteria['manual_value'], 2, ',', '.') }} ({{ $subkriteria['subkriteria_nama'] }})
                                                 @else
-                                                    <span class="text-muted"><i>-</i></span>
+                                                    {{ $subkriteria['subkriteria_nama'] }}
                                                 @endif
                                             </td>
                                         </tr>
@@ -167,7 +161,7 @@
                                 <tbody>
                                     @php $newValues = json_decode($log->new_values, true); @endphp
                                     @foreach($newValues as $key => $value)
-                                        @if($key != 'subkriterias' && $key != 'log_image_backup' && !is_null($value))
+                                        @if($key != 'subkriterias' && $key != 'log_image_backup' && !is_null($value) && $key != 'created_at' && $key != 'updated_at' && !is_array($value) && $key != 'json')
                                         <tr>
                                             <td class="fw-bold">{{ ucfirst(str_replace('_', ' ', $key)) }}</td>
                                             <td>
@@ -195,10 +189,6 @@
                                                     @else
                                                         <span class="text-muted"><i>Tidak ada foto</i></span>
                                                     @endif
-                                                @elseif($key == 'created_at' || $key == 'updated_at')
-                                                    {{ $value ? \Carbon\Carbon::parse($value)->format('d-m-Y H:i') : '' }}
-                                                @elseif(is_array($value))
-                                                    <pre class="mb-0">{{ json_encode($value, JSON_PRETTY_PRINT) }}</pre>
                                                 @else
                                                     {{ $value }}
                                                 @endif
@@ -219,19 +209,17 @@
                                         <tr>
                                             <th>Kriteria</th>
                                             <th>Subkriteria</th>
-                                            <th>Nilai Manual</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($newValues['subkriterias'] as $subkriteria)
                                         <tr>
                                             <td>{{ $subkriteria['kriteria_nama'] }}</td>
-                                            <td>{{ $subkriteria['subkriteria_nama'] }}</td>
                                             <td>
                                                 @if(isset($subkriteria['manual_value']) && $subkriteria['manual_value'])
-                                                    {{ $subkriteria['manual_value'] }}
+                                                    {{ number_format($subkriteria['manual_value'], 2, ',', '.') }} ({{ $subkriteria['subkriteria_nama'] }})  
                                                 @else
-                                                    <span class="text-muted"><i>-</i></span>
+                                                    {{ $subkriteria['subkriteria_nama'] }}
                                                 @endif
                                             </td>
                                         </tr>

@@ -41,18 +41,18 @@
                                 @error('frame_foto')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                                
-                                <!-- Tambahkan preview gambar jika ada -->
-                                @if(session('temp_image') && Storage::disk('public')->exists(session('temp_image')))
-                                    <div class="mt-3">
-                                        <p>Foto yang sudah diupload:</p>
-                                        <img src="{{ asset('storage/' . session('temp_image')) }}" 
-                                            alt="Preview Foto Frame" 
-                                            class="img-thumbnail" 
-                                            style="max-height: 200px;">
-                                        <input type="hidden" name="existing_temp_image" value="{{ session('temp_image') }}">
-                                    </div>
-                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bagian untuk preview foto baru (akan muncul saat pengguna memilih foto) -->
+                    <div id="preview-container" style="display: none;">
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-eye"></i> Preview Foto
+                            </div>
+                            <div class="card-body text-center">
+                                <img id="preview-image" src="#" alt="Preview Foto Frame" class="img-thumbnail" style="max-height: 200px;">
                             </div>
                         </div>
                     </div>
@@ -171,30 +171,22 @@
     // Preview gambar saat memilih file baru
     document.getElementById('frame_foto').addEventListener('change', function(e) {
         const file = e.target.files[0];
+        const previewContainer = document.getElementById('preview-container');
+        const previewImage = document.getElementById('preview-image');
+        
         if (file) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                // Hapus preview sebelumnya jika ada
-                const existingPreview = document.querySelector('.image-preview');
-                if (existingPreview) {
-                    existingPreview.remove();
-                }
+                // Tampilkan container preview
+                previewContainer.style.display = 'block';
                 
-                // Buat elemen preview baru
-                const previewDiv = document.createElement('div');
-                previewDiv.className = 'mt-3 image-preview';
-                previewDiv.innerHTML = `
-                    <p>Preview Foto Baru:</p>
-                    <img src="${e.target.result}" 
-                         alt="Preview Foto Frame" 
-                         class="img-thumbnail" 
-                         style="max-height: 200px;">
-                `;
-                
-                // Sisipkan setelah input file
-                e.target.parentNode.appendChild(previewDiv);
+                // Atur sumber gambar preview
+                previewImage.src = e.target.result;
             }
             reader.readAsDataURL(file);
+        } else {
+            // Sembunyikan preview jika tidak ada file yang dipilih
+            previewContainer.style.display = 'none';
         }
     });
 
@@ -224,7 +216,7 @@
         });
     });
 
-    // Format number function (copied from your existing subkriteria.js)
+    // Format number function
     function formatNumber(num) {
         if (!num) return '';
         return new Intl.NumberFormat('id-ID').format(num);
@@ -248,5 +240,15 @@
         const event = new Event('input');
         input.dispatchEvent(event);
     });
+    
+    // Jika ada flash message, tampilkan
+    @if(session('info'))
+        // Hapus semua input yang tersimpan di form (reset form)
+        setTimeout(function() {
+            document.querySelector('form').reset();
+            // Juga hapus semua preview yang ada
+            document.getElementById('preview-container').style.display = 'none';
+        }, 100);
+    @endif
 </script>
 @endpush

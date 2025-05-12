@@ -1,4 +1,3 @@
-// Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Element references
     const bobotInputs = document.querySelectorAll('.bobot-kriteria');
@@ -7,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const hasilPenilaianContent = document.getElementById('hasilPenilaianContent');
     const editPenilaianBtn = document.getElementById('editPenilaianBtn');
     const batalEditBtn = document.getElementById('batalEditBtn');
-    const simpanPenilaianBtn = document.getElementById('saveRecommendationBtn'); // FIXED: Correct button ID reference
+    const simpanPenilaianBtn = document.getElementById('saveRecommendationBtn');
     const penilaianForm = document.getElementById('penilaianForm');
     const bobotWarning = document.getElementById('bobot-warning');
     const searchCustomerInput = document.getElementById('searchCustomer');
@@ -26,7 +25,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Debug elements to console
     console.log('Debug simpanPenilaianBtn element:', simpanPenilaianBtn);
-    console.log('Debug saveRecommendationBtn element:', document.getElementById('saveRecommendationBtn'));
     
     const prevToCustomerFromFormBtn = document.getElementById('prevToCustomerFromFormBtn');
     const backToFormFromResultBtn = document.getElementById('backToFormFromResultBtn');
@@ -329,11 +327,6 @@ function initializeDataTables() {
     });
 }
 
-// Initialize DataTables when document is ready
-$(document).ready(function() {
-    initializeDataTables();
-});
-
     // Handle form submission via AJAX
     if (penilaianForm) {
         penilaianForm.addEventListener('submit', function(e) {
@@ -397,113 +390,136 @@ $(document).ready(function() {
         });
     }
 
-    // MAIN FIX: Use a direct event handler for the Save Recommendation button
-    // This addresses both event listener reference issues and timing issues
-    document.addEventListener('click', function(event) {
-        // Check if the clicked element is the save recommendation button
-        if (event.target && (event.target.id === 'saveRecommendationBtn' || 
-                             (event.target.closest('#saveRecommendationBtn')))) {
-            console.log('Save recommendation button clicked!');
+    // Modified Save Recommendation button handler
+    // Modified Save Recommendation button handler
+if (saveRecommendationBtn) {
+    saveRecommendationBtn.addEventListener('click', function() {
+        console.log('Save recommendation button clicked!');
+        
+        // Show loading spinner
+        showLoading();
+        
+        // Update wizard to step 4 (recommendation)
+        updateWizardStep(4);
+        
+        // Get the form data
+        const formData = new FormData(penilaianForm);
+        
+        // Make sure customer ID is included in the form data
+        const customerId = document.getElementById('selectedCustomerId').value || 
+                           document.getElementById('penilaianCustomerId').value;
+                           
+        if (customerId) {
+            formData.set('customer_id', customerId);
+        }
+        
+        // Add missing results data if needed
+        // Adding a flag to indicate this is a save action, not just processing
+        formData.append('action', 'save_recommendation');
+        
+        // Log form data for debugging
+        console.log('Form data entries:');
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfToken) {
+            console.error('CSRF token not found!');
+            hideLoading();
             
-            // Show loading spinner
-            showLoading();
-            
-            // Update wizard to step 4 (recommendation)
-            updateWizardStep(4);
-            
-            // Get the form
-            const form = document.getElementById('penilaianForm');
-            if (!form) {
-                console.error('Form not found!');
-                hideLoading();
-                return;
-            }
-            
-            // Create form data directly
-            const formData = new FormData(form);
-            
-            // Log form data for debugging
-            console.log('Form elements:', form.elements);
-            for (let pair of formData.entries()) {
-                console.log(pair[0] + ': ' + pair[1]);
-            }
-            
-            // Get CSRF token
-            const csrfToken = document.querySelector('meta[name="csrf-token"]');
-            if (!csrfToken) {
-                console.error('CSRF token not found!');
-                hideLoading();
-                
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Kesalahan',
-                    text: 'CSRF token tidak ditemukan'
-                });
-                return;
-            }
-            
-            // Send request to save recommendation with improved error handling
-            fetch('/penilaian/store', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken.getAttribute('content')
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(errorData => {
-                        throw new Error(errorData.error || `HTTP error: ${response.status}`);
-                    }).catch(err => {
-                        // If JSON parsing fails, throw with status code
+            Swal.fire({
+                icon: 'error',
+                title: 'Kesalahan',
+                text: 'CSRF token tidak ditemukan'
+            });
+            return;
+        }
+        
+        // Use the correct URL for storing recommendations
+        const storeUrl = '/penilaian/store';
+        
+        // Send request to save recommendation with improved error handling
+        fetch(storeUrl, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken.getAttribute('content')
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            // Better response handling
+            if (!response.ok) {
+                // Try to get JSON error first
+                return response.text().then(text => {
+                    try {
+                        // Try to parse as JSON
+                        const json = JSON.parse(text);
+                        throw new Error(json.error || `HTTP error: ${response.status}`);
+                    } catch (e) {
+                        // If not JSON or other parsing error, return the raw text
+                        console.error('Response text:', text);
                         throw new Error(`HTTP error: ${response.status}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Hide loading spinner
-                hideLoading();
-                
-                // Check if there's an error
-                if (data.error) {
-                    throw new Error(data.error);
-                }
+                    }
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Hide loading spinner
+            hideLoading();
+            
+            // Check if there's an error
+            if (data.error) {
+                throw new Error(data.error);
+            }
 
-                // Success message and redirect
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil',
-                    text: 'Rekomendasi berhasil disimpan',
-                    showConfirmButton: false,
-                    timer: 1500
-                }).then(() => {
-                    // Use redirect_url if available, otherwise fallback
+            // Success message and redirect
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: 'Rekomendasi berhasil disimpan',
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => {
+                // FIXED: More robust redirect handling
+                try {
                     if (data.redirect_url) {
                         window.location.href = data.redirect_url;
                     } else if (data.recommendation_history_id) {
+                        // Using string concatenation to ensure we have an ID
                         window.location.href = '/rekomendasi/' + data.recommendation_history_id;
+                    } else if (data.id) {
+                        // Fallback for different ID naming
+                        window.location.href = '/rekomendasi/' + data.id;
                     } else {
+                        // If no ID is available, go to the index
                         window.location.href = '/rekomendasi';
                     }
-                });
-            })
-            .catch(error => {
-                // Hide loading spinner
-                hideLoading();
-                
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Kesalahan',
-                    text: error.message || 'Terjadi kesalahan saat menyimpan rekomendasi'
-                });
+                } catch (e) {
+                    console.error('Redirect error:', e);
+                    // Fallback to the index page if any errors occur
+                    window.location.href = '/rekomendasi';
+                }
             });
-        }
+        })
+        .catch(error => {
+            // Hide loading spinner
+            hideLoading();
+            
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Kesalahan',
+                text: error.message || 'Terjadi kesalahan saat menyimpan rekomendasi'
+            });
+        });
     });
+}
 
     // Handle search customer
     if (searchCustomerBtn) {
@@ -527,8 +543,6 @@ $(document).ready(function() {
         });
     }
     
-
-    
     // Back to Customer Selection from Form
     if (prevToCustomerFromFormBtn) {
         prevToCustomerFromFormBtn.addEventListener('click', function() {
@@ -536,7 +550,6 @@ $(document).ready(function() {
             resetCustomerSelection();
         });
     }
-    
     
     // Edit from Result Button
     if (editFromResultBtn) {
