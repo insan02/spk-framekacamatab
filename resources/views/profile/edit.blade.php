@@ -57,7 +57,9 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary">Perbarui Password</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Perbarui
+                </button>
                 <a href="{{ route('profile') }}" class="btn btn-secondary">Batal</a>
             </form>
         </div>
