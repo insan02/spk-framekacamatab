@@ -81,14 +81,14 @@
                                        class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i> Detail
                                     </a>
-                                    @if(auth()->user()->role === 'karyawan')
+                                    
                                     <a href="{{ route('rekomendasi.print', $history->recommendation_history_id) }}" 
                                         class="btn btn-sm btn-warning print-btn"
                                         target="_blank">
                                         <i class="fas fa-print"></i> Cetak
                                      </a>
-                                     @endif
-                                    @if(auth()->user()->role !== 'owner')
+                                     
+                                    @if(auth()->user()->role == 'owner')
                                     <form action="{{ route('rekomendasi.destroy', $history->recommendation_history_id) }}" 
                                           method="POST" class="d-inline delete-form">
                                         @csrf

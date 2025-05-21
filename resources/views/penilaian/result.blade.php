@@ -199,11 +199,11 @@
                         <div class="col-md-12">
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-2"></i>
-                                <strong>Rumus Perhitungan GAP:</strong> Nilai Subkriteria Frame - Nilai Subkriteria Pelanggan
+                                <strong>Rumus Perhitungan GAP:</strong> Bobot Kriteria Frame - Bobot Kriteria Pelanggan
                             </div>
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-2"></i>
-                                <strong></strong> Untuk frame yang memiliki lebih dari 1 subkriteria, maka otomatis sistem akan mengambil gap/selisih terkecil untuk mendapatkan bobot gap terbesar
+                                <strong></strong> Untuk frame yang memiliki lebih dari 1 subkriteria, maka otomatis sistem akan mengambil gap/selisih yang sama dengan nol atau mendekati nol mendapatkan bobot gap terbesar
                             </div>
                         </div>
                     </div>
@@ -325,7 +325,7 @@
                     </div>
                 </div>
 
-                {{-- 4. Nilai Akhir SMART Tab --}}
+                {{-- 4. Nilai Akhir SMART Tab --}}  
                 <div class="tab-pane fade" id="nilaiAkhir" role="tabpanel">
                     <div class="alert alert-info mt-3">
                         <i class="fas fa-info-circle me-2"></i>
@@ -350,16 +350,16 @@
                                     <td>
                                         @if($frame['frame']->frame_foto)
                                             <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
-                                                 alt="{{ $frame['frame']->frame_merek }}" 
-                                                 class="img-thumbnail" 
-                                                 style="max-width: 100px; max-height: 60px;">
+                                                alt="{{ $frame['frame']->frame_merek }}" 
+                                                class="img-thumbnail" 
+                                                style="max-width: 100px; max-height: 60px;">
                                         @else
                                             <div class="text-muted text-center">No Image</div>
                                         @endif
                                     </td>
                                     @foreach($perhitungan['kriterias'] as $kriteria)
                                     <td>
-                                        <div class="small">{{ $perhitungan['bobotKriteria'][$kriteria->kriteria_id] }} × {{ $frame['gap_bobot'][$kriteria->kriteria_id] }} =</div>
+                                        <div class="small">{{ number_format($perhitungan['bobotKriteria'][$kriteria->kriteria_id], 4) }} × {{ $frame['gap_bobot'][$kriteria->kriteria_id] }} =</div>
                                         <div class="fw-bold">
                                             {{ number_format(
                                                 $perhitungan['bobotKriteria'][$kriteria->kriteria_id] * 
@@ -387,7 +387,7 @@
                                     <th>Foto</th>
                                     <th>Merek</th>
                                     <th>Lokasi</th>
-                                    <th>Kriteria Utama</th>
+                                    <th>Kriteria</th>
                                     <th class="text-center">Skor Akhir</th>
                                 </tr>
                             </thead>
@@ -398,9 +398,9 @@
                                     <td>
                                         @if($frame['frame']->frame_foto)
                                             <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
-                                                 alt="{{ $frame['frame']->frame_merek }}" 
-                                                 class="img-thumbnail" 
-                                                 style="max-width: 180px; max-height: 90px;">
+                                                alt="{{ $frame['frame']->frame_merek }}" 
+                                                class="img-thumbnail" 
+                                                style="max-width: 180px; max-height: 90px;">
                                         @else
                                             <div class="text-muted text-center">No Image</div>
                                         @endif
@@ -410,7 +410,6 @@
                                     <td>
                                         <small>
                                             @foreach($perhitungan['kriterias'] as $kriteria)
-                                                <strong>{{ $kriteria->kriteria_nama }}:</strong><br>
                                                 @php
                                                     $frameSubkriterias = $frame['frame']->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id);
                                                     $hasManualValue = false;
@@ -434,23 +433,20 @@
                                                     }
                                                 @endphp
                                                 
-                                                <div class="ps-2 mb-2">
+                                                <div class="mb-1">
+                                                    <strong>{{ $kriteria->kriteria_nama }}:</strong>
                                                     @if(count($manualValues) > 0)
                                                         @foreach($manualValues as $manualItem)
-                                                            <div>
-                                                                {{ number_format($manualItem['value'], 2, ',', '.') }} ({{ $manualItem['name'] }})
-                                                            </div>
+                                                            {{ number_format($manualItem['value'], 2, ',', '.') }} ({{ $manualItem['name'] }}){{ !$loop->last ? ', ' : '' }}
                                                         @endforeach
                                                     @endif
                                                     
                                                     @if(count($checkboxValues) > 0)
-                                                        <div>
-                                                            {{ implode(', ', $checkboxValues) }}
-                                                        </div>
+                                                        {{ implode(', ', $checkboxValues) }}
                                                     @endif
                                                     
                                                     @if(count($manualValues) == 0 && count($checkboxValues) == 0)
-                                                        <span class="text-muted">- Tidak ada data</span>
+                                                        <span class="text-muted">Tidak ada data</span>
                                                     @endif
                                                 </div>
                                             @endforeach

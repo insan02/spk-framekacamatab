@@ -83,7 +83,6 @@ Route::post('frame/process-duplicate-confirmation', [FrameController::class, 'pr
 Route::post('/frame/{frame}/process-update-duplicate', [FrameController::class, 'processUpdateDuplicate'])
     ->name('frame.process-update-duplicate');
         Route::delete('frame/{frame}', [FrameController::class, 'destroy'])->name('frame.destroy');
-        Route::get('/frames/{frame}/check-updates', [FrameController::class, 'checkUpdates'])->name('frame.checkUpdates');
         Route::get('/frame/batch-update', 'FrameController@batchUpdateForm')->name('frame.batchUpdateForm');
         Route::post('/frame/batch-update', 'FrameController@batchUpdate')->name('frame.batchUpdate');
         Route::get('/frames/needs-update', [FrameController::class, 'needsUpdate'])
@@ -105,7 +104,7 @@ Route::post('/frame/{frame}/process-update-duplicate', [FrameController::class, 
         Route::post('penilaian/process', [PenilaianController::class, 'process'])->name('penilaian.process');
         Route::post('penilaian/store', [PenilaianController::class, 'store'])->name('penilaian.store');
 
-        Route::delete('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'destroy'])->name('rekomendasi.destroy');
+        
         
         });
     
@@ -120,6 +119,7 @@ Route::post('/frame/{frame}/process-update-duplicate', [FrameController::class, 
         Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
         // Add this to your routes file (web.php)
+        Route::delete('rekomendasi/{rekomendasi}', [RecommendationHistoryController::class, 'destroy'])->name('rekomendasi.destroy');
         Route::post('/rekomendasi/reset', [RecommendationHistoryController::class, 'resetData'])->name('rekomendasi.reset');
         Route::delete('logs/delete-all', [ActivityLogController::class, 'deleteAll'])->name('logs.deleteAll');
         Route::delete('/logs/{id}', [ActivityLogController::class, 'destroy'])->name('logs.destroy');

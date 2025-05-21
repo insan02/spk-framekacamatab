@@ -37,13 +37,20 @@
                                 <input type="file" name="frame_foto" id="frame_foto" 
                                     class="form-control @error('frame_foto') is-invalid @enderror" 
                                     accept=".jpg,.jpeg,.png" required>
-                                <small class="form-text text-muted">Hanya menerima file gambar dengan format JPG, JPEG, atau PNG</small>
+
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle"></i> Hanya menerima file gambar dengan format <strong>JPG, JPEG,</strong> atau <strong>PNG</strong>.<br>
+                                    <i class="fas fa-info-circle"></i> Posisikan frame di <strong>tengah-tengah</strong>.<br>
+                                    <i class="fas fa-info-circle"></i> Gunakan latar belakang <strong>berwarna putih</strong>.
+                                </small>
+
                                 @error('frame_foto')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
                     </div>
+
 
                     <!-- Bagian untuk preview foto baru (akan muncul saat pengguna memilih foto) -->
                     <div id="preview-container" style="display: none;">
@@ -83,6 +90,11 @@
                                     @php
                                         $hasRangeType = $kriteria->subkriterias->contains('tipe_subkriteria', 'rentang nilai');
                                     @endphp
+
+                                    <small class="text-muted d-block mb-3 fst-italic">
+                                        <i class="fas fa-info-circle"></i> Centang semua yang sesuai dengan frame, Anda dapat memilih lebih dari satu subkriteria jika frame memiliki beberapa subkriteria.
+                                    </small>
+
                                     
                                     @if($hasRangeType)
                                         <!-- Input type selector for range-type criteria -->
@@ -97,7 +109,7 @@
                                                 </button>
                                                 <button type="button" class="btn btn-outline-primary input-type-btn {{ $oldInputType == 'manual' ? 'active' : '' }}" 
                                                     data-kriteria="{{ $kriteria->kriteria_id }}" data-type="manual">
-                                                    <i class="fas fa-keyboard"></i> Input Manual
+                                                    <i class="fas fa-keyboard"></i> Input
                                                 </button>
                                             </div>
                                             <input type="hidden" name="input_type[{{ $kriteria->kriteria_id }}]" 
@@ -118,7 +130,7 @@
                                                         value="{{ old('nilai_manual.'.$kriteria->kriteria_id) }}" 
                                                         placeholder="Masukkan nilai"
                                                         data-kriteria="{{ $kriteria->kriteria_id }}">
-                                                    <small class="form-text text-muted">Gunakan . (titik) untuk koma</small>
+                                                    <small class="form-text text-muted">Gunakan . (titik) sebagai koma</small>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label>Preview:</label>

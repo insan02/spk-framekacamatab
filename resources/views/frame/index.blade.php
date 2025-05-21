@@ -47,57 +47,27 @@
                 </div>
                 @endif
 
-                <div class="d-flex justify-content-between mb-3">
+                <div class="d-flex justify-content-between align-items-start flex-wrap mb-3">
                     @if(auth()->user()->role !== 'owner')
-                    <div>
-                        <a href="{{ route('frame.create') }}" class="btn btn-primary me-2">Tambah Frame</a>
-                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetKriteriaModal">
-                            Reset Kriteria Frame
-                        </button>
-                    </div>
-                    @endif
-                </div>
-                
-                <!-- Form Pencarian dengan Text dan Gambar -->
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div class="row">
-                            <!-- Pencarian Teks -->
-                            <div class="col-md-6">
-                                <form action="{{ route('frame.index') }}" method="GET" class="mb-3">
-                                    <div class="input-group">
-                                        <input type="text" name="search" class="form-control" placeholder="Cari berdasarkan merek atau lokasi" value="{{ request('search') }}">
-                                        <button class="btn btn-outline-primary" type="submit">
-                                            <i class="fas fa-search"></i> Cari
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                            
-                            {{-- <!-- Di bagian pencarian gambar -->
-                            <div class="col-md-6">
-                                <form action="{{ route('frame.searchByImage') }}" method="POST" enctype="multipart/form-data">
-                                    @csrf
-                                    <div class="input-group mb-3">
-                                        <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png">
-                                        <button class="btn btn-primary" type="submit">Cari dengan Gambar</button>
-                                    </div>
-                                </form>
-                            </div>  --}}
+                        <div class="mb-2">
+                            <a href="{{ route('frame.create') }}" class="btn btn-primary me-2">Tambah Frame</a>
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetKriteriaModal">
+                                Reset Kriteria Frame
+                            </button>
                         </div>
-                    </div>
+                    @endif
+
+                    <!-- Form Pencarian di sebelah kanan -->
+                    <form action="{{ route('frame.index') }}" method="GET" class="mb-2 ms-auto">
+                        <div class="input-group" style="width: 400px;">
+                            <input type="text" name="search" class="form-control" placeholder="Cari berdasarkan merek atau lokasi" value="{{ request('search') }}">
+                            <button class="btn btn-outline-primary" type="submit">
+                                <i class="fas fa-search"></i> Cari
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
-                <div id="searchResultsContainer" class="mt-4" style="display: none;">
-                    <div class="card">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-search"></i> Hasil Pencarian Berdasarkan Gambar</h5>
-                        </div>
-                        <div class="card-body">
-                            <div id="searchResults" class="row"></div>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="card">
                     <div class="card-body">
@@ -137,17 +107,57 @@
                                             <td>{{ $frame->frame_merek }}</td>
                                             <td>{{ $frame->frame_lokasi }}</td>
                                             <td>
-                                                <a href="{{ route('frame.show', $frame->frame_id) }}" class="btn btn-sm btn-info">
-                                                    Lihat Detail
-                                                </a>
+                                                <small>
+                                                    @php
+                                                        $kriterias = \App\Models\Kriteria::all();
+                                                    @endphp
+                                                    
+                                                    @foreach($kriterias as $kriteria)
+                                                        @php
+                                                            $frameSubkriterias = $frame->frameSubkriterias->where('kriteria_id', $kriteria->kriteria_id);
+                                                            $hasManualValue = false;
+                                                            $manualValues = [];
+                                                            $checkboxValues = [];
+                                                            
+                                                            foreach($frameSubkriterias as $fs) {
+                                                                if($fs->subkriteria) {
+                                                                    if($fs->manual_value !== null) {
+                                                                        // This is a manual value
+                                                                        $hasManualValue = true;
+                                                                        $manualValues[] = [
+                                                                            'value' => $fs->manual_value,
+                                                                            'name' => $fs->subkriteria->subkriteria_nama
+                                                                        ];
+                                                                    } else {
+                                                                        // This is a checkbox value
+                                                                        $checkboxValues[] = $fs->subkriteria->subkriteria_nama;
+                                                                    }
+                                                                }
+                                                            }
+                                                        @endphp
+                                                        
+                                                        <div class="mb-1">
+                                                            <strong>{{ $kriteria->kriteria_nama }}:</strong>
+                                                            @if(count($manualValues) > 0)
+                                                                @foreach($manualValues as $manualItem)
+                                                                    {{ number_format($manualItem['value'], 2, ',', '.') }} ({{ $manualItem['name'] }}){{ !$loop->last ? ', ' : '' }}
+                                                                @endforeach
+                                                            @endif
+                                                            
+                                                            @if(count($checkboxValues) > 0)
+                                                                {{ implode(', ', $checkboxValues) }}
+                                                            @endif
+                                                            
+                                                            @if(count($manualValues) == 0 && count($checkboxValues) == 0)
+                                                                <span class="text-muted">-</span>
+                                                            @endif
+                                                        </div>
+                                                    @endforeach
+                                                </small>
+                                                
+                                                
                                             </td>
-                                            {{-- <td>
-                                                @if($needsUpdate)
-                                                    <span class="badge bg-warning">Perlu dilengkapi</span>
-                                                @else
-                                                    <span class="badge bg-success">Lengkap</span>
-                                                @endif
-                                            </td>   --}}
+                                            
                                             @if(auth()->user()->role !== 'owner')                                                             
                                             <td>
                                                 <div class="btn-group" role="group">

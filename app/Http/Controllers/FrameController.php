@@ -85,34 +85,6 @@ class FrameController extends Controller
         return view('frame.index', compact('frames', 'frameNeedsUpdate', 'totalNeedsUpdate', 'search'));
     }
 
-    // Menampilkan informasi pembaruan untuk frame tertentu
-    public function checkUpdates(Frame $frame)
-    {
-        // Dapatkan semua kriteria
-        $allKriterias = Kriteria::with('subkriterias')->get();
-        $frameKriterias = $frame->frameSubkriterias->pluck('kriteria_id')->unique()->toArray();
-        
-        $missingKriterias = [];
-        foreach ($allKriterias as $kriteria) {
-            if (!in_array($kriteria->kriteria_id, $frameKriterias)) {
-                $missingKriterias[] = $kriteria;
-            }
-        }
-        
-        // Periksa subkriteria yang tidak valid
-        $outdatedSubkriterias = [];
-        foreach ($frame->frameSubkriterias as $frameSubkriteria) {
-            if (!$frameSubkriteria->subkriteria) {
-                $outdatedSubkriterias[] = [
-                    'kriteria' => $frameSubkriteria->kriteria,
-                    'message' => 'Subkriteria telah dihapus dan perlu diperbarui'
-                ];
-            }
-        }
-        
-        return view('frame.check-updates', compact('frame', 'missingKriterias', 'outdatedSubkriterias'));
-    }
-
     public function show(Frame $frame)
     {
         $kriterias = Kriteria::with('subkriterias')->get();
@@ -778,6 +750,8 @@ private function determineCriteriaStatus($existingValues, $newValues, $inputType
             $newKey = reset($newKeys);
             
             if ($existingKey === $newKey && 
+                isset($existingValues[$existingKey]['value']) && 
+                isset($newValues[$newKey]['value']) &&
                 $existingValues[$existingKey]['value'] === $newValues[$newKey]['value']) {
                 return 'identical';
             }

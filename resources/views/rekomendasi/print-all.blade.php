@@ -77,7 +77,7 @@
         }
 
         .logo {
-            max-width: 100px;
+            max-width: 300px;
             margin-bottom: 5px;
         }
         
@@ -108,7 +108,7 @@
         </div>
         
         <div class="report-header">
-            <img src="{{ asset('logokacamata.png') }}" alt="Logo" class="logo">
+            <img src="{{ asset('logosp.jpg') }}" alt="Logo" class="logo">
             <h1>LAPORAN HASIL REKOMENDASI FRAME KACAMATA</h1>
             <h1>Toko Kacamata Sidi Pingai</h1>
             <h1>Bukittinggi</h1>

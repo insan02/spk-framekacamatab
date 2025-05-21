@@ -32,6 +32,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>No</th>
+                                <th>ID Kriteria</th>
                                 <th>Nama Kriteria</th>
                                 @if(Auth::user()->role === 'karyawan')
                                     <th>Aksi</th>
@@ -42,6 +43,7 @@
                             @foreach($kriterias as $kriteria)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $kriteria->kriteria_id }}</td>
                                     <td>{{ $kriteria->kriteria_nama }}</td>
                                     @if(Auth::user()->role === 'karyawan')
                                         <td>
@@ -61,4 +63,5 @@
             </div>
         </div>
     </div>
+</div>
 @endsection

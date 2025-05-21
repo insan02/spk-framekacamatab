@@ -25,7 +25,20 @@
                     @csrf
                     @method('PUT')
                 
-                    <div class="form-group">
+                    <div class="form-group mb-3">
+                        <label for="kriteria_id" class="form-label">ID Kriteria</label>
+                        <input type="text" class="form-control @error('kriteria_id') is-invalid @enderror" 
+                               id="kriteria_id" name="kriteria_id" value="{{ old('kriteria_id', $kriteria->kriteria_id) }}" 
+                               pattern="C\d{2}" title="Format harus C diikuti 2 digit angka (contoh: C01)" required>
+                        <small class="form-text text-muted">Format ID: C diikuti 2 digit angka (contoh: C01)</small>
+                        @error('kriteria_id')
+                            <span class="invalid-feedback" role="alert">
+                                <strong>{{ $message }}</strong>
+                            </span>
+                        @enderror
+                    </div>
+                
+                    <div class="form-group mb-3">
                         <label for="kriteria_nama" class="form-label">Nama Kriteria</label>
                         <input type="text" class="form-control @error('kriteria_nama') is-invalid @enderror" 
                                id="kriteria_nama" name="kriteria_nama" value="{{ old('kriteria_nama', $kriteria->kriteria_nama) }}" 
@@ -50,16 +63,17 @@
             </div>
         </div>
     </div>
+    
     @if($errors->any())
     @foreach($errors->all() as $error)
         <div class="invalid-feedback" style="display:none;">
             <strong>{{ $error }}</strong>
         </div>
     @endforeach
-@endif
+    @endif
 
-@if(session('success'))
-    <div data-success-message="{{ session('success') }}" style="display:none;"></div>
-@endif
+    @if(session('success'))
+        <div data-success-message="{{ session('success') }}" style="display:none;"></div>
+    @endif
 </div>
 @endsection
