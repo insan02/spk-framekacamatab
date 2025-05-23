@@ -26,7 +26,16 @@ class EmployeeController extends Controller
     {
         $request->validate([
             'name' => 'required|regex:/^[A-Za-z\s]+$/',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                'unique:users',
+                'regex:/^[a-zA-Z0-9._%+-]+@gmail\.com$/'
+            ],
+        ], [
+            'email.regex' => 'Email harus menggunakan alamat @gmail.com'
         ]);
         
         // Generate random password
@@ -66,7 +75,16 @@ class EmployeeController extends Controller
         
         $request->validate([
             'name' => 'required|regex:/^[A-Za-z\s]+$/',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $employee->user_id . ',user_id',
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                'unique:users,email,' . $employee->user_id . ',user_id',
+                'regex:/^[a-zA-Z0-9._%+-]+@gmail\.com$/'
+            ],
+        ], [
+            'email.regex' => 'Email harus menggunakan alamat @gmail.com'
         ]);
         
         $employee->name = $request->name;

@@ -44,8 +44,6 @@ class SubkriteriaController extends Controller
             'subkriteria_bobot.required' => 'Bobot subkriteria harus dipilih',
             'subkriteria_keterangan.required' => 'Keterangan bobot subkriteria tidak boleh kosong',
             'subkriteria_keterangan.regex' => 'Keterangan bobot tidak valid.',
-            'subkriteria_bobot.min' => 'Bobot subkriteria minimal 1',
-            'subkriteria_bobot.max' => 'Bobot subkriteria maksimal 5',
         ]);
 
         if ($validator->fails()) {
@@ -84,11 +82,13 @@ class SubkriteriaController extends Controller
         elseif ($request->tipe_subkriteria == 'angka') {
             // Validasi tambahan untuk subkriteria angka
             $validator = Validator::make($request->all(), [
-                'subkriteria_nilai_angka' => 'required|numeric',
+                'subkriteria_nilai_angka' => 'required|numeric|gt:0|max:20000000',
                 'subkriteria_satuan' => 'nullable|string|max:20',
             ], [
                 'subkriteria_nilai_angka.required' => 'Nilai angka tidak boleh kosong',
                 'subkriteria_nilai_angka.numeric' => 'Nilai harus berupa angka',
+                'subkriteria_nilai_angka.gt' => 'Nilai harus lebih besar dari 0',
+                'subkriteria_nilai_angka.max' => 'Nilai maksimal adalah 20.000.000',
                 'subkriteria_satuan.max' => 'Satuan maksimal 20 karakter',
             ]);
             
@@ -131,28 +131,35 @@ class SubkriteriaController extends Controller
             // Validasi berdasarkan jenis operator
             if ($request->operator == 'between') {
                 $validator = Validator::make($request->all(), [
-                    'nilai_minimum' => 'required|numeric',
-                    'nilai_maksimum' => 'required|numeric|gt:nilai_minimum',
+                    'nilai_minimum' => 'required|numeric|gt:0|max:20000000',
+                    'nilai_maksimum' => 'required|numeric|gt:nilai_minimum|max:20000000',
                 ], [
                     'nilai_minimum.required' => 'Nilai minimum harus diisi',
                     'nilai_minimum.numeric' => 'Nilai minimum harus berupa angka',
+                    'nilai_minimum.gt' => 'Nilai minimum harus lebih besar dari 0',
+                    'nilai_minimum.max' => 'Nilai minimum maksimal adalah 20.000.000',
                     'nilai_maksimum.required' => 'Nilai maksimum harus diisi',
                     'nilai_maksimum.numeric' => 'Nilai maksimum harus berupa angka',
                     'nilai_maksimum.gt' => 'Nilai maksimum harus lebih besar dari nilai minimum',
+                    'nilai_maksimum.max' => 'Nilai maksimum maksimal adalah 20.000.000',
                 ]);
             } elseif ($request->operator == '<' || $request->operator == '<=') {
                 $validator = Validator::make($request->all(), [
-                    'nilai_maksimum' => 'required|numeric',
+                    'nilai_maksimum' => 'required|numeric|gt:0|max:20000000',
                 ], [
                     'nilai_maksimum.required' => 'Nilai maksimum harus diisi',
                     'nilai_maksimum.numeric' => 'Nilai maksimum harus berupa angka',
+                    'nilai_maksimum.gt' => 'Nilai maksimum harus lebih besar dari 0',
+                    'nilai_maksimum.max' => 'Nilai maksimum maksimal adalah 20.000.000',
                 ]);
             } elseif ($request->operator == '>' || $request->operator == '>=') {
                 $validator = Validator::make($request->all(), [
-                    'nilai_minimum' => 'required|numeric',
+                    'nilai_minimum' => 'required|numeric|gte:0|max:20000000',
                 ], [
                     'nilai_minimum.required' => 'Nilai minimum harus diisi',
                     'nilai_minimum.numeric' => 'Nilai minimum harus berupa angka',
+                    'nilai_minimum.gte' => 'Nilai minimum tidak boleh kurang dari 0',
+                    'nilai_minimum.max' => 'Nilai minimum maksimal adalah 20.000.000',
                 ]);
             }
 
@@ -323,11 +330,13 @@ class SubkriteriaController extends Controller
         elseif ($request->tipe_subkriteria == 'angka') {
             // Validasi untuk angka
             $validator = Validator::make($request->all(), [
-                'subkriteria_nilai_angka' => 'required|numeric',
+                'subkriteria_nilai_angka' => 'required|numeric|gt:0|max:20000000',
                 'subkriteria_satuan' => 'nullable|string|max:20',
             ], [
                 'subkriteria_nilai_angka.required' => 'Nilai angka tidak boleh kosong',
                 'subkriteria_nilai_angka.numeric' => 'Nilai harus berupa angka',
+                'subkriteria_nilai_angka.gt' => 'Nilai harus lebih besar dari 0',
+                'subkriteria_nilai_angka.max' => 'Nilai maksimal adalah 20.000.000',
                 'subkriteria_satuan.max' => 'Satuan maksimal 20 karakter',
             ]);
             
@@ -384,14 +393,17 @@ class SubkriteriaController extends Controller
             // Validasi dan set data berdasarkan operator
             if ($request->operator == 'between') {
                 $validator = Validator::make($request->all(), [
-                    'nilai_minimum' => 'required|numeric',
-                    'nilai_maksimum' => 'required|numeric|gt:nilai_minimum',
+                    'nilai_minimum' => 'required|numeric|gt:0|max:20000000',
+                    'nilai_maksimum' => 'required|numeric|gt:nilai_minimum|max:20000000',
                 ], [
                     'nilai_minimum.required' => 'Nilai minimum harus diisi',
                     'nilai_minimum.numeric' => 'Nilai minimum harus berupa angka',
+                    'nilai_minimum.gt' => 'Nilai minimum harus lebih besar dari 0',
+                    'nilai_minimum.max' => 'Nilai minimum maksimal adalah 20.000.000',
                     'nilai_maksimum.required' => 'Nilai maksimum harus diisi',
                     'nilai_maksimum.numeric' => 'Nilai maksimum harus berupa angka',
                     'nilai_maksimum.gt' => 'Nilai maksimum harus lebih besar dari nilai minimum',
+                    'nilai_maksimum.max' => 'Nilai maksimum maksimal adalah 20.000.000',
                 ]);
                 
                 if ($validator->fails()) {
@@ -426,10 +438,12 @@ class SubkriteriaController extends Controller
             } 
             elseif ($request->operator == '<' || $request->operator == '<=') {
                 $validator = Validator::make($request->all(), [
-                    'nilai_maksimum' => 'required|numeric',
+                    'nilai_maksimum' => 'required|numeric|gt:0|max:20000000',
                 ], [
                     'nilai_maksimum.required' => 'Nilai maksimum harus diisi',
                     'nilai_maksimum.numeric' => 'Nilai maksimum harus berupa angka',
+                    'nilai_maksimum.gt' => 'Nilai maksimum harus lebih besar dari 0',
+                    'nilai_maksimum.max' => 'Nilai maksimum maksimal adalah 20.000.000',
                 ]);
                 
                 if ($validator->fails()) {
@@ -455,10 +469,12 @@ class SubkriteriaController extends Controller
             } 
             else { // > atau >=
                 $validator = Validator::make($request->all(), [
-                    'nilai_minimum' => 'required|numeric',
+                    'nilai_minimum' => 'required|numeric|gte:0|max:20000000',
                 ], [
                     'nilai_minimum.required' => 'Nilai minimum harus diisi',
                     'nilai_minimum.numeric' => 'Nilai minimum harus berupa angka',
+                    'nilai_minimum.gte' => 'Nilai minimum tidak boleh kurang dari 0',
+                    'nilai_minimum.max' => 'Nilai minimum maksimal adalah 20.000.000',
                 ]);
                 
                 if ($validator->fails()) {

@@ -807,8 +807,13 @@ private function determineCriteriaStatus($existingValues, $newValues, $inputType
         'frame_lokasi' => 'required|string|max:255',
         'nilai.*' => 'nullable|array',
         'nilai.*.*' => 'nullable|exists:subkriterias,subkriteria_id',
-        'nilai_manual.*' => 'nullable',
+        'nilai_manual.*' => 'nullable|numeric|gt:0|max:20000000',
         'input_type.*' => 'nullable|in:checkbox,manual'
+    ], [
+        // Custom error messages untuk nilai manual
+        'nilai_manual.*.numeric' => 'Nilai harus berupa angka.',
+        'nilai_manual.*.gt' => 'Nilai harus lebih besar dari 0.',
+        'nilai_manual.*.max' => 'Nilai maksimum adalah 20,000,000.',
     ]);
     
     // Check for similar frames based on both image and data
@@ -1081,8 +1086,13 @@ public function update(Request $request, Frame $frame)
         'frame_lokasi' => 'required|string|max:255',
         'nilai.*' => 'nullable|array',
         'nilai.*.*' => 'nullable|exists:subkriterias,subkriteria_id',
-        'nilai_manual.*' => 'nullable',
+        'nilai_manual.*' => 'nullable|numeric|gt:0|max:20000000',
         'input_type.*' => 'nullable|in:checkbox,manual'
+    ], [
+        // Custom error messages untuk nilai manual
+        'nilai_manual.*.numeric' => 'Nilai harus berupa angka.',
+        'nilai_manual.*.gt' => 'Nilai harus lebih besar dari 0.',
+        'nilai_manual.*.max' => 'Nilai maksimum adalah 20,000,000.',
     ]);
 
     // Store original frame data for comparison

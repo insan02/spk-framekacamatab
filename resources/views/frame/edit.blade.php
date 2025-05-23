@@ -155,13 +155,18 @@
                                                 <div class="col-md-6">
                                                     <label>Masukkan Nilai {{ $kriteria->kriteria_nama }}:</label>
                                                     <input type="number" step="0.01" 
-                                                        class="form-control manual-nilai-input" 
+                                                        class="form-control manual-nilai-input @error('nilai_manual.'.$kriteria->kriteria_id) is-invalid @enderror" 
                                                         name="nilai_manual[{{ $kriteria->kriteria_id }}]" 
                                                         id="nilai_manual_{{ $kriteria->kriteria_id }}"
                                                         value="{{ $manualValue }}" 
-                                                        placeholder="Masukkan nilai"
+                                                        placeholder="Rentang Nilai (0 - 20,000,000)"
                                                         data-kriteria="{{ $kriteria->kriteria_id }}">
-                                                        <small class="form-text text-muted">Gunakan . (titik) sebagai koma</small>
+                                                    <small class="form-text text-muted">
+                                                        Gunakan . (titik) sebagai koma<br>
+                                                    </small>
+                                                    @if($errors->has('nilai_manual.'.$kriteria->kriteria_id))
+                                                        <div class="invalid-feedback">{{ $errors->first('nilai_manual.'.$kriteria->kriteria_id) }}</div>
+                                                    @endif
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label>Preview:</label>
