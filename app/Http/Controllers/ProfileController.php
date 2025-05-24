@@ -79,40 +79,55 @@ class ProfileController extends Controller
 
     // Menampilkan halaman edit password
     public function editPassword()
-    {
-        return view('profile.edit');
+{
+    return view('profile.edit');
+}
+
+// Menyimpan password yang diperbarui
+public function updatePassword(Request $request)
+{
+    $request->validate([
+        'current_password' => ['required'],
+        'new_password' => [
+            'required',
+            'min:8',
+            'confirmed',
+            'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/'
+        ],
+    ], [
+        'new_password.regex' => 'Password harus mengandung minimal 8 karakter dengan kombinasi huruf besar, huruf kecil, dan angka.',
+        'new_password.min' => 'Password minimal harus 8 karakter.',
+        'new_password.confirmed' => 'Konfirmasi password tidak cocok.',
+        'current_password.required' => 'Password lama harus diisi.'
+    ]);
+    
+    $user = User::find(Auth::user()->user_id);
+    
+    // Periksa apakah password lama benar
+    if (!Hash::check($request->current_password, $user->password)) {
+        return back()->withErrors(['current_password' => 'Password lama salah']);
     }
     
-    // Menyimpan password yang diperbarui
-    public function updatePassword(Request $request)
-    {
-        $request->validate([
-            'current_password' => ['required'],
-            'new_password' => ['required', 'min:8', 'confirmed'],
-        ]);
-        
-        $user = User::find(Auth::user()->user_id);
-        
-        // Periksa apakah password lama benar
-        if (!Hash::check($request->current_password, $user->password)) {
-            return back()->withErrors(['current_password' => 'Password lama salah']);
-        }
-        
-        // Update password baru
-        $user->password = Hash::make($request->new_password);
-        $user->save();
-        
-        // Tambahkan pesan sukses ke session
-        $message = 'Password berhasil diperbarui, silakan login ulang ke aplikasi';
-        
-        // Logout user
-        Auth::logout();
-        
-        // Invalidate session dan regenerate CSRF token
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-        
-        // Redirect ke halaman login dengan pesan sukses
-        return redirect()->route('login')->with('success', $message);
+    // Periksa apakah password baru sama dengan password lama
+    if (Hash::check($request->new_password, $user->password)) {
+        return back()->withErrors(['new_password' => 'Password baru tidak boleh sama dengan password lama']);
     }
+    
+    // Update password baru
+    $user->password = Hash::make($request->new_password);
+    $user->save();
+    
+    // Tambahkan pesan sukses ke session
+    $message = 'Password berhasil diperbarui, silakan login ulang ke aplikasi';
+    
+    // Logout user
+    Auth::logout();
+    
+    // Invalidate session dan regenerate CSRF token
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    
+    // Redirect ke halaman login dengan pesan sukses
+    return redirect()->route('login')->with('success', $message);
+}
 }
