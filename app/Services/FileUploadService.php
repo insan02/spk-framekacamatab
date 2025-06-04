@@ -16,7 +16,7 @@ class FileUploadService
      * @param string|null $customName
      * @return string|false
      */
-    public static function uploadToPublicStorage(UploadedFile $file, string $folder, string $customName = null)
+    public static function uploadToPublicStorage(UploadedFile $file, string $folder, ?string $customName = null)
     {
         try {
             // Tentukan nama file
@@ -50,7 +50,7 @@ class FileUploadService
      * @param string|null $customName
      * @return string|false
      */
-    public static function moveFromTemp(string $tempPath, string $permanentFolder, string $customName = null)
+    public static function moveFromTemp(string $tempPath, string $permanentFolder, ?string $customName = null)
     {
         try {
             $sourcePath = public_path('storage/' . $tempPath);

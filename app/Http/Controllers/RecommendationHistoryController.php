@@ -212,17 +212,15 @@ class RecommendationHistoryController extends Controller
         return $deletedCount;
     }
 
-    public function destroy($id)
+    public function destroy(RecommendationHistory $rekomendasi)
     {
         try {
-            $history = RecommendationHistory::findOrFail($id);
-            
             // Delete associated images before deleting the record
-            $deletedImages = $this->deleteHistoryImages($history);
+            $deletedImages = $this->deleteHistoryImages($rekomendasi);
             
-            $history->delete();
+            $rekomendasi->delete();
             
-            Log::info("Deleted recommendation history ID {$id} with {$deletedImages} associated images");
+            Log::info("Deleted recommendation history ID {$rekomendasi->id} with {$deletedImages} associated images");
             
             return redirect()->route('rekomendasi.index')
                 ->with('success', 'Riwayat rekomendasi berhasil dihapus bersama dengan ' . $deletedImages . ' file gambar terkait.');
