@@ -396,6 +396,7 @@
                 <tr>
                     <th class="text-center">Ranking</th>
                     <th>Foto</th>
+                    <th>ID</th>
                     <th>Merek</th>
                     <th>Lokasi</th>
                     <th>Kriteria Frame</th>
@@ -416,6 +417,7 @@
                             <div class="text-muted text-center">No Image</div>
                         @endif
                     </td>
+                    <td>{{ $frame['frame']['frame_id'] }}</td>
                     <td>{{ $frame['frame']['frame_merek'] }}</td>
                     <td>{{ $frame['frame']['frame_lokasi'] }}</td>
                     <td>

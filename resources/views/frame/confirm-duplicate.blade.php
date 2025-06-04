@@ -44,19 +44,19 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4 text-center">
-                                @if(isset($tempImagePath) && Storage::disk('public')->exists($tempImagePath))
-                                    <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
-                                        <img src="{{ asset('storage/' . $tempImagePath) }}" 
-                                             alt="Frame Baru" 
-                                             class="img-thumbnail" 
-                                             style="max-height: 180px; max-width: 100%; object-fit: contain;">
-                                    </div>
-                                @else
-                                    <div class="text-muted d-flex justify-content-center align-items-center" style="height: 200px;">
-                                        Gambar tidak tersedia
-                                    </div>
-                                @endif
-                            </div>
+    @if(isset($tempImagePath) && file_exists(public_path('storage/' . $tempImagePath)))
+        <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+            <img src="{{ asset('storage/' . $tempImagePath) }}" 
+                 alt="Frame Baru" 
+                 class="img-thumbnail" 
+                 style="max-height: 180px; max-width: 100%; object-fit: contain;">
+        </div>
+    @else
+        <div class="text-muted d-flex justify-content-center align-items-center" style="height: 200px;">
+            Gambar tidak tersedia
+        </div>
+    @endif
+</div>
                             <div class="col-md-8">
                                 <table class="table table-bordered">
                                     <tr>
@@ -203,12 +203,12 @@
                                             <div class="card-body">
                                                 <!-- Bagian gambar frame -->
                                                 <div class="text-center">
-                                                    @if($frame->frame_foto && Storage::disk('public')->exists($frame->frame_foto))
+                                                    @if($frame->frame_foto && file_exists(public_path('storage/' . $frame->frame_foto)))
                                                         <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
                                                             <img src="{{ asset('storage/' . $frame->frame_foto) }}" 
-                                                                 alt="{{ $frame->frame_merek }}" 
-                                                                 class="img-thumbnail" 
-                                                                 style="max-height: 130px; max-width: 100%; object-fit: contain;">
+                                                                alt="{{ $frame->frame_merek }}" 
+                                                                class="img-thumbnail" 
+                                                                style="max-height: 130px; max-width: 100%; object-fit: contain;">
                                                         </div>
                                                     @else
                                                         <div class="text-muted d-flex justify-content-center align-items-center" style="height: 150px;">
@@ -216,6 +216,7 @@
                                                         </div>
                                                     @endif
                                                 </div>
+
                                                 
                                                 <!-- Tabel info frame -->
                                                 <table class="table table-sm table-bordered">

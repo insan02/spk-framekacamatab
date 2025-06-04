@@ -76,6 +76,7 @@
                                 <thead class="thead-dark">
                                     <tr>
                                         <th>No</th>
+                                        <th>ID</th>
                                         <th>Foto</th>
                                         <th>Merek</th>
                                         <th>Lokasi</th>
@@ -94,6 +95,7 @@
                                         @endphp
                                         <tr @if($needsUpdate) class="table-warning" @endif>
                                             <td>{{ $frames->firstItem() + $index }}</td>
+                                            <td>{{ $frame->frame_id }}</td>
                                             <td class="text-center">
                                                 @if($frame->frame_foto && file_exists(public_path('storage/' . $frame->frame_foto)))
                                                     <img src="{{ asset('storage/' . $frame->frame_foto) }}" 

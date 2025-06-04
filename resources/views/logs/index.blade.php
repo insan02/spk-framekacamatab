@@ -120,7 +120,7 @@
                                     <td>
                                         <div class="btn-group" role="group">
                                             <a href="{{ route('logs.show', $log->id) }}" class="btn btn-sm btn-info">
-                                                <i class="fas fa-eye me-1"></i>Detail
+                                                Detail
                                             </a>
                                             @if(auth()->user()->role === 'owner')
                                                 <form action="{{ route('logs.destroy', $log->id) }}" method="POST">

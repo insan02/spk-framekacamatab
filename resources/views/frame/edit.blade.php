@@ -13,6 +13,24 @@
                 <form method="POST" action="{{ route('frame.update', $frame->frame_id) }}" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
+                    
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            ID Frame
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <input type="text" name="frame_id" id="frame_id" class="form-control @error('frame_id') is-invalid @enderror" 
+                                       value="{{ old('frame_id', $frame->frame_id) }}" placeholder="Masukkan ID frame" required>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle"></i> ID Frame harus berupa kombinasi <strong>huruf dan angka</strong>
+                                </small>
+                                @error('frame_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="card mb-3">
                         <div class="card-header">

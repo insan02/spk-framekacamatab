@@ -1,5 +1,7 @@
 <?php
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KriteriaController;
@@ -68,20 +70,19 @@ Route::middleware('auth')->group(function () {
         ->name('subkriteria.reset');
         
         // Frames - create, store, edit, update, destroy
-        // Frames - create, store, edit, update, destroy
         Route::get('frame/create', [FrameController::class, 'create'])->name('frame.create');
         Route::post('frame', [FrameController::class, 'store'])->name('frame.store');
         // Add these routes in your routes/web.php
         Route::get('frame/confirm-duplicate/{similar_frame_id}', [FrameController::class, 'confirmDuplicate'])
-    ->name('frame.confirm-duplicate');
-Route::post('frame/process-duplicate-confirmation', [FrameController::class, 'processDuplicateConfirmation'])
-    ->name('frame.process-duplicate-confirmation');
-        Route::get('frame/{frame}/edit', [FrameController::class, 'edit'])->name('frame.edit');
-        Route::put('frame/{frame}', [FrameController::class, 'update'])->name('frame.update');
-        Route::get('/frame/{frame}/confirm-update-duplicate', [FrameController::class, 'confirmUpdateDuplicate'])
-    ->name('frame.confirm-update-duplicate');
-Route::post('/frame/{frame}/process-update-duplicate', [FrameController::class, 'processUpdateDuplicate'])
-    ->name('frame.process-update-duplicate');
+            ->name('frame.confirm-duplicate');
+        Route::post('frame/process-duplicate-confirmation', [FrameController::class, 'processDuplicateConfirmation'])
+            ->name('frame.process-duplicate-confirmation');
+                Route::get('frame/{frame}/edit', [FrameController::class, 'edit'])->name('frame.edit');
+                Route::put('frame/{frame}', [FrameController::class, 'update'])->name('frame.update');
+                Route::get('/frame/{frame}/confirm-update-duplicate', [FrameController::class, 'confirmUpdateDuplicate'])
+            ->name('frame.confirm-update-duplicate');
+        Route::post('/frame/{frame}/process-update-duplicate', [FrameController::class, 'processUpdateDuplicate'])
+            ->name('frame.process-update-duplicate');
         Route::delete('frame/{frame}', [FrameController::class, 'destroy'])->name('frame.destroy');
         Route::get('/frame/batch-update', 'FrameController@batchUpdateForm')->name('frame.batchUpdateForm');
         Route::post('/frame/batch-update', 'FrameController@batchUpdate')->name('frame.batchUpdate');

@@ -51,6 +51,17 @@ class SubkriteriaController extends Controller
                 ->withErrors($validator)
                 ->withInput();
         }
+        
+        // Validasi tambahan: Cek apakah bobot sudah ada di kriteria yang sama
+        $existingWeight = Subkriteria::where('kriteria_id', $request->kriteria_id)
+                            ->where('subkriteria_bobot', $request->subkriteria_bobot)
+                            ->first();
+        
+        if ($existingWeight) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['subkriteria_bobot' => 'Bobot ' . $request->subkriteria_bobot . ' sudah digunakan untuk kriteria ini. Silakan pilih bobot yang berbeda.']);
+        }
 
         // Data dasar subkriteria
         $subkriteriaData = [
@@ -295,6 +306,18 @@ class SubkriteriaController extends Controller
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
+        }
+        
+        // Validasi tambahan: Cek apakah bobot sudah ada di kriteria yang sama (kecuali subkriteria ini sendiri)
+        $existingWeight = Subkriteria::where('kriteria_id', $request->kriteria_id)
+                            ->where('subkriteria_bobot', $request->subkriteria_bobot)
+                            ->where('subkriteria_id', '!=', $subkriteria->subkriteria_id)
+                            ->first();
+        
+        if ($existingWeight) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['subkriteria_bobot' => 'Bobot ' . $request->subkriteria_bobot . ' sudah digunakan untuk kriteria ini. Silakan pilih bobot yang berbeda.']);
         }
 
         $data = [

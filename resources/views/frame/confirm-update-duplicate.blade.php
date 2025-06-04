@@ -49,17 +49,17 @@
                                 <div class="card-body">
                                     <!-- Image moved to top -->
                                     <div class="d-flex justify-content-center align-items-center mb-3" style="height: 180px;">
-                                    @if($frame->frame_foto && Storage::disk('public')->exists($frame->frame_foto))
-                                                <img src="{{ asset('storage/' . $frame->frame_foto) }}" 
-                                                     alt="Frame Asli" 
-                                                     class="img-thumbnail" 
-                                                     style="max-height: 160px; max-width: 100%; object-fit: contain;">
-                                            @else
-                                                <div class="text-muted">
-                                                    Gambar tidak tersedia
-                                                </div>
-                                            @endif
-                                    </div>
+    @if($frame->frame_foto && \App\Services\FileUploadService::existsInPublicStorage($frame->frame_foto))
+        <img src="{{ asset('storage/' . $frame->frame_foto) }}" 
+             alt="Frame Asli" 
+             class="img-thumbnail" 
+             style="max-height: 160px; max-width: 100%; object-fit: contain;">
+    @else
+        <div class="text-muted">
+            Gambar tidak tersedia
+        </div>
+    @endif
+</div>
 
                                     <table class="table table-bordered">
                                         <tr>
@@ -132,24 +132,30 @@
                                     <h5 class="mb-0">Perubahan Yang Akan Diterapkan</h5>
                                 </div>
                                 <div class="card-body">
-                                    <div class="d-flex justify-content-center align-items-center mb-3" style="height: 180px;">
-                                        @if(isset($tempImagePath) && Storage::disk('public')->exists($tempImagePath))
-                                            <img src="{{ asset('storage/' . $tempImagePath) }}" 
-                                                 alt="Frame Diubah" 
-                                                 class="img-thumbnail" 
-                                                 style="max-height: 160px; max-width: 100%; object-fit: contain;">
-                                        @elseif(session('frame_edit_data') && !isset(session('frame_edit_data')['frame_foto']))
-                                            <img src="{{ asset('storage/' . $frame->frame_foto) }}" 
-                                                 alt="Frame Tidak Diubah" 
-                                                 class="img-thumbnail" 
-                                                 style="max-height: 160px; max-width: 100%; object-fit: contain;">
-                                            
-                                        @else
-                                            <div class="text-muted">
-                                                Gambar tidak tersedia
-                                            </div>
-                                        @endif
-                                    </div>
+                                   <div class="d-flex justify-content-center align-items-center mb-3" style="height: 180px;">
+    @php
+        $tempImagePath = session('temp_edit_image');
+        $frameEditData = session('frame_edit_data', []);
+    @endphp
+    
+    @if($tempImagePath && \App\Services\FileUploadService::existsInPublicStorage($tempImagePath))
+        {{-- Ada gambar baru yang diupload --}}
+        <img src="{{ asset('storage/' . $tempImagePath) }}" 
+             alt="Frame Diubah" 
+             class="img-thumbnail" 
+             style="max-height: 160px; max-width: 100%; object-fit: contain;">
+    @elseif(!empty($frameEditData) && !array_key_exists('frame_foto', $frameEditData) && $frame->frame_foto)
+        {{-- Tidak ada gambar baru, gunakan gambar lama --}}
+        <img src="{{ asset('storage/' . $frame->frame_foto) }}" 
+             alt="Frame Tidak Diubah" 
+             class="img-thumbnail" 
+             style="max-height: 160px; max-width: 100%; object-fit: contain;">
+    @else
+        <div class="text-muted">
+            Gambar tidak tersedia
+        </div>
+    @endif
+</div>
                                     
                                     <table class="table table-bordered table">
                                         <tr>
@@ -399,12 +405,12 @@
                             </div>
                             <div class="card-body">
                                 <div class="text-center">
-                                    @if($similarFrameItem->frame_foto && Storage::disk('public')->exists($similarFrameItem->frame_foto))
+                                    @if($similarFrameItem->frame_foto && \App\Services\FileUploadService::existsInPublicStorage($similarFrameItem->frame_foto))
                                         <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
                                             <img src="{{ asset('storage/' . $similarFrameItem->frame_foto) }}" 
-                                                 alt="{{ $similarFrameItem->frame_merek }}" 
-                                                 class="img-thumbnail" 
-                                                 style="max-height: 130px; max-width: 100%; object-fit: contain;">
+                                                alt="{{ $similarFrameItem->frame_merek }}" 
+                                                class="img-thumbnail" 
+                                                style="max-height: 130px; max-width: 100%; object-fit: contain;">
                                         </div>
                                     @else
                                         <div class="text-muted d-flex justify-content-center align-items-center" style="height: 150px;">
@@ -412,6 +418,7 @@
                                         </div>
                                     @endif
                                 </div>
+
                                 
                                 <table class="table table-sm table-bordered">
                                     <tr>

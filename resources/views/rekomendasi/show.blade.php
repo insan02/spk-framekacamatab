@@ -9,7 +9,7 @@
     </div>
     @if(session('success'))
         <div data-success-message="{{ session('success') }}" style="display: none;"></div>
-        @endif
+    @endif
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0">
@@ -118,8 +118,7 @@
                                 </tbody>
                             </table>
                             <div class="alert alert-info">
-                                <strong>Total Bobot Normalisasi:</strong> 
-                                {{ number_format(array_sum($bobotKriteria), 4) }}
+                                <strong>Total Bobot Normalisasi: 1</strong> 
                             </div>
                         </div>
                     </div>
@@ -132,9 +131,13 @@
                 $rekomendasi = $history->rekomendasi_data ?? [];
                 $kriterias = $perhitungan['kriterias'] ?? [];
                 
-                // Sort rekomendasi by frame_id for tables 1-4
-                $rekomendasiByFrameId = collect($rekomendasi)->sortBy(function($frame) {
-                    return $frame['frame']['frame_id'];
+                // Sort rekomendasi by created_at (oldest first) for tables 1-4
+                $rekomendasiByCreatedAt = collect($rekomendasi)->sortBy(function($frame) {
+                    // Try to get created_at from various possible locations
+                    return $frame['frame']['created_at'] ?? 
+                           $frame['frame']['frame_created_at'] ?? 
+                           $frame['created_at'] ?? 
+                           now(); // fallback to current time if not found
                 })->values()->all();
                 
                 // Keep original sorting by score for table 5
@@ -159,6 +162,7 @@
                             <table id="nilaiProfileFrameTable" class="table table-striped table-hover">
                                 <thead class="table-primary">
                                     <tr>
+                                        <th>ID</th>
                                         <th>Alternatif</th>
                                         <th>Foto Frame</th>
                                         @foreach($kriterias as $kriteria)
@@ -167,17 +171,32 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($rekomendasiByFrameId as $frame)
+                                    @foreach($rekomendasiByCreatedAt as $frame)
                                     <tr>
+                                        <td>{{ $frame['frame']['frame_id'] }}</td>
                                         <td>{{ $frame['frame']['frame_merek'] }}</td>
                                         <td>
                                             @if(isset($frame['frame']['frame_foto']) && $frame['frame']['frame_foto'])
-                                                <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
-                                                     alt="{{ $frame['frame']['frame_merek'] }}" 
-                                                     class="img-thumbnail" 
-                                                     style="max-width: 100px; max-height: 60px;">
+                                                @php
+                                                    // Helper function to check if image exists using FileUploadService
+                                                    $imageExists = \App\Services\FileUploadService::existsInPublicStorage($frame['frame']['frame_foto']);
+                                                @endphp
+                                                @if($imageExists)
+                                                    <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
+                                                         alt="{{ $frame['frame']['frame_merek'] }}" 
+                                                         class="img-thumbnail" 
+                                                         style="max-width: 100px; max-height: 60px;">
+                                                @else
+                                                    <div class="text-muted text-center">
+                                                        <i class="fas fa-image"></i><br>
+                                                        Image Not Found
+                                                    </div>
+                                                @endif
                                             @else
-                                                <div class="text-muted text-center">No Image</div>
+                                                <div class="text-muted text-center">
+                                                    <i class="fas fa-image"></i><br>
+                                                    No Image
+                                                </div>
                                             @endif
                                         </td>  
                                         @foreach($kriterias as $kriteria)
@@ -283,6 +302,7 @@
                             <table id="perhitunganGapTable" class="table table-striped table-hover">
                                 <thead class="table-danger">
                                     <tr>
+                                        <th>ID</th>
                                         <th>Alternatif</th>
                                         <th>Foto Frame</th>
                                         @foreach($kriterias as $kriteria)
@@ -291,17 +311,31 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($rekomendasiByFrameId as $frame)
+                                    @foreach($rekomendasiByCreatedAt as $frame)
                                     <tr>
+                                        <td>{{ $frame['frame']['frame_id'] }}</td>
                                         <td>{{ $frame['frame']['frame_merek'] }}</td>
                                         <td>
                                             @if(isset($frame['frame']['frame_foto']) && $frame['frame']['frame_foto'])
-                                                <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
-                                                     alt="{{ $frame['frame']['frame_merek'] }}" 
-                                                     class="img-thumbnail" 
-                                                     style="max-width: 100px; max-height: 60px;">
+                                                @php
+                                                    $imageExists = \App\Services\FileUploadService::existsInPublicStorage($frame['frame']['frame_foto']);
+                                                @endphp
+                                                @if($imageExists)
+                                                    <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
+                                                         alt="{{ $frame['frame']['frame_merek'] }}" 
+                                                         class="img-thumbnail" 
+                                                         style="max-width: 100px; max-height: 60px;">
+                                                @else
+                                                    <div class="text-muted text-center">
+                                                        <i class="fas fa-image"></i><br>
+                                                        Image Not Found
+                                                    </div>
+                                                @endif
                                             @else
-                                                <div class="text-muted text-center">No Image</div>
+                                                <div class="text-muted text-center">
+                                                    <i class="fas fa-image"></i><br>
+                                                    No Image
+                                                </div>
                                             @endif
                                         </td>
                                         @foreach($kriterias as $kriteria)
@@ -341,6 +375,7 @@
                             <table id="konversiNilaiGapTable" class="table table-striped table-hover">
                                 <thead class="table-success">
                                     <tr>
+                                        <th>ID</th>
                                         <th>Alternatif</th>
                                         <th>Foto Frame</th>
                                         @foreach($kriterias as $kriteria)
@@ -349,17 +384,31 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($rekomendasiByFrameId as $frame)
+                                    @foreach($rekomendasiByCreatedAt as $frame)
                                     <tr>
+                                        <td>{{ $frame['frame']['frame_id'] }}</td>
                                         <td>{{ $frame['frame']['frame_merek'] }}</td>
                                         <td>
                                             @if(isset($frame['frame']['frame_foto']) && $frame['frame']['frame_foto'])
-                                                <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
-                                                     alt="{{ $frame['frame']['frame_merek'] }}" 
-                                                     class="img-thumbnail" 
-                                                     style="max-width: 100px; max-height: 60px;">
+                                                @php
+                                                    $imageExists = \App\Services\FileUploadService::existsInPublicStorage($frame['frame']['frame_foto']);
+                                                @endphp
+                                                @if($imageExists)
+                                                    <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
+                                                         alt="{{ $frame['frame']['frame_merek'] }}" 
+                                                         class="img-thumbnail" 
+                                                         style="max-width: 100px; max-height: 60px;">
+                                                @else
+                                                    <div class="text-muted text-center">
+                                                        <i class="fas fa-image"></i><br>
+                                                        Image Not Found
+                                                    </div>
+                                                @endif
                                             @else
-                                                <div class="text-muted text-center">No Image</div>
+                                                <div class="text-muted text-center">
+                                                    <i class="fas fa-image"></i><br>
+                                                    No Image
+                                                </div>
                                             @endif
                                         </td>
                                         @foreach($kriterias as $kriteria)
@@ -387,6 +436,7 @@
                             <table id="nilaiAkhirSMARTTable" class="table table-striped table-hover">
                                 <thead class="table-primary">
                                     <tr>
+                                        <th>ID</th>
                                         <th>Alternatif</th>
                                         <th>Foto Frame</th>
                                         @foreach($kriterias as $kriteria)
@@ -396,17 +446,31 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($rekomendasiByFrameId as $frame)
+                                    @foreach($rekomendasiByCreatedAt as $frame)
                                     <tr>
+                                        <td>{{ $frame['frame']['frame_id'] }}</td>
                                         <td>{{ $frame['frame']['frame_merek'] }}</td>
                                         <td>
                                             @if(isset($frame['frame']['frame_foto']) && $frame['frame']['frame_foto'])
-                                                <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
-                                                     alt="{{ $frame['frame']['frame_merek'] }}" 
-                                                     class="img-thumbnail" 
-                                                     style="max-width: 100px; max-height: 60px;">
+                                                @php
+                                                    $imageExists = \App\Services\FileUploadService::existsInPublicStorage($frame['frame']['frame_foto']);
+                                                @endphp
+                                                @if($imageExists)
+                                                    <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
+                                                         alt="{{ $frame['frame']['frame_merek'] }}" 
+                                                         class="img-thumbnail" 
+                                                         style="max-width: 100px; max-height: 60px;">
+                                                @else
+                                                    <div class="text-muted text-center">
+                                                        <i class="fas fa-image"></i><br>
+                                                        Image Not Found
+                                                    </div>
+                                                @endif
                                             @else
-                                                <div class="text-muted text-center">No Image</div>
+                                                <div class="text-muted text-center">
+                                                    <i class="fas fa-image"></i><br>
+                                                    No Image
+                                                </div>
                                             @endif
                                         </td>
                                         @foreach($kriterias as $kriteria)
@@ -438,6 +502,7 @@
                                     <tr>
                                         <th class="text-center">Ranking</th>
                                         <th>Foto</th>
+                                        <th>ID</th>
                                         <th>Merek</th>
                                         <th>Lokasi</th>
                                         <th>Kriteria</th>
@@ -450,14 +515,28 @@
                                         <td class="text-center fw-bold">{{ $index + 1 }}</td>
                                         <td>
                                             @if(isset($frame['frame']['frame_foto']) && $frame['frame']['frame_foto'])
-                                                <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
-                                                    alt="{{ $frame['frame']['frame_merek'] }}" 
-                                                    class="img-thumbnail" 
-                                                    style="max-width: 180px; max-height: 90px;">
+                                                @php
+                                                    $imageExists = \App\Services\FileUploadService::existsInPublicStorage($frame['frame']['frame_foto']);
+                                                @endphp
+                                                @if($imageExists)
+                                                    <img src="{{ asset('storage/'.$frame['frame']['frame_foto']) }}" 
+                                                        alt="{{ $frame['frame']['frame_merek'] }}" 
+                                                        class="img-thumbnail" 
+                                                        style="max-width: 180px; max-height: 90px;">
+                                                @else
+                                                    <div class="text-muted text-center">
+                                                        <i class="fas fa-image"></i><br>
+                                                        Image Not Found
+                                                    </div>
+                                                @endif
                                             @else
-                                                <div class="text-muted text-center">No Image</div>
+                                                <div class="text-muted text-center">
+                                                    <i class="fas fa-image"></i><br>
+                                                    No Image
+                                                </div>
                                             @endif
                                         </td>
+                                        <td>{{ $frame['frame']['frame_id'] }}</td>
                                         <td>{{ $frame['frame']['frame_merek'] }}</td>
                                         <td>{{ $frame['frame']['frame_lokasi'] }}</td>
                                         <td>

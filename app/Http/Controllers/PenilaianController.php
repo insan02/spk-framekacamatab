@@ -21,7 +21,9 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 use App\Models\Customer;
+use App\Services\FileUploadService;
 
 class PenilaianController extends Controller
 {
@@ -363,17 +365,48 @@ private function processImageFiles($rekomendasiData)
     foreach ($rekomendasiCopy as &$item) {
         // Process image copy
         $frameFoto = $item['frame']['frame_foto'] ?? null;
-        if ($frameFoto && Storage::disk('public')->exists($frameFoto)) {
-            // Generate nama unik untuk file
-            $newFilename = 'history_images/' . uniqid() . '_' . basename($frameFoto);
-            
-            // Salin file ke direktori history
-            Storage::disk('public')->copy($frameFoto, $newFilename);
-            
-            // Update path foto di data rekomendasi
-            $item['frame']['frame_foto'] = $newFilename;
+        
+        if ($frameFoto) {
+            // Check if file exists in public/storage
+            if (FileUploadService::existsInPublicStorage($frameFoto)) {
+                // Generate nama unik untuk file di folder history_images
+                $newFilename = 'history_images/' . uniqid() . '_' . basename($frameFoto);
+                
+                // Backup/copy file ke direktori history menggunakan FileUploadService
+                $backupResult = FileUploadService::backupFile($frameFoto, 'history_images');
+                
+                if ($backupResult) {
+                    // Update path foto di data rekomendasi dengan hasil backup
+                    $item['frame']['frame_foto'] = $backupResult;
+                } else {
+                    // Jika backup gagal, coba copy manual
+                    try {
+                        $sourcePath = public_path('storage/' . $frameFoto);
+                        $destinationPath = public_path('storage/history_images');
+                        
+                        // Pastikan folder history_images ada
+                        if (!File::exists($destinationPath)) {
+                            File::makeDirectory($destinationPath, 0755, true);
+                        }
+                        
+                        $newFilename = 'history_images/' . uniqid() . '_' . basename($frameFoto);
+                        $destinationFile = public_path('storage/' . $newFilename);
+                        
+                        // Copy file
+                        File::copy($sourcePath, $destinationFile);
+                        $item['frame']['frame_foto'] = $newFilename;
+                        
+                    } catch (\Exception $e) {
+                        Log::error('Error copying frame image: ' . $e->getMessage());
+                        $item['frame']['frame_foto'] = null;
+                    }
+                }
+            } else {
+                Log::warning('Frame image not found: ' . $frameFoto);
+                $item['frame']['frame_foto'] = null; // Jika foto tidak ada
+            }
         } else {
-            $item['frame']['frame_foto'] = null; // Jika foto tidak ada
+            $item['frame']['frame_foto'] = null;
         }
         
         // Make sure frameSubkriterias are properly preserved with manual values
@@ -446,7 +479,7 @@ private function hitungProfileMatching($subkriteriaUser, $bobotKriteriaUser, $to
             $query->whereIn('kriteria_id', $kriterias->pluck('kriteria_id'))
                   ->with('subkriteria');
         }])
-        ->orderBy('frame_id', 'asc') // Tambahkan pengurutan berdasarkan frame_id
+        ->orderBy('created_at', 'asc') // Urutkan berdasarkan created_at untuk konsistensi
         ->get();
 
         // Ensure all frames have values for each criteria
@@ -461,18 +494,21 @@ private function hitungProfileMatching($subkriteriaUser, $bobotKriteriaUser, $to
 
         // 2. Normalize criteria weights
         $bobotKriteria = [];
-        foreach ($kriterias as $kriteria) {
-            $kriteriaId = $kriteria->kriteria_id;
-            
-            // Validate bobotKriteriaUser value
-            if (!isset($bobotKriteriaUser[$kriteriaId]) || !is_numeric($bobotKriteriaUser[$kriteriaId])) {
-                // Fallback to default weight if not set or invalid
-                $bobotKriteria[$kriteriaId] = $kriteria->bobot_kriteria / 100;
-            } else {
-                // Normalize: weight value divided by total weight
-                $bobotKriteria[$kriteriaId] = $bobotKriteriaUser[$kriteriaId] / $totalBobot;
-            }
-        }
+foreach ($kriterias as $kriteria) {
+    $kriteriaId = $kriteria->kriteria_id;
+    
+    // Validate bobotKriteriaUser value
+    if (!isset($bobotKriteriaUser[$kriteriaId]) || !is_numeric($bobotKriteriaUser[$kriteriaId])) {
+        // Fallback to default weight if not set or invalid
+        $normalizedWeight = $kriteria->bobot_kriteria / 100;
+    } else {
+        // Normalize: weight value divided by total weight
+        $normalizedWeight = $bobotKriteriaUser[$kriteriaId] / $totalBobot;
+    }
+    
+    // Format ke 4 angka di belakang koma dan convert kembali ke float
+    $bobotKriteria[$kriteriaId] = (float) number_format($normalizedWeight, 4, '.', '');
+}
         
         Log::info('Normalized Weights:', $bobotKriteria);
         
@@ -544,34 +580,39 @@ private function hitungProfileMatching($subkriteriaUser, $bobotKriteriaUser, $to
         Log::info('GAP Values:', $gapValues);
         Log::info('GAP Weights:', $gapBobot);
         
-        // 4. Implement SMART ranking method
+        // 4. Implement SMART ranking method - FIXED VERSION
         $finalScores = [];
-        
         foreach ($frames as $frame) {
             $frameId = $frame->frame_id;
-            $finalScores[$frameId] = 0;
+            $calculations = []; // Simpan setiap perhitungan detail
             
             foreach ($kriterias as $kriteria) {
                 $kriteriaId = $kriteria->kriteria_id;
-                
-                // Multiply criteria weight by GAP weight
+
                 if (isset($bobotKriteria[$kriteriaId]) && isset($gapBobot[$frameId][$kriteriaId])) {
-                    $finalScores[$frameId] += $bobotKriteria[$kriteriaId] * $gapBobot[$frameId][$kriteriaId];
+                    // Hitung dan bulatkan per item seperti di tampilan
+                    $calculation = $bobotKriteria[$kriteriaId] * $gapBobot[$frameId][$kriteriaId];
+                    $calculations[] = round($calculation, 4);
                 }
             }
+            
+            // Jumlahkan hasil yang sudah dibulatkan
+            $finalScores[$frameId] = round(array_sum($calculations), 4);
         }
         
-        Log::info('Final Scores:', $finalScores);
-        
         // 5. Create two collections of frames
-        // A. Sortir semua frames berdasarkan score (untuk hasil perangkingan)
-        $sortedFrames = $frames->sortByDesc(function ($frame) use ($finalScores) {
-            return $finalScores[$frame->frame_id] ?? 0;
-        });
+        // A. Sortir frames berdasarkan score (DESC), jika sama maka berdasarkan created_at (ASC - yang lebih dahulu ditambahkan)
+        $sortedFrames = $frames->map(function($frame) use ($finalScores) {
+            $frame->calculated_score = round((float)($finalScores[$frame->frame_id] ?? 0), 4);
+            return $frame;
+        })
+        ->sortBy('created_at')           // Step 1: Sort by created_at ASC (yang lama di atas)
+        ->sortByDesc('calculated_score') // Step 2: Sort by score DESC (yang tinggi di atas), stable sort
+        ->values();                      // Reset array keys
         
-        // B. Koleksi kedua dengan urutan asli berdasarkan frame_id untuk tabel detail perhitungan
-        $orderedFrames = $frames->sortBy('frame_id');
-
+        // B. Koleksi kedua dengan urutan asli berdasarkan created_at untuk tabel detail perhitungan
+        $orderedFrames = $frames->sortBy('created_at')->values(); // Reset array keys
+        
         // 6. Map data for the view
         $mapFrameData = function ($collection) use ($finalScores, $gapValues, $gapBobot, $subkriteriaUser, $kriterias, $bestSubkriteria) {
             return $collection->map(function ($frame) use ($finalScores, $gapValues, $gapBobot, $subkriteriaUser, $kriterias, $bestSubkriteria) {
@@ -598,18 +639,18 @@ private function hitungProfileMatching($subkriteriaUser, $bobotKriteriaUser, $to
                 
                 return [
                     'frame' => $frame,
-                    'score' => round((float)($finalScores[$frameId] ?? 0), 2),
+                    'score' => round((float)($finalScores[$frameId] ?? 0), 4), // Changed from 2 to 4 decimal places
                     'gap_values' => $gapValues[$frameId] ?? [],
                     'gap_bobot' => $gapBobot[$frameId] ?? [],
                     'details' => $details,
                 ];
-            })->values();
+            })->values(); // Reset array keys
         };
-
+        
         // Collect all required data
         return [
-            'rekomendasi' => $mapFrameData($sortedFrames),  // Untuk hasil perangkingan
-            'orderedRekomendasi' => $mapFrameData($orderedFrames),  // Untuk tabel detail perhitungan (berdasarkan frame_id)
+            'rekomendasi' => $mapFrameData($sortedFrames),  // Untuk hasil perangkingan (berdasarkan score, lalu created_at)
+            'orderedRekomendasi' => $mapFrameData($orderedFrames),  // Untuk tabel detail perhitungan (berdasarkan created_at)
             'kriterias' => $kriterias,
             'bobotKriteria' => $bobotKriteria,
             'totalBobot' => $totalBobot,

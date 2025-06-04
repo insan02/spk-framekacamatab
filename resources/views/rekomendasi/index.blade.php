@@ -59,13 +59,15 @@
                                 @endphp
                                 @if($topRekomendasi)
                                     <div class="d-flex flex-column align-items-start">
-                                        @if(isset($topRekomendasi['frame']['frame_foto']))
-                                            <img src="{{ asset('storage/'.$topRekomendasi['frame']['frame_foto']) }}" 
-                                                 alt="{{ $topRekomendasi['frame']['frame_merek'] }}" 
-                                                 class="img-thumbnail mb-2" 
-                                                 style="max-width: 200px; max-height: 100px;">
+                                       @if(isset($topRekomendasi['frame']['frame_foto']))
+                                            <img src="{{ asset('storage/' . $topRekomendasi['frame']['frame_foto']) }}" 
+                                                alt="{{ $topRekomendasi['frame']['frame_merek'] ?? 'Frame Image' }}" 
+                                                class="img-thumbnail mb-2" 
+                                                style="max-width: 200px; max-height: 100px;"
+                                                onerror="this.style.display='none';">
                                         @endif
                                         <div class="small text-secondary">
+                                            <div><span class="text-dark">ID:</span> {{ $topRekomendasi['frame']['frame_id'] ?? '-' }}</div>
                                             <div><span class="text-dark">Merek:</span> {{ $topRekomendasi['frame']['frame_merek'] ?? '-' }}</div>
                                             <div><span class="text-dark">Lokasi:</span> {{ $topRekomendasi['frame']['frame_lokasi'] ?? '-' }}</div>
                                             <div><span class="text-dark">Skor:</span> {{ number_format($topRekomendasi['score'] ?? 0, 4) }}</div>

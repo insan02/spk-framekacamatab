@@ -80,36 +80,35 @@
                     </h4>
                 </div>
                 <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-12">
-                            <h5>Bobot Kriteria</h5>
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Kriteria</th>
-                                        <th>Bobot Awal</th>
-                                        <th>Bobot Normalisasi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($perhitungan['kriterias'] as $kriteria)
-                                    <tr>
-                                        <td>{{ $kriteria->kriteria_nama }}</td>
-                                        <td>{{ $perhitungan['bobotKriteriaUser'][$kriteria->kriteria_id] }}</td>
-                                        <td>
-                                            {{ number_format($perhitungan['bobotKriteria'][$kriteria->kriteria_id], 4) }}
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                            <div class="alert alert-info">
-                                <strong>Total Bobot Normalisasi:</strong> 
-                                {{ number_format(array_sum($perhitungan['bobotKriteria']), 4) }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <div class="row g-3">
+        <div class="col-md-12">
+            <h5>Bobot Kriteria</h5>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Kriteria</th>
+                        <th>Bobot Awal</th>
+                        <th>Bobot Normalisasi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($perhitungan['kriterias'] as $kriteria)
+                    <tr>
+                        <td>{{ $kriteria->kriteria_nama }}</td>
+                        <td>{{ $perhitungan['bobotKriteriaUser'][$kriteria->kriteria_id] }}</td>
+                        <td>
+                            {{ $perhitungan['bobotKriteria'][$kriteria->kriteria_id] }}
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            <div class="alert alert-info">
+                <strong>Total Bobot Normalisasi: 1</strong> 
+            </div>
+        </div>
+    </div>
+</div>
             </div>
         </div>
     </div>
@@ -158,11 +157,27 @@
                                 <tr>
                                     <td>{{ $frame['frame']->frame_merek }}</td>
                                     <td>
-                                        @if($frame['frame']->frame_foto)
-                                            <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
-                                                 alt="{{ $frame['frame']->frame_merek }}" 
-                                                 class="img-thumbnail" 
-                                                 style="max-width: 100px; max-height: 60px;">
+                                        @php
+                                            // Handle different data structures
+                                            $framePhoto = null;
+                                            if (isset($frame['frame']) && is_object($frame['frame'])) {
+                                                // Object structure (normal frame data)
+                                                $framePhoto = $frame['frame']->frame_foto;
+                                                $frameMerek = $frame['frame']->frame_merek ?? 'Frame';
+                                            } elseif (isset($frame['frame']) && is_array($frame['frame'])) {
+                                                // Array structure (processed data from processImageFiles)
+                                                $framePhoto = $frame['frame']['frame_foto'] ?? null;
+                                                $frameMerek = $frame['frame']['frame_merek'] ?? 'Frame';
+                                            }
+                                        @endphp
+                                        
+                                        @if($framePhoto)
+                                            <img src="{{ asset('storage/'.$framePhoto) }}" 
+                                                alt="{{ $frameMerek }}" 
+                                                class="img-thumbnail" 
+                                                style="max-width: 100px; max-height: 60px;"
+                                                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                            <div class="text-muted text-center" style="display: none;">Image Not Found</div>
                                         @else
                                             <div class="text-muted text-center">No Image</div>
                                         @endif
@@ -224,11 +239,24 @@
                                 <tr>
                                     <td>{{ $frame['frame']->frame_merek }}</td>
                                     <td>
-                                        @if($frame['frame']->frame_foto)
-                                            <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
-                                                 alt="{{ $frame['frame']->frame_merek }}" 
-                                                 class="img-thumbnail" 
-                                                 style="max-width: 100px; max-height: 60px;">
+                                        @php
+                                            $framePhoto = null;
+                                            if (isset($frame['frame']) && is_object($frame['frame'])) {
+                                                $framePhoto = $frame['frame']->frame_foto;
+                                                $frameMerek = $frame['frame']->frame_merek ?? 'Frame';
+                                            } elseif (isset($frame['frame']) && is_array($frame['frame'])) {
+                                                $framePhoto = $frame['frame']['frame_foto'] ?? null;
+                                                $frameMerek = $frame['frame']['frame_merek'] ?? 'Frame';
+                                            }
+                                        @endphp
+                                        
+                                        @if($framePhoto)
+                                            <img src="{{ asset('storage/'.$framePhoto) }}" 
+                                                alt="{{ $frameMerek }}" 
+                                                class="img-thumbnail" 
+                                                style="max-width: 100px; max-height: 60px;"
+                                                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                            <div class="text-muted text-center" style="display: none;">Image Not Found</div>
                                         @else
                                             <div class="text-muted text-center">No Image</div>
                                         @endif
@@ -302,11 +330,24 @@
                                 <tr>
                                     <td>{{ $frame['frame']->frame_merek }}</td> 
                                     <td>
-                                        @if($frame['frame']->frame_foto)
-                                            <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
-                                                 alt="{{ $frame['frame']->frame_merek }}" 
-                                                 class="img-thumbnail" 
-                                                 style="max-width: 100px; max-height: 60px;">
+                                        @php
+                                            $framePhoto = null;
+                                            if (isset($frame['frame']) && is_object($frame['frame'])) {
+                                                $framePhoto = $frame['frame']->frame_foto;
+                                                $frameMerek = $frame['frame']->frame_merek ?? 'Frame';
+                                            } elseif (isset($frame['frame']) && is_array($frame['frame'])) {
+                                                $framePhoto = $frame['frame']['frame_foto'] ?? null;
+                                                $frameMerek = $frame['frame']['frame_merek'] ?? 'Frame';
+                                            }
+                                        @endphp
+                                        
+                                        @if($framePhoto)
+                                            <img src="{{ asset('storage/'.$framePhoto) }}" 
+                                                alt="{{ $frameMerek }}" 
+                                                class="img-thumbnail" 
+                                                style="max-width: 100px; max-height: 60px;"
+                                                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                            <div class="text-muted text-center" style="display: none;">Image Not Found</div>
                                         @else
                                             <div class="text-muted text-center">No Image</div>
                                         @endif
@@ -329,7 +370,7 @@
                 <div class="tab-pane fade" id="nilaiAkhir" role="tabpanel">
                     <div class="alert alert-info mt-3">
                         <i class="fas fa-info-circle me-2"></i>
-                        <strong>Perangkingan dengan Rumus SMART:</strong>Nilai konversi GAP X Normalisasi Kriteria, kemudian dijumlahkan untuk mendapatkan skor akhir.
+                        <strong>Perangkingan dengan Rumus SMART:</strong> Nilai konversi GAP X Normalisasi Kriteria, kemudian dijumlahkan untuk mendapatkan skor akhir.
                     </div>
                     <div class="table-responsive">
                         <table id="nilaiAkhirSMARTTable" class="table table-striped table-hover">
@@ -348,34 +389,48 @@
                                 <tr>
                                     <td>{{ $frame['frame']->frame_merek }}</td>
                                     <td>
-                                        @if($frame['frame']->frame_foto)
-                                            <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
-                                                alt="{{ $frame['frame']->frame_merek }}" 
+                                        @php
+                                            $framePhoto = null;
+                                            if (isset($frame['frame']) && is_object($frame['frame'])) {
+                                                $framePhoto = $frame['frame']->frame_foto;
+                                                $frameMerek = $frame['frame']->frame_merek ?? 'Frame';
+                                            } elseif (isset($frame['frame']) && is_array($frame['frame'])) {
+                                                $framePhoto = $frame['frame']['frame_foto'] ?? null;
+                                                $frameMerek = $frame['frame']['frame_merek'] ?? 'Frame';
+                                            }
+                                        @endphp
+
+                                        @if($framePhoto)
+                                            <img src="{{ asset('storage/'.$framePhoto) }}" 
+                                                alt="{{ $frameMerek }}" 
                                                 class="img-thumbnail" 
-                                                style="max-width: 100px; max-height: 60px;">
+                                                style="max-width: 100px; max-height: 60px;"
+                                                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                            <div class="text-muted text-center" style="display: none;">Image Not Found</div>
                                         @else
                                             <div class="text-muted text-center">No Image</div>
                                         @endif
                                     </td>
                                     @foreach($perhitungan['kriterias'] as $kriteria)
                                     <td>
-                                        <div class="small">{{ number_format($perhitungan['bobotKriteria'][$kriteria->kriteria_id], 4) }} × {{ $frame['gap_bobot'][$kriteria->kriteria_id] }} =</div>
-                                        <div class="fw-bold">
-                                            {{ number_format(
-                                                $perhitungan['bobotKriteria'][$kriteria->kriteria_id] * 
-                                                $frame['gap_bobot'][$kriteria->kriteria_id], 
-                                                4
-                                            ) }}
-                                        </div>
-                                    </td>
-                                    @endforeach
-                                    <td><strong>{{ $frame['score'] }}</strong></td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                        @php
+                                            $normalizedWeight = $perhitungan['bobotKriteria'][$kriteria->kriteria_id];
+                                            $gapWeight = $frame['gap_bobot'][$kriteria->kriteria_id];
+                                            $result = round($normalizedWeight * $gapWeight, 4); // Bulatkan setiap hasil
+                                        @endphp
+                                                <div class="small">{{ $normalizedWeight }} × {{ $gapWeight }} =</div>
+                                                <div class="fw-bold">
+                                                    {{ number_format($result, 4) }}
+                                                </div>
+                                            </td>
+                                            @endforeach
+                                            <td><strong>{{ number_format($frame['score'], 4) }}</strong></td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
 
                 {{-- 5. Hasil Perangkingan Tab (menggunakan rekomendasi yang sudah diurutkan berdasarkan skor) --}}
                 <div class="tab-pane fade show active" id="hasilPerangkingan" role="tabpanel">
@@ -396,11 +451,24 @@
                                 <tr>
                                     <td class="text-center fw-bold">{{ $index + 1 }}</td>
                                     <td>
-                                        @if($frame['frame']->frame_foto)
-                                            <img src="{{ asset('storage/'.$frame['frame']->frame_foto) }}" 
-                                                alt="{{ $frame['frame']->frame_merek }}" 
+                                        @php
+                                            $framePhoto = null;
+                                            if (isset($frame['frame']) && is_object($frame['frame'])) {
+                                                $framePhoto = $frame['frame']->frame_foto;
+                                                $frameMerek = $frame['frame']->frame_merek ?? 'Frame';
+                                            } elseif (isset($frame['frame']) && is_array($frame['frame'])) {
+                                                $framePhoto = $frame['frame']['frame_foto'] ?? null;
+                                                $frameMerek = $frame['frame']['frame_merek'] ?? 'Frame';
+                                            }
+                                        @endphp
+                                        
+                                        @if($framePhoto)
+                                            <img src="{{ asset('storage/'.$framePhoto) }}" 
+                                                alt="{{ $frameMerek }}" 
                                                 class="img-thumbnail" 
-                                                style="max-width: 180px; max-height: 90px;">
+                                                style="max-width: 180px; max-height: 90px;"
+                                                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                            <div class="text-muted text-center" style="display: none;">Image Not Found</div>
                                         @else
                                             <div class="text-muted text-center">No Image</div>
                                         @endif

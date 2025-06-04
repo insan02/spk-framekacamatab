@@ -183,6 +183,7 @@
                                              style="max-width: 200px; max-height: 100px;">
                                     @endif
                                     <div class="small text-secondary">
+                                        <div><span class="text-dark">ID:</span> {{ $topRekomendasi['frame']['frame_id'] ?? '-' }}</div>
                                         <div><span class="text-dark">Merek:</span> {{ $topRekomendasi['frame']['frame_merek'] ?? '-' }}</div>
                                         <div><span class="text-dark">Lokasi:</span> {{ $topRekomendasi['frame']['frame_lokasi'] ?? '-' }}</div>
                                         <div><span class="text-dark">Skor:</span> {{ number_format($topRekomendasi['score'] ?? 0, 4) }}</div>
