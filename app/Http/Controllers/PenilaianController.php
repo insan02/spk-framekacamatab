@@ -462,24 +462,14 @@ private function prepareKriteriaDipilih($subkriteriaData)
 }
 private function hitungProfileMatching($subkriteriaUser, $bobotKriteriaUser, $totalBobot)
 {
-    // Validate inputs
-    if (!$totalBobot || $totalBobot <= 0) {
-        throw new \Exception("Total bobot harus lebih dari nol");
-    }
-    
-    // Log input data
-    Log::info('User Subkriteria Selection:', $subkriteriaUser);
-    Log::info('User Bobot Kriteria (Raw):', $bobotKriteriaUser);
-    Log::info('Total Bobot:', ['value' => $totalBobot]);
-    
-    try {
+        try {
         // 1. Get all criteria and frames data
         $kriterias = Kriteria::with('subkriterias')->get();
         $frames = Frame::with(['frameSubkriterias' => function($query) use ($kriterias) {
             $query->whereIn('kriteria_id', $kriterias->pluck('kriteria_id'))
                   ->with('subkriteria');
         }])
-        ->orderBy('created_at', 'asc') // Urutkan berdasarkan created_at untuk konsistensi
+        ->orderBy('created_at', 'asc') 
         ->get();
 
         // Ensure all frames have values for each criteria
@@ -494,21 +484,19 @@ private function hitungProfileMatching($subkriteriaUser, $bobotKriteriaUser, $to
 
         // 2. Normalize criteria weights
         $bobotKriteria = [];
-foreach ($kriterias as $kriteria) {
-    $kriteriaId = $kriteria->kriteria_id;
-    
-    // Validate bobotKriteriaUser value
-    if (!isset($bobotKriteriaUser[$kriteriaId]) || !is_numeric($bobotKriteriaUser[$kriteriaId])) {
-        // Fallback to default weight if not set or invalid
-        $normalizedWeight = $kriteria->bobot_kriteria / 100;
-    } else {
-        // Normalize: weight value divided by total weight
-        $normalizedWeight = $bobotKriteriaUser[$kriteriaId] / $totalBobot;
-    }
-    
-    // Format ke 4 angka di belakang koma dan convert kembali ke float
-    $bobotKriteria[$kriteriaId] = (float) number_format($normalizedWeight, 4, '.', '');
-}
+        foreach ($kriterias as $kriteria) {
+            $kriteriaId = $kriteria->kriteria_id;
+            
+            // Validate bobotKriteriaUser value
+            if (!isset($bobotKriteriaUser[$kriteriaId]) || !is_numeric($bobotKriteriaUser[$kriteriaId])) {
+                $normalizedWeight = $kriteria->bobot_kriteria / 100;
+            } else {
+                $normalizedWeight = $bobotKriteriaUser[$kriteriaId] / $totalBobot;
+            }
+            
+            // Format ke 4 angka di belakang koma dan convert kembali ke float
+            $bobotKriteria[$kriteriaId] = (float) number_format($normalizedWeight, 4, '.', '');
+        }
         
         Log::info('Normalized Weights:', $bobotKriteria);
         
@@ -540,9 +528,8 @@ foreach ($kriterias as $kriteria) {
                     throw new \Exception("Bobot untuk subkriteria user '{$userSubkriteria->subkriteria_nama}' tidak valid");
                 }
                 
-                // Select the best subcriteria for this frame and criteria
-                $bestGapBobot = -1; // Initialize with lowest possible value
-                $bestGap = PHP_INT_MAX; // Initialize with a large number instead of null
+                $bestGapBobot = -1;
+                $bestGap = PHP_INT_MAX;
                 $selected = null;
                 
                 foreach ($frameSubkriterias as $frameSubkriteria) {
@@ -584,7 +571,7 @@ foreach ($kriterias as $kriteria) {
         $finalScores = [];
         foreach ($frames as $frame) {
             $frameId = $frame->frame_id;
-            $calculations = []; // Simpan setiap perhitungan detail
+            $calculations = [];
             
             foreach ($kriterias as $kriteria) {
                 $kriteriaId = $kriteria->kriteria_id;
@@ -601,17 +588,15 @@ foreach ($kriterias as $kriteria) {
         }
         
         // 5. Create two collections of frames
-        // A. Sortir frames berdasarkan score (DESC), jika sama maka berdasarkan created_at (ASC - yang lebih dahulu ditambahkan)
         $sortedFrames = $frames->map(function($frame) use ($finalScores) {
             $frame->calculated_score = round((float)($finalScores[$frame->frame_id] ?? 0), 4);
             return $frame;
         })
-        ->sortBy('created_at')           // Step 1: Sort by created_at ASC (yang lama di atas)
-        ->sortByDesc('calculated_score') // Step 2: Sort by score DESC (yang tinggi di atas), stable sort
-        ->values();                      // Reset array keys
+        ->sortBy('created_at')           
+        ->sortByDesc('calculated_score') 
+        ->values();                     
         
-        // B. Koleksi kedua dengan urutan asli berdasarkan created_at untuk tabel detail perhitungan
-        $orderedFrames = $frames->sortBy('created_at')->values(); // Reset array keys
+        $orderedFrames = $frames->sortBy('created_at')->values(); 
         
         // 6. Map data for the view
         $mapFrameData = function ($collection) use ($finalScores, $gapValues, $gapBobot, $subkriteriaUser, $kriterias, $bestSubkriteria) {
@@ -639,7 +624,7 @@ foreach ($kriterias as $kriteria) {
                 
                 return [
                     'frame' => $frame,
-                    'score' => round((float)($finalScores[$frameId] ?? 0), 4), // Changed from 2 to 4 decimal places
+                    'score' => round((float)($finalScores[$frameId] ?? 0), 4), 
                     'gap_values' => $gapValues[$frameId] ?? [],
                     'gap_bobot' => $gapBobot[$frameId] ?? [],
                     'details' => $details,
@@ -649,8 +634,8 @@ foreach ($kriterias as $kriteria) {
         
         // Collect all required data
         return [
-            'rekomendasi' => $mapFrameData($sortedFrames),  // Untuk hasil perangkingan (berdasarkan score, lalu created_at)
-            'orderedRekomendasi' => $mapFrameData($orderedFrames),  // Untuk tabel detail perhitungan (berdasarkan created_at)
+            'rekomendasi' => $mapFrameData($sortedFrames),  
+            'orderedRekomendasi' => $mapFrameData($orderedFrames), 
             'kriterias' => $kriterias,
             'bobotKriteria' => $bobotKriteria,
             'totalBobot' => $totalBobot,
