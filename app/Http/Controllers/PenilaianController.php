@@ -487,12 +487,8 @@ private function hitungProfileMatching($subkriteriaUser, $bobotKriteriaUser, $to
         foreach ($kriterias as $kriteria) {
             $kriteriaId = $kriteria->kriteria_id;
             
-            // Validate bobotKriteriaUser value
-            if (!isset($bobotKriteriaUser[$kriteriaId]) || !is_numeric($bobotKriteriaUser[$kriteriaId])) {
-                $normalizedWeight = $kriteria->bobot_kriteria / 100;
-            } else {
-                $normalizedWeight = $bobotKriteriaUser[$kriteriaId] / $totalBobot;
-            }
+            // Langsung gunakan bobot user tanpa fallback
+            $normalizedWeight = $bobotKriteriaUser[$kriteriaId] / $totalBobot;
             
             // Format ke 4 angka di belakang koma dan convert kembali ke float
             $bobotKriteria[$kriteriaId] = (float) number_format($normalizedWeight, 4, '.', '');
