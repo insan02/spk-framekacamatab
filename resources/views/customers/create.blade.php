@@ -23,7 +23,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="phone" class="form-label">No. HP</label>
-                        <input type="tel" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone') }}" pattern="[0-9]{11,15}" minlength="11" maxlength="15" title="Kisaran No.HP 11-15 digit" oninput="this.value = this.value.replace(/[^0-9]/g, '')" placeholder="08XXXXXXXXXX" required>
+                        <input type="tel" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone') }}" pattern="[0-9]{12,13}" minlength="12" maxlength="13" title="Kisaran No.HP 12-13 digit" oninput="this.value = this.value.replace(/[^0-9]/g, '')" placeholder="08XXXXXXXXXX" required>
                         @error('phone')
                         <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

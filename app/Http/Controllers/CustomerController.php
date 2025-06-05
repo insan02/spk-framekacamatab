@@ -41,8 +41,8 @@ class CustomerController extends Controller
             'phone' => [
                 'required',
                 'string',
-                'min:11',
-                'max:15',
+                'min:12',
+                'max:13',
                 'regex:/^[0-9]+$/'
             ],
             'address' => 'required|string|max:255',
@@ -112,8 +112,8 @@ class CustomerController extends Controller
             'phone' => [
                 'required',
                 'string',
-                'min:11',
-                'max:15',
+                'min:12',
+                'max:13',
                 'regex:/^[0-9]+$/'
             ],
             'address' => 'required|string|max:255',
